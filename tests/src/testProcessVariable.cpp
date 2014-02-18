@@ -112,6 +112,15 @@ void ProcessVariableTest<T>::testCallbackFunction(){
   // turn on the callback again, we use it to check the other operators
   _processT.setOnChangeCallbackFunction( boost::bind( &ProcessVariableTest<T>::set,
 						      this, _1 ) );  
+
+  // test self assignment and same value assignment. Callback must not be triggered
+  _processT = 6;
+  BOOST_CHECK( _t == 5 );
+  BOOST_CHECK( _callbackCounter == 1 );
+  
+  _processT = _processT;
+  BOOST_CHECK( _t == 5 );
+  BOOST_CHECK( _callbackCounter == 1 );
 }
 
 template <class T>
@@ -141,6 +150,11 @@ void ProcessVariableTest<T>::testSetWithoutCallback(){
   BOOST_CHECK( _t == 8 );
   BOOST_CHECK( _callbackCounter == 3 );
   
+  // test self asignment, nothing should happen
+   _processT.setWithoutCallback( _processT );
+  BOOST_CHECK( _processT == 10 );
+  BOOST_CHECK( _t == 8 );
+  BOOST_CHECK( _callbackCounter == 3 );
 }
 
 template <class T>
