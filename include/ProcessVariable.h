@@ -55,9 +55,11 @@ class ProcessVariable{
     _t = t;
  
     // Execute the callback function instead. 
-    if (setOnChangeCallbackFunction){
+    if (_onChangeCallbackFunction){
       _onChangeCallbackFunction(_t);
     }
+
+    return *this;
   }
 
   /** Convenience function which can be stored as a function pointer 
@@ -75,6 +77,8 @@ class ProcessVariable{
     *this = t;
   }
 
+  /** Asign the content variable without triggering the callback function.
+   */
   void setWithoutCallback(ProcessVariable<T> const & other){
     // avoid self asignment
     if (this == &other){
@@ -84,20 +88,13 @@ class ProcessVariable{
     _t = other._t;
   }
 
+  /** Asign a value without triggering the callback function.
+   */
   void setWithoutCallback(T const & t){
     _t = t;
   }
 
-  // works automatically by explicit conversion, no need to write any code
-//  bool operator==(T const & t) const {
-//    return (_t==t);
-//  }
-
-  bool operator==(ProcessVariable<T> const & other) const {
-    return (_t==other._t);
-  }
- 
-  explicit operator T const & () const {
+  operator T const & () const {
     return _t;
   }
 
