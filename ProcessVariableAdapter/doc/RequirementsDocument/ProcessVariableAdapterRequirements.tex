@@ -33,6 +33,7 @@
 \newcommand{\floatingfootnotemark}{\addtocounter{footnote}{1} \footnotemark[\value{footnote}]}
 \newcommand{\floatingfootnotetext}[1]{\footnotetext[\value{footnote}]{#1}}
 
+%A \fixme command with counter. At the end of the document you can display the counter to see how many FIXMEs are left
 \newcounter{nFixmes}
 \setcounter{nFixmes}{0}
 \newcommand{\fixme}[1]{\addtocounter{nFixmes}{1}\textcolor{red}{(\includegraphics[height=2ex]{fixme} #1)}\xspace}
@@ -104,7 +105,12 @@ MTCA4U supports arrays of all supported simple data types. \fixme{How to impleme
 
 The ProcessVariable class holds an instance of the control system variable of the corresponding type. The control system usually implements a thread and locking scheme for the communication. This is the reason why ProcessVariables cannot be considered real time capable.
 
-The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariable adapter does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable.
+The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariable adapter does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable. \fixme{Should it be recommended that the business logic always use a copy of the variable and not directly use adaptor? It might be that the variable changes during a calculation if used multiple time, and it might be slow because of frequent locking/unlocking.} 
+
+The business logic has to create instances of process variables without knowing which particular implementation is needed. For this a factory pattern is used. Each variable is identified by a unique name, which is used to request creation of the variable from the factory. The actual address, under which the variable is seen from the control system, is control system specific and handled in the concrete factory. It is determined from the unique name.
+
+The ProcessVariable adapter is not thread safe. If the underlying control system variables are thread safe, then the adapter is also thread safe as it does no further caching but direcly accesses the underlying variable. But this is not guaranteed by the interface and the user has to implement a thread safe mechanism himself. MTCA4U will provide thread support as a separate tool of the Control System Tools package. \fixme{I want to prevent reinventing the wheel. Should we just use the actor pattern implemented in boost::asio? MK}
+
 
 \subsection{The ProcessVariable adapter interface features}
 \begin{itemize}
@@ -147,6 +153,9 @@ As the decision if a special channel is needed and from which size depends on th
 \subsection{The ProcessVariable factory}
 
 The factory allows the abstraction of the variable creation. Each user class which is programmed as a control system independent server is handed a reference or shared pointer of a concrete factory implementation. The factory is not implemented as a singleton pattern to allow the use of multiple factories simultaneously, for instance one for low bandwidth channels and one for high bandwidth channels (DAQ). This would allow to use the same 'out of band' factory for multiple control systems with slow, synchronous calls. For asynchronous control systems with sufficient bandwidth in the protocol the same factory would be handed to the server twice.
+
+\section{Requirements for the Control System Function Callbacks}\label{section_function_callbacks}
+\fixme{to be written}
 
 \appendix
 \section{DOOCS Variable Types}
