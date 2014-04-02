@@ -58,17 +58,17 @@
 \maketitle
 \section{Objective and Scope}
 
-MTCA4U's control system interface adaptor is intended to decouple the business logic of a server from the actual control system in use. For this it provides two functionalities:
+MTCA4U's control system interface adapter is intended to decouple the business logic of a server from the actual control system in use. For this it provides two functionalities:
 \begin{enumerate}
-  \item Control System Variable adaptors
+  \item Control System Variable adapters
   \item Function callbacks to react on control system interrupts
 \end{enumerate}
 
-\subsection{Control System Variable adaptors}
+\subsection{Control System Variable adapters}
 
-The control system variable adaptor is a thin layer which provides a standardised interface to access the variable content, but not to control system functionality. In other words, a control system variable that holds a signed 32 bit integer can be accessed as 32 bit integer from the business logic, but a variable history, which might be provided by the control system, is not accessible. The history is, however, accessible via the control system. Like this no control system functionality has to be abstracted or duplicated/implemented if not available on certain control systems.
+The control system variable adapter is a thin layer which provides a standardised interface to access the variable content, but not to control system functionality. In other words, a control system variable that holds a signed 32 bit integer can be accessed as 32 bit integer from the business logic, but a variable history, which might be provided by the control system, is not accessible. The history is, however, accessible via the control system. Like this no control system functionality has to be abstracted or duplicated/implemented if not available on certain control systems.
 
-The only exception is a list of callback functions which can be registered as actions to be taken when the variable is changed. This is needed to allow the synchronisation with the control system. The business logic can chose between a set()-function which only informs the control system, or a set()-function which also triggers the callbacks. When the variable is changed by the control system, the callbacks are always triggered. A more detailed explanation of the variable adaptor can be found in the section~\ref{section_process_variable_adapter}.
+The only exception is a list of callback functions which can be registered as actions to be taken when the variable is changed. This is needed to allow the synchronisation with the control system. The business logic can chose between a set()-function which only informs the control system, or a set()-function which also triggers the callbacks. When the variable is changed by the control system, the callbacks are always triggered. A more detailed explanation of the variable adapter can be found in the section~\ref{section_process_variable_adapter}.
 
 \subsection{Control System Callback Function}
 
@@ -82,7 +82,7 @@ For easy interactive testing it would be nice to have a python interface to the 
 
 \subsection{Simple Data Types}
 
-The control system interface adaptor supports ProcessVariable interface adaptors for the following simple data types\\[2ex]
+The control system interface adapter supports ProcessVariable interface adapters for the following simple data types\\[2ex]
 \begin{tabular}{rrrrr}
 float & int8 & int16 & int32 & int64\\
 double & uint8 & uint16 & uint32 & uint64 \\
@@ -100,13 +100,13 @@ Depending on the control system implementation the string might have limited len
 
 MTCA4U supports arrays of all supported simple data types. \fixme{How to implement 64 bit integers if not supported by the CS?}
 
-\section{Requirements for the ProcessVariable Adaptor}\label{section_process_variable_adapter}
+\section{Requirements for the ProcessVariable Adapter}\label{section_process_variable_adapter}
 
 The ProcessVariable class holds an instance of the control system variable of the corresponding type. The control system usually implements a thread and locking scheme for the communication. This is the reason why ProcessVariables cannot be considered real time capable.
 
-The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariable adaptor does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable.
+The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariable adapter does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable.
 
-\subsection{The ProcessVariable adaptor interface features}
+\subsection{The ProcessVariable adapter interface features}
 \begin{itemize}
 \item a get() method
 \item a set() method which triggers the callback functions
@@ -151,7 +151,7 @@ The factory allows the abstraction of the variable creation. Each user class whi
 \appendix
 \section{DOOCS Variable Types}
 
-Directly supported by the control system adaptor in bold
+Directly supported by the control system adapter in bold
 \begin{multicols}{3}
 \noindent D\_name \\
 \textbf{D\_float}\\
