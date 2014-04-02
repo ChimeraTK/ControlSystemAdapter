@@ -58,7 +58,7 @@
 \maketitle
 \section{Objective and Scope}
 
-MTCA4U's control system interface ataptor is intended to decouple the business logic of a server from the actual control system in use. For this it provides two functionalities:
+MTCA4U's control system interface adaptor is intended to decouple the business logic of a server from the actual control system in use. For this it provides two functionalities:
 \begin{enumerate}
   \item Control System Variable adaptors
   \item Function callbacks to react on control system interrupts
@@ -72,7 +72,7 @@ The only exception is a list of callback functions which can be registered as ac
 
 \subsection{Control System Callback Function}
 
-Control systems can trigger actions on signals, user interrupts or might implement events which represent an action which is not coupled to a process variable. The control system adapter implements an interface so the business logic can define functions to be executed, and the control system dependent code implements how the particular function is triggered by the specific control system.
+Control systems can trigger actions on signals, user interrupts or might implement events which represent an action which is not coupled to a process variable. The control system ad apter implements an interface so the business logic can define functions to be executed, and the control system dependent code implements how the particular function is triggered by the specific control system.
 
 \subsection{Python interface}
 
@@ -104,7 +104,7 @@ MTCA4U supports arrays of all supported simple data types. \fixme{How to impleme
 
 The ProcessVariable class holds an instance of the control system variable of the corresponding type. The control system usually implements a thread and locking scheme for the communication. This is the reason why ProcessVariables cannot be considered real time capable.
 
-The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariabe adaptor does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable.
+The business logic, however, will probably have a real time thread. For this reason it cannot be avoided to do one copy: From the lock-free variable used in the business logic into the control system variable. To avoid additional copying the ProcessVariable adaptor does not contain an instance of the basic data type (or array), but accessors directly work with the control system variable.
 
 \subsection{The ProcessVariable adaptor interface features}
 \begin{itemize}
@@ -113,7 +113,7 @@ The business logic, however, will probably have a real time thread. For this rea
 \item a list of callback functions which are executed if the variable contents changed
 \item a set() method which does not trigger the callback functions. Like this it is possible the execute the callback functions only when the variable content is changed externally (from the control system), but update the variable from inside the business logic to inform the control system about the new value without triggering the callbacks.
   \fixme{Do we want a second list of callbacks for this?}
-\item an assignment operator (for convenience, like set operator with callback) \fixme{whitout callback?} \fixme{This will probably only possible with an additional copy}
+\item an assignment operator (for convenience, like set operator with callback) \fixme{without callback?} \fixme{This will probably only possible with an additional copy}
 \item a const implicit conversion operator \fixme{Do we really need this? Business logic will use internal variables only. But how about simple, synchronous I/O servers?}
 \end{itemize}
 
@@ -128,9 +128,9 @@ The business logic, however, will probably have a real time thread. For this rea
 \subsection{Implementation details}
 
 \begin{itemize}
-\item Process variables are not copy-constructible as they have to be registered with a unique name. They have a private copy contructor.
+\item Process variables are not copy-constructable as they have to be registered with a unique name. They have a private copy constructor.
 \item The constructor is also private. Construction is done with a factory. The construction call takes a programme-wide unique name to identify the variable. With this the factory will be able to determine the required information to create the control system variable from a config file or data base.
-N.B. Making the contructor private disables the possibility that the user writes control-system dependent code.
+N.B. Making the constructor private disables the possibility that the user writes control-system dependent code.
 \fixme{This require the factory to be friend in order to access the constructor. Not so nice, but I don't see away around it which does not allow the user to write control system dependent code}
 \item \fixme{Do we allow arrays to change size?}
 \item Call back functions can be unregistered.
@@ -211,12 +211,12 @@ Not supported by DOOCS:
 \end{itemize}
 The same for arrays.
 
-\fixme{What is the difference between array and spectrum, except for some plottong meta information? How do we get a spectrum as currently used out of an array in the automated DOOCS dependent code (decide when to use array, when to use spectrum)?}
+\fixme{What is the difference between array and spectrum, except for some plotting meta information? How do we get a spectrum as currently used out of an array in the automated DOOCS dependent code (decide when to use array, when to use spectrum)?}
 
 \section{EPICS Variable Types}
 \fixme{Put list of EPICS variables here}
 
 \section{FIXMEs}
-Number of remainig FIXMEs: \arabic{nFixmes}
+Number of remaining FIXMEs: \arabic{nFixmes}
 
 \end{document}
