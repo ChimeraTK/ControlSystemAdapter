@@ -367,8 +367,23 @@ The same for arrays.
   when to use spectrum)?}
 
 \section{EPICS Variable Types}
-\fixme{Put list of EPICS variables here}
-Epic strings are limited to 40 characters.
+Directly supported by the control system adapter in bold
+\begin{multicols}{3}
+\noindent \textbf{DBF\_STRING}\\
+\textbf{DBF\_INT}\\
+\textbf{DBF\_SHORT}\\
+\textbf{DBF\_FLOAT}\\
+DBF\_ENUM\\
+\textbf{DBF\_CHAR}\\
+\textbf{DBF\_LONG}\\
+\textbf{DBF\_DOUBLE}
+\end{multicols}
+
+Unsigned integer types are not fully supported, therefore the corresponding
+signed type should be used and interpreted as unsigned. DBF\_STRING is
+limited to 40 characters including the terminating null byte (so 39
+characters effective size). Fixed-size arrays of all listed data-types
+are also supported.
 
 \section{FIXMEs}
 Number of remaining FIXMEs: \arabic{nFixmes}
