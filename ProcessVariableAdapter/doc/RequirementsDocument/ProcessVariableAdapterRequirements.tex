@@ -40,6 +40,9 @@
 
 %file with the svn revision, generated using svnversion
 \input{svnrevision.tex}
+\usepackage{draftwatermark}
+\SetWatermarkScale{3}
+\SetWatermarkText{DRAFT \svnshortrev}
 
 \title{Requirement for the MTCA4U Process Variable Adapter}
 \date{\svnrevision\\ PDF build \today}
@@ -78,8 +81,8 @@ system, is not accessible. The history is, however, accessible via the control
 system. Like this, no control system functionality has to be abstracted or
 duplicated/implemented if not available on certain control systems. 
 
-The only exception is a list of callback functions which can be registered as
-actions to be taken when the variable is changed. This is needed to allow the
+The only exception are two lists of callback functions which can be registered as
+actions to be taken when the variable is changed or read. This is needed to allow the
 synchronisation with the control system. The business logic can choose between
 a set()-function which only informs the control system, or a set()-function
 which also triggers the callbacks. When the variable is changed by the control
@@ -110,19 +113,18 @@ also be used to implement tests.
 The control system interface adapter supports ProcessVariable interface
 adapters for the following simple data types\\[2ex] 
 \begin{tabular}{rrrrr}
-float & int8 & int16 & int32 & int64\\
-double & uint8 & uint16 & uint32 & uint64 \\
+float & int8 & int16 & int32\\
+double & uint8 & uint16 & uint32\\
 string\\[2ex]
 \end{tabular}
 
 It is assumed that float, double, 16 bit integer and 32 bit integer are
-supported by all control systems \fixme{Check at least with DOOCS and
-  EPICS}. In case the short integers are not supported, the next larger
+supported by most control systems.
+In case the short integers are not supported, the next larger
 integer with range limitation is used. If no range limitations are available
 in the control system, the maximum allowed integer for the shorter type is set
-and reported back to the control system. In case 64 bit integers are not
-supported two 32 bit integers are used. \fixme{How to encode signed int64?
-  Alternative solution: MTCA4U does not support 64 bit integers} 
+and reported back to the control system. 64 bit integers are currently not supported 
+by the process variable adapter. They might be added later.
 Control system specific data types are not supported.
 
 \subsection{Strings}
@@ -138,7 +140,7 @@ rather than the server terminating with an exception.
 
 \subsection{Arrays}
 
-MTCA4U supports arrays of all supported simple data types. \fixme{How to implement 64 bit integers if not supported by the CS?}
+MTCA4U supports arrays of all supported simple data types.
 
 \section{Requirements for the ProcessVariable Adapter}\label{section_process_variable_adapter}
 
@@ -170,28 +172,30 @@ does no further caching but directly accesses the underlying variable. But this
 is not guaranteed by the interface and the user has to implement a thread safe
 mechanism himself. MTCA4U will provide thread support as a separate tool of
 the Control System Tools package, probably implementing an actor pattern.
- \fixme{I want to prevent reinventing the
-  wheel. Should we just use the actor pattern implemented in boost::asio? MK} 
-
 
 \subsection{The ProcessVariable adapter interface features}
 \begin{itemize}
-\item a get() method
-\item a set() method which triggers the callback functions
+\item a get() method. It allows to register a callback function which is executed before
+  the variable content is returned. \fixme(Do we need a get function which does not trigger the callback?)
+\item a set() method which triggers the ``on set'' callback functions
 \item a list of callback functions which are executed if the variable contents
-  changed
+  changed \fixme{Do we really need a list of calback functions? If the user needs more than
+    one he can write a function which calls them and register this single function.)
 \item a set() method which does not trigger the callback functions. Like this
   it is possible the execute the callback functions only when the variable
   content is changed externally (from the control system), but update the
   variable from inside the business logic to inform the control system about
   the new value without triggering the callbacks. 
-  \fixme{Do we want a second list of callbacks for this?}
+  \fixme{Do we want a second list of callbacks for this? MK: This is an implementation
+  detail of the adapter. DOOCS does not need it, other might have it. It's not part of the interface.}
 \item an assignment operator (for convenience, like set operator with
-  callback) \fixme{without callback?}
-  \fixme{This will probably only possible with an additional copy} 
-\item a const implicit conversion operator \fixme{Do we really need this?
+  callback) \fixme{without callback? MK, no without triggering the callback, but with 
+  ``notifying'' the CS (whatever that means)}
+  \fixme{This will probably only possible with an additional copy. MK: No, it's an operator which works by reference. Not more copying than using the set().} 
+\item a const implicit conversion operator. \fixme{Do we really need this?
   Business logic will use internal variables only. But how about simple,
-  synchronous I/O servers?} 
+  synchronous I/O servers?}  This operator does not trigger the ``on get'' callback
+  function.
 \item \fixme{Do we want range limits and engineering units?}
 \end{itemize}
 
@@ -220,11 +224,11 @@ The array has an interface compatible with a boost::array/std::array.
   file or data base.\\
 N.B. Making the constructor private disables the possibility that the user
 writes control-system dependent code. 
-\fixme{This require the factory to be friend in order to access the
-  constructor. Not so nice, but I don't see away around it which does not
-  allow the user to write control system dependent code} 
-\item \fixme{Do we allow arrays to change size?}
-\item Call back functions can be unregistered.
+\item All arrays are implemented as fixed size during run time. The size is 
+      determined at start time and the memory is allocated. It cannot be changed.
+      In case not all values of the array have been written, a value \texttt{nValidElements}
+      can be set.
+\item Callback functions can be unregistered.
 \item In case signed variables have to be implemented as unsigned in the
   control system, or vice versa, a reinterpret-cast is done in order not to
   lose information. In this case the negative range/ upper half of the dynamic
@@ -245,8 +249,8 @@ proprietary protocol. Some control systems, however, use asynchronous data
 protocols and can handle large data objects and high update rates efficiently
 (EPICS 4, Tango, Karabo, Tine(?) ).
 
-As the decision if a special channel is needed and from which size depends on
-the control system, this has to be handled in the control system specific
+As the decision whether a special channel is needed, and for which which data sizes, depends on
+the control system, this has to be handled in the control system specific2
 ProcessVariable factory. For the business logic and in the interface the
 notion of a special channel for high data rates does not exist.
 
@@ -287,7 +291,7 @@ history is available. This allows to implement to run the business logic
 stand-alone, enables full testing and even the possibility to write a GUI.
 
 Nice to have: The control system stub should also have Python bindings so PyQT
-or simple control scripts can be used, e.g. \fixme{incomplete sentence}
+or simple control scripts can be used.
 
 \section{Requirements for the Control System Function Callbacks}
 \label{section_function_callbacks}
@@ -326,7 +330,7 @@ D\_alarm \\
 D\_devinfo \\
 D\_plotinfo \\
 D\_plotinfo\_p \\
-D\_spectrum \\
+\textbf{D\_spectrum} \\
 D\_ifff \\
 D\_filter \\
 D\_dig\_filter \\
@@ -335,9 +339,9 @@ D\_xyzs \\
 D\_iiii \\
 \textbf{D\_int}\\
 D\_int\_ptr \\
-\textbf{D\_shortarray}\\
-\textbf{D\_intarray}\\
-\textbf{D\_longarray}\\
+D\_shortarray\\
+D\_intarray\\
+D\_longarray\\
 D\_call \\
 D\_alarm \\
 D\_exec \\
@@ -356,15 +360,12 @@ D\_imagec
 Not supported by DOOCS:
 \begin{itemize}
 \item int8, int16 $\rightarrow$ use int32
-\item int64 $\rightarrow$ \fixme{What to use?}
 \item uint (all sizes) $\rightarrow$ use signed int with range check
 \end{itemize}
-The same for arrays.
 
-\fixme{What is the difference between array and spectrum, except for some
-  plotting meta information? How do we get a spectrum as currently used out of
-  an array in the automated DOOCS dependent code (decide when to use array,
-  when to use spectrum)?}
+Although D\_textit{xxx}array seems like the obvious choise, it is almost never used in practice.
+Usually a D\_spectrum is used because it can directly be plotted in a panel. MTCA4U
+will follow this approach and implement arrays as D\_spectrum in the DOOCS adapter.
 
 \section{EPICS Variable Types}
 Directly supported by the control system adapter in bold
