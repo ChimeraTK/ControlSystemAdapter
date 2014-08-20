@@ -7,97 +7,88 @@ namespace mtca4u{
 
 template<class T>
 class ProcessVariable{
- protected:
-  T _t;
-  boost::function< void (T const &) > _onChangeCallbackFunction;
-
  private:
-  /** FIXME: How should the copy constructor behave?:
-   *  \li Copy everything, incl. the callback function
-   *  \li Copy only the data content and start with an empty callback function
-   *  \li No copying allowed (private, intentionally not implemented)
+  /** The copy constructor is intentionally private and not implemented.
+   *  The derrived class shall not implement a copy constructor. Like this
+   *  it is assured that a compiler error is raised if a copy constructor is
+   *  used somewhere.
    */
-  ProcessVariable( ProcessVariable const & );
+  ProcessVariable(ProcessVariable<T> const & t);
 
  public:
-  ProcessVariable(){}
-  ProcessVariable(T const & t) : _t(t){}
-
-  /** Provide a function which is called when the variable has changed.
-   *  Note the signature intentionally is 'void (T)' and not 'void (T const &)' to 
-   *  avoid variable lifetime problems.
+  /** A default constructor has to be specified if a copy constructor is specified. But why?
    */
-  void setOnChangeCallbackFunction( boost::function< void (T const &) > onChangeCallbackFunction){
-    _onChangeCallbackFunction = onChangeCallbackFunction;
-  }
+  ProcessVariable(){};
+
+  /** Register a function which is called when the set() function is executed.
+   *  The signature of this function contains the new and the old value and is
+   *  executed whenever set() is called, even if the new and the old value are the
+   *  same. Like this function can decide whether its body is executed even 
+   *  if the value has not changed.
+   */
+  virtual void setOnSetCallbackFunction( 
+     boost::function< void (T const & /*newValue*/, T const & /*oldValue*/) > onSetCallbackFunction)=0;
+
+  /** Register a function which is called when the get() function is executed.
+   */
+  virtual void setOnGetCallbackFunction( boost::function< T () > onGetCallbackFunction )=0;
   
-  void clearOnChangeCallbackFunction(){
-    _onChangeCallbackFunction.clear();
-  }
+  /** Clear the callback function for the set() method.
+   */  
+  virtual void clearOnSetCallbackFunction()=0;
+
+  /** Clear the callback function for the get() method.
+   */  
+  virtual void clearOnGetCallbackFunction()=0;
   
-  ProcessVariable<T> & operator=(ProcessVariable<T> const & other){
-    // avoid self asignment
-    if (this == &other){
-      return *this;
-    }
+  /** Assign the content of another process variable to this one.
+   *  It only assigns the variable content, but not the callback functions.
+   *  This operator behaves like setWithoutCallback() and does not trigger 
+   *  the "on set" callback function.
+   */
+  virtual ProcessVariable<T> & operator=(ProcessVariable<T> const & other)=0;
 
-    // use the type T assignment to avoid code duplication
-    return (*this = other._t);
-  }
-
-  ProcessVariable<T> & operator=(T const & t){
-    // do not trigger the callback if nothing has changed
-    if( _t == t ){
-      return *this;
-    }
-
-    // Only asign the template class, but not the callback function.
-    _t = t;
+  /** Assign the content of the template type.
+   *  It only assigns the variable content, but not the callback functions.
+   *  This operator behaves like setWithoutCallback() and does not trigger 
+   *  the "on set" callback function.
+   */
+  virtual ProcessVariable<T> & operator=(T const & t)=0;
  
-    // Execute the callback function instead. 
-    if (_onChangeCallbackFunction){
-      _onChangeCallbackFunction(_t);
-    }
-
-    return *this;
-  }
-
-  /** Convenience function which can be stored as a function pointer 
-   *  (in contrast to the asignment operator).
+  /** Set the content to that of the other process variable.
+   *  This method trigger the "on set" callback function.
    */
-  void set(ProcessVariable<T> const & other){
-    *this = other;
-  }
+  virtual void set(ProcessVariable<T> const & other)=0;
 
-  /** Not strictly needed but faster than set(ProcessVariable<T> const & other) 
-   *  called with T because there is no contructor involved.
+  /** Set the content to the content of the template type.
+   *  This method trigger the "on set" callback function.
+   */  
+  virtual void set(T const & t)=0;
+
+  /** Set the content to that of the other process variable.
+   *  This method doen not trigger any callback functions.
    */
-  void set(T const & t){
-    // use the asignment operator which also does the callback and checks for change
-    *this = t;
-  }
-
-  /** Asign the content variable without triggering the callback function.
+  virtual void setWithoutCallback(ProcessVariable<T> const & other)=0;
+  
+  /** Set the content to  to the content of the template type.
+   *  This method doen not trigger any callback functions.
    */
-  void setWithoutCallback(ProcessVariable<T> const & other){
-    // avoid self asignment
-    if (this == &other){
-      return;
-    }
-
-    _t = other._t;
-  }
-
-  /** Asign a value without triggering the callback function.
+  virtual void setWithoutCallback(T const & t)=0;
+  
+  /** FIXME: Can this always be implemented?
+   *  \code virtual operator T const & () const=0; \endcode
+   *  For the time being we use the copying version as fallback solution.
    */
-  void setWithoutCallback(T const & t){
-    _t = t;
-  }
+  virtual operator T () const=0; // use this as fallback solution?
 
-  operator T const & () const {
-    return _t;
-  }
+  /** Get a copy of T. This method triggers the "on get" callback
+   *  function before it returns the value.
+   */
+  virtual T get()=0;
 
+  /** Get a copy of T without triggering a callback function.
+   */
+  virtual T getWithoutCallback() const=0;
 };
 
 }//namespace mtca4u
