@@ -6,15 +6,25 @@
 namespace mtca4u{
 
 template<class T>
+  class StubProcessVariableTest;
+
+template<class T>
   class StubProcessVariable : public ProcessVariable<T>{
  protected:
   T _t;
   boost::function< void (T const & /*newValue*/, T const & /*newValue*/) > _onSetCallbackFunction;
   boost::function< T () > _onGetCallbackFunction;  
 
- public:
+  /** The constructors are private and can only be created by the factory.
+   */
   StubProcessVariable(){}
   StubProcessVariable(T const & t) : _t(t){}
+
+  /* The test is friend to allow testing of the constructors. */
+  friend class StubProcessVariableTest<T>;
+  /* The factory is friend because someone has to be able to construct. */
+  friend class StubProcessVariableFactory;
+ public:
 
   void setOnSetCallbackFunction( 
 	boost::function< void (T const & /*newValue*/, T const & /*oldValue*/) > onSetCallbackFunction){

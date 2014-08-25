@@ -5,6 +5,7 @@ using namespace boost::unit_test_framework;
 
 #include "StubProcessVariable.h"
 
+namespace mtca4u{
 template<class T>
 class StubProcessVariableTest
 {
@@ -55,19 +56,6 @@ public:
 
   }
 };
-
-// Although the compiler complains that argc and argv are not used they 
-// cannot be commented out. This somehow changes the signature and linking fails.
-test_suite*
-init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
-{
-  framework::master_test_suite().p_name.value = "StubProcessVariable test suite";
-
-  framework::master_test_suite().add( new StubProcessVariableTestSuite<int> );
-  //  framework::master_test_suite().add( new StubProcessVariableTestSuite<double>);
-
-  return NULL;
-}
 
 template <class T>
 StubProcessVariableTest<T>::StubProcessVariableTest() 
@@ -245,4 +233,16 @@ void StubProcessVariableTest<T>::testConversionOperator(){
   //  _processT *= 2;
 }
 
+}//namespace mtca4u
+
+test_suite*
+init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
+{
+  framework::master_test_suite().p_name.value = "StubProcessVariable test suite";
+
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<int> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<double>);
+
+  return NULL;
+}
 

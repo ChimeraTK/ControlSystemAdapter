@@ -31,8 +31,7 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
-#no library at the moment, header only (template)
-#aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
+aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 #Create the executables for automated unit testing.
 #Currently we assume that they are all tests contained in one file, so
@@ -45,8 +44,7 @@ if(TESTING_IS_ENABLED)
     get_filename_component(excutableName ${testSourceFile} NAME_WE)
     add_executable(${excutableName} ${testSourceFile})
     #no target library yet
-    #target_link_libraries(${excutableName} ${PROJECT_NAME} ${Boost_LIBRARIES})    
-    target_link_libraries(${excutableName} ${Boost_LIBRARIES})    
+    target_link_libraries(${excutableName} ${PROJECT_NAME} ${Boost_LIBRARIES})    
     add_test(${excutableName} ${excutableName})
   endforeach( testSourceFile )
 
@@ -63,8 +61,8 @@ if(TESTING_IS_ENABLED)
 
 endif(TESTING_IS_ENABLED)
 
-#add_library(${PROJECT_NAME} SHARED ${library_sources} )
-#set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
+add_library(${PROJECT_NAME} SHARED ${library_sources} )
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 
 #change the install prefix to the source directory in case the user has not specified a destination 
 #i. e. CMAKE_INSTALL_PREFIX is not set manually
