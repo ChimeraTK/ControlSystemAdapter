@@ -7,6 +7,7 @@ using namespace boost::unit_test_framework;
 
 namespace mtca4u{
 /** The test class for the StubProcessVariable.
+ *  It is templated to be tested with all data types.
  */
 template<class T>
 class StubProcessVariableTest
@@ -221,7 +222,7 @@ void StubProcessVariableTest<T>::testEquals(){
 
 template <class T>
 void StubProcessVariableTest<T>::testConversionOperator(){
-  int a = _processT;
+  T a = _processT;
   BOOST_CHECK( a == 12 );
   BOOST_CHECK( a == _processT );
   mtca4u::StubProcessVariable<T> processT1(4);
@@ -244,8 +245,14 @@ init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
 {
   framework::master_test_suite().p_name.value = "StubProcessVariable test suite";
 
-  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<int> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<int32_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<uint32_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<int16_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<uint16_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<int8_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<uint8_t> );
   framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<double>);
+  framework::master_test_suite().add( new mtca4u::StubProcessVariableTestSuite<float>);
 
   return NULL;
 }
