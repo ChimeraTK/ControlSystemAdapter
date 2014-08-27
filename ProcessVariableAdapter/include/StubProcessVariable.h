@@ -8,21 +8,29 @@ namespace mtca4u{
 template<class T>
   class StubProcessVariableTest;
 
+/** Implementation of the ProcessVariable for the control system stub.
+ *  The contained "control system" variable is just the simple type itself.
+ *  The callback fuctionality is fully functional.
+ */
 template<class T>
   class StubProcessVariable : public ProcessVariable<T>{
  protected:
-  T _t;
-  boost::function< void (T const & /*newValue*/, T const & /*newValue*/) > _onSetCallbackFunction;
-  boost::function< T () > _onGetCallbackFunction;  
+  T _t; ///< The instance of the simple type
+
+  /** The function which is executed when set() is called
+   */
+  boost::function< void (T const & /*newValue*/, T const & /*oldValue*/) > _onSetCallbackFunction;
+
+  /** The function which is executed when get() is called
+   */  boost::function< T () > _onGetCallbackFunction;  
 
   /** The constructors are private and can only be created by the factory.
    */
-  StubProcessVariable(){}
-  StubProcessVariable(T const & t) : _t(t){}
+  StubProcessVariable(T const & t=0) : _t(t){}
 
-  /* The test is friend to allow testing of the constructors. */
+  /** The test is friend to allow testing of the constructors.*/
   friend class StubProcessVariableTest<T>;
-  /* The factory is friend because someone has to be able to construct. */
+  /** The factory is friend because someone has to be able to construct.*/
   friend class StubProcessVariableFactory;
  public:
 
@@ -43,14 +51,17 @@ template<class T>
     _onGetCallbackFunction.clear();
   }
   
+  /** Implementation of the copy assigmment operator for the StubProcessVariable.
+   *  It is needed to prevent a default copy assignment operator from being created, which would also copy
+   *  the callback functions (although it never should be used because the calling code should not know
+   *  that this is a StubProcessVariable and always use operator=(ProcessVariable<T> const & other).
+   */
+  /*  In addition it's faster because it avoids
+   *  calling the virtual getWithoutCallback() function and one copy of the template type.
+   */
   StubProcessVariable<T> & operator=(StubProcessVariable<T> const & other){
-    // avoid self asignment
-    if (this == &other){
-      return *this;
-    }
-
-    // use the type T assignment to avoid code duplication
-    return (*this = other._t);
+    _t=other._t;
+    return (*this);
   }
 
   StubProcessVariable<T> & operator=(ProcessVariable<T> const & other){
@@ -66,25 +77,16 @@ template<class T>
   }
 
   void setWithoutCallback(ProcessVariable<T> const & other){
+    // use the assignment operator which resolves the virtual function 
     *this = other;
   }
 
   void setWithoutCallback(T const & t){
-    // use the asignment operator which also checks for change
-    *this = t;
-  }
-
-  void set(StubProcessVariable<T> const & other){
-    // avoid self asignment
-    if (this == &other){
-      return;
-    }
-
-    set( other._t );
+    _t=t;
   }
 
   void set(ProcessVariable<T> const & other){
-    set( other.getWithoutCallback() );
+    StubProcessVariable<T>::set( other.getWithoutCallback() );
   }
 
   void set(T const & t){

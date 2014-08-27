@@ -6,6 +6,8 @@ using namespace boost::unit_test_framework;
 #include "StubProcessVariable.h"
 
 namespace mtca4u{
+/** The test class for the StubProcessVariable.
+ */
 template<class T>
 class StubProcessVariableTest
 {
@@ -30,6 +32,8 @@ class StubProcessVariableTest
   T get();
 };
 
+/** The boost test suite which executes the StubProcessVariableTest.
+ */
 template <class T>
 class StubProcessVariableTestSuite : public test_suite {
 public:
@@ -128,11 +132,11 @@ void StubProcessVariableTest<T>::testOnSetCallbackFunction(){
   BOOST_CHECK( _callbackCounter == 2 );
   BOOST_CHECK( _callbackWithEqualValuesCounter == 1 );
 
-  // test self assignment. Callback must not be triggered
+  // test self assignment. Callback should be triggered even now
   _processT.set(_processT);
   BOOST_CHECK( _t == 6 );
-  BOOST_CHECK( _callbackCounter == 2 );
-  BOOST_CHECK( _callbackWithEqualValuesCounter == 1 );
+  BOOST_CHECK( _callbackCounter == 3 );
+  BOOST_CHECK( _callbackWithEqualValuesCounter == 2 );
 }
 
 template <class T>
@@ -164,20 +168,20 @@ void StubProcessVariableTest<T>::testSetters(){
   _processT.set( 7 );
   BOOST_CHECK( _processT == 7 );
   BOOST_CHECK( _t == 7 );
-  BOOST_CHECK( _callbackCounter == 3 );
+  BOOST_CHECK( _callbackCounter == 4 );
 
   mtca4u::StubProcessVariable<T> processT1(8);
   _processT.set( processT1 );
   BOOST_CHECK( _processT == 8 );
   BOOST_CHECK( _t == 8 );
-  BOOST_CHECK( _callbackCounter == 4 );
+  BOOST_CHECK( _callbackCounter == 5 );
 
   processT1=88;
   mtca4u::ProcessVariable<T> * processVariablePointer = &processT1;
   _processT.set( *processVariablePointer );
   BOOST_CHECK( _processT == 88 );
   BOOST_CHECK( _t == 88 );
-  BOOST_CHECK( _callbackCounter == 5 );
+  BOOST_CHECK( _callbackCounter == 6 );
   
  
 }
@@ -187,19 +191,19 @@ void StubProcessVariableTest<T>::testSetWithoutCallback(){
   _processT.setWithoutCallback( 9 );
   BOOST_CHECK( _processT == 9 );
   BOOST_CHECK( _t == 88 );
-  BOOST_CHECK( _callbackCounter == 5 );
+  BOOST_CHECK( _callbackCounter == 6 );
 
   mtca4u::StubProcessVariable<T> processT1(10);
   _processT.setWithoutCallback( processT1 );
   BOOST_CHECK( _processT == 10 );
   BOOST_CHECK( _t == 88 );
-  BOOST_CHECK( _callbackCounter == 5 );
+  BOOST_CHECK( _callbackCounter == 6 );
   
   // test self asignment, nothing should happen
    _processT.setWithoutCallback( _processT );
   BOOST_CHECK( _processT == 10 );
   BOOST_CHECK( _t == 88 );
-  BOOST_CHECK( _callbackCounter == 5 );
+  BOOST_CHECK( _callbackCounter == 6 );
 }
 
 template <class T>

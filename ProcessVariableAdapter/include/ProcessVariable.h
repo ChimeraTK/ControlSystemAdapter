@@ -5,6 +5,17 @@
 
 namespace mtca4u{
 
+/** The ProvessVariable class provides an interface to acces a control system variable holding a simple data type.
+ *  It contains two types of accessors (getters and setters). The get() and set() functions
+ *  can trigger a callback functions. They are intended to be called if the variable is
+ *  updated or read by the control system.
+ *  The second set of accessors is intended for use in by the business logic and does not
+ *  trigger the callback. This is needed to avoid endless loops and efficient updates.
+ *
+ *  This class and its implementations are not guaranteed to be thread safe. Thread safety 
+ *  has to be implemented in the adapter implementation so the ProcessVariables can be used safey in the 
+ *  constol system function callbacks for synchronous and asynchronous update.
+ */
 template<class T>
 class ProcessVariable{
  private:
@@ -15,11 +26,12 @@ class ProcessVariable{
    */
   ProcessVariable(ProcessVariable<T> const & t);
 
- public:
+ protected:
   /** A default constructor has to be specified if a copy constructor is specified. But why?
    */
   ProcessVariable(){};
 
+ public:
   /** Register a function which is called when the set() function is executed.
    *  The signature of this function contains the new and the old value and is
    *  executed whenever set() is called, even if the new and the old value are the
@@ -41,7 +53,7 @@ class ProcessVariable{
    */  
   virtual void clearOnGetCallbackFunction()=0;
   
-  /** Assign the content of another process variable to this one.
+  /** Assign the content of another process variable of type T to this one.
    *  It only assigns the variable content, but not the callback functions.
    *  This operator behaves like setWithoutCallback() and does not trigger 
    *  the "on set" callback function.
@@ -75,11 +87,14 @@ class ProcessVariable{
    */
   virtual void setWithoutCallback(T const & t)=0;
   
-  /** FIXME: Can this always be implemented?
+  /** Automatic conversion operator which returns a \b copy of the simple type.
+   *  This means you cannot use this for assignment operations. You have to use
+   *  the = operator or the setter functions.
+   *  FIXME: Can this always be implemented?
    *  \code virtual operator T const & () const=0; \endcode
    *  For the time being we use the copying version as fallback solution.
    */
-  virtual operator T () const=0; // use this as fallback solution?
+  virtual operator T () const=0;
 
   /** Get a copy of T. This method triggers the "on get" callback
    *  function before it returns the value.
