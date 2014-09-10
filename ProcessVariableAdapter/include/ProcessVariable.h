@@ -97,9 +97,10 @@ class ProcessVariable{
   virtual operator T () const=0;
 
   /** Get a copy of T. This method triggers the "on get" callback
-   *  function before it returns the value.
+   *  function before it returns the value. This might change 
+   *  the internal state, which is why this function is not const.
    */
-  virtual T get() const=0;
+  virtual T get() =0;
 
   /** Get a copy of T without triggering a callback function.
    */
