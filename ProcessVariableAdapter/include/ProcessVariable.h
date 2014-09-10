@@ -24,7 +24,7 @@ class ProcessVariable{
    *  it is assured that a compiler error is raised if a copy constructor is
    *  used somewhere.
    */
-  ProcessVariable(ProcessVariable<T> const & t);
+  ProcessVariable(ProcessVariable<T> const &);
 
  protected:
   /** A default constructor has to be specified if a copy constructor is specified. But why?
@@ -99,11 +99,15 @@ class ProcessVariable{
   /** Get a copy of T. This method triggers the "on get" callback
    *  function before it returns the value.
    */
-  virtual T get()=0;
+  virtual T get() const=0;
 
   /** Get a copy of T without triggering a callback function.
    */
   virtual T getWithoutCallback() const=0;
+
+  /** Every class with virtual functions should have a virtual destructor.
+   */
+  virtual ~ProcessVariable(){};
 };
 
 }//namespace mtca4u
