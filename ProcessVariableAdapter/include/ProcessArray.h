@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <iterator>
-#include <boost/range/any_range.h>
+#include <boost/range.hpp>
+#include <boost/range/detail/any_iterator.hpp>
+#include <boost/function.hpp>
 
 namespace mtca4u{
   
@@ -57,91 +59,91 @@ namespace mtca4u{
     ProcessArray(){};
 
   public:
-    typedef boost::range_detail::any_iterator<T, std::random_access_iterator_tag> iterator;
-    typedef boost::range_detail::any_iterator<T const, std::random_access_iterator_tag> const_iterator;
+    typedef boost::range_detail::any_iterator<T, boost::random_access_traversal_tag, T &, std::ptrdiff_t > iterator;
+    typedef boost::range_detail::any_iterator<T const, boost::random_access_traversal_tag, T const &, std::ptrdiff_t> const_iterator;
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+//
+//    /** Register a function which is called when the set() function is executed.
+//     *  In contrast to the ProcessVariable, the signature of this function only 
+//     *  contains the new value in order to avoid unnecessary copying of the array content.
+//     */
+//    virtual void setOnSetCallbackFunction( 
+//      boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction)=0;
+//
+//    /** Register a function which is called when the get() function is executed.
+//     *  The argument is a reference to the array to be filled, which eventually will be *this in the
+//     *  calling code inside the ProcessArray implementation.
+//     */
+//    virtual void setOnGetCallbackFunction( 
+//      boost::function< void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction )=0;
+//    
+//    /** Clear the callback function for the set() method.
+//     */  
+//    virtual void clearOnSetCallbackFunction()=0;
+//    
+//    /** Clear the callback function for the get() method.
+//     */  
+//    virtual void clearOnGetCallbackFunction()=0;
 
-    /** Register a function which is called when the set() function is executed.
-     *  In contrast to the ProcessVariable, the signature of this function only 
-     *  contains the new value in order to avoid unnecessary copying of the array content.
-     */
-    virtual void setOnSetCallbackFunction( 
-      boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction)=0;
-
-    /** Register a function which is called when the get() function is executed.
-     *  The argument is a reference to the array to be filled, which eventually will be *this in the
-     *  calling code inside the ProcessArray implementation.
-     */
-    virtual void setOnGetCallbackFunction( 
-      boost::function< void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction )=0;
-    
-    /** Clear the callback function for the set() method.
-     */  
-    virtual void clearOnSetCallbackFunction()=0;
-    
-    /** Clear the callback function for the get() method.
-     */  
-    virtual void clearOnGetCallbackFunction()=0;
-
-    /** Assignment operator for another ProcessArray of the same template type.
-     *  It can be of a different implementation, though. The size of the 
-     *  assigned array must be smaller or equal than the target size.
-     *  The nValidEntries value is set to the number of assiged values.
-     *  It does not trigger the OnSetCallbackFunction.
-     */
-    virtual ProcessArray<T> & operator=(ProcessArray<T> const & other)=0;
-
-    /** Assignment operator for a std::vector the template data type.
-     *  The size of the assigned array must be smaller or equal than the target size.
-     *  The nValidEntries value is set to the number of assiged values.
-     *  It does not trigger the OnSetCallbackFunction.
-     */
-    virtual ProcessArray<T> & operator=(std::vector<T> const & other)=0;
- 
-    
-    virtual void set(ProcessArray<T> const & other)=0;
-    virtual void set(std::vector<T> const & other)=0;
-
-    /** Set this ProcessArray from another ProcessArray. Behaves like the according
-     *  assignment operator.
-     */
-    virtual void setWithoutCallback(ProcessArray<T> const & other)=0;
-
-    /** Set the ProcessArray from a std::vector. Behaves like the according
-     *  assignment operator.
-     */
-    virtual void setWithoutCallback(std::vector<T> const & other)=0;
-  
-    /** Random access operator without range check.
-     */
-    virtual T & operator[](size_t index)=0;
-
-    /** Random access to the element at a given index with range check.
-     *  Throws std::out_of_range if index >= size.
-     */
-    virtual T & at(size_t index)=0;
-
-    /** Return the size of the array.
-     */
-    virtual size_t size()=0;
-
-    /** Get access to the first element. Behaviour for an empty array is undefined.
-     */
-    virtual T & front()=0;
-
-     /** Get access to the last element. Behaviour for an empty array is undefined.
-     */
-    virtual T & back()=0;
-
-    /** Returns true if size is 0;
-     */
-    virtual bool empty()=0;    
-
-    /** Fill all elements of the the array with the same value.
-     */
-    virtual void fill(T const &)=0;
-    
+//    /** Assignment operator for another ProcessArray of the same template type.
+//     *  It can be of a different implementation, though. The size of the 
+//     *  assigned array must be smaller or equal than the target size.
+//     *  The nValidEntries value is set to the number of assiged values.
+//     *  It does not trigger the OnSetCallbackFunction.
+//     */
+//    virtual ProcessArray<T> & operator=(ProcessArray<T> const & other)=0;
+//
+//    /** Assignment operator for a std::vector the template data type.
+//     *  The size of the assigned array must be smaller or equal than the target size.
+//     *  The nValidEntries value is set to the number of assiged values.
+//     *  It does not trigger the OnSetCallbackFunction.
+//     */
+//    virtual ProcessArray<T> & operator=(std::vector<T> const & other)=0;
+// 
+//    
+//    virtual void set(ProcessArray<T> const & other)=0;
+//    virtual void set(std::vector<T> const & other)=0;
+//
+//    /** Set this ProcessArray from another ProcessArray. Behaves like the according
+//     *  assignment operator.
+//     */
+//    virtual void setWithoutCallback(ProcessArray<T> const & other)=0;
+//
+//    /** Set the ProcessArray from a std::vector. Behaves like the according
+//     *  assignment operator.
+//     */
+//    virtual void setWithoutCallback(std::vector<T> const & other)=0;
+//  
+//    /** Random access operator without range check.
+//     */
+//    virtual T & operator[](size_t index)=0;
+//
+//    /** Random access to the element at a given index with range check.
+//     *  Throws std::out_of_range if index >= size.
+//     */
+//    virtual T & at(size_t index)=0;
+//
+//    /** Return the size of the array.
+//     */
+//    virtual size_t size()=0;
+//
+//    /** Get access to the first element. Behaviour for an empty array is undefined.
+//     */
+//    virtual T & front()=0;
+//
+//     /** Get access to the last element. Behaviour for an empty array is undefined.
+//     */
+//    virtual T & back()=0;
+//
+//    /** Returns true if size is 0;
+//     */
+//    virtual bool empty()=0;    
+//
+//    /** Fill all elements of the the array with the same value.
+//     */
+//    virtual void fill(T const &)=0;
+//    
     /** Iterator to the first element.
      */
     virtual iterator begin()=0;
@@ -186,12 +188,12 @@ namespace mtca4u{
     /**Explicitly request a constant revertse end iterator, even for non-cost arrays.
      */
     virtual const_reverse_iterator crend() const =0;
-  }
 
-  /** Every class with virtual functions should have a virtual destructor.
-   */
-  virtual ~ProcessArray(){};
+    /** Every class with virtual functions should have a virtual destructor.
+     */
+    virtual ~ProcessArray(){};
+  };
   
-}
+}// namespace mtca4u
 
 #endif// MTCA4U_PROCESS_ARRAY_H
