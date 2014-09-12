@@ -22,7 +22,8 @@ template<class T>
   boost::function< void (T const & /*newValue*/, T const & /*oldValue*/) > _onSetCallbackFunction;
 
   /** The function which is executed when get() is called
-   */  boost::function< T () > _onGetCallbackFunction;  
+   */ 
+  boost::function< T () > _onGetCallbackFunction;  
 
   /** The constructors are private and can only be created by the factory.
    */

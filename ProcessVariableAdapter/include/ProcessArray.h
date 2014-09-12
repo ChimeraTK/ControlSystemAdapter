@@ -86,22 +86,21 @@ namespace mtca4u{
 //     */  
 //    virtual void clearOnGetCallbackFunction()=0;
 
-//    /** Assignment operator for another ProcessArray of the same template type.
-//     *  It can be of a different implementation, though. The size of the 
-//     *  assigned array must be smaller or equal than the target size.
-//     *  The nValidEntries value is set to the number of assiged values.
-//     *  It does not trigger the OnSetCallbackFunction.
-//     */
-//    virtual ProcessArray<T> & operator=(ProcessArray<T> const & other)=0;
-//
-//    /** Assignment operator for a std::vector the template data type.
-//     *  The size of the assigned array must be smaller or equal than the target size.
-//     *  The nValidEntries value is set to the number of assiged values.
-//     *  It does not trigger the OnSetCallbackFunction.
-//     */
-//    virtual ProcessArray<T> & operator=(std::vector<T> const & other)=0;
-// 
-//    
+    /** Assignment operator for another ProcessArray of the same template type.
+     *  It can be of a different implementation, though. The size of the 
+     *  assigned array must be smaller or equal than the target size.
+     *  The nValidEntries value is set to the number of assiged values.
+     *  It does not trigger the OnSetCallbackFunction.
+     */
+    virtual ProcessArray<T> & operator=(ProcessArray<T> const & other)=0;
+
+    /** Assignment operator for a std::vector of the template data type.
+     *  The size of the assigned array must be smaller or equal than the target size.
+     *  The nValidEntries value is set to the number of assiged values.
+     *  It does not trigger the OnSetCallbackFunction.
+     */
+    virtual ProcessArray<T> & operator=(std::vector<T> const & other)=0;
+ 
 //    virtual void set(ProcessArray<T> const & other)=0;
 //    virtual void set(std::vector<T> const & other)=0;
 //
@@ -159,7 +158,7 @@ namespace mtca4u{
 
     /** Fill all elements of the the array with the same value.
      */
-    //virtual void fill(T const &)=0;
+    virtual void fill(T const &)=0;
     
     /** Iterator to the first element.
      */

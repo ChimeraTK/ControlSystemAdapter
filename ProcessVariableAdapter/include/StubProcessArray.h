@@ -3,6 +3,7 @@
 
 #include "ProcessArray.h"
 #include <algorithm>
+#include <typeinfo>
 
 namespace mtca4u{
 
@@ -16,6 +17,7 @@ template<class T>
   class StubProcessArray : public ProcessArray<T>{
  protected:
   std::vector<T> _container; ///< The instance of the container, a vector in this case.
+  size_t _nValidElements; ///< The information how many of the elements are valid.
 
   /** The function which is executed when set() is called
    */
@@ -26,7 +28,7 @@ template<class T>
 
   /** The constructors are private and can only be created by the factory.
    */
-  StubProcessArray(size_t arraySize) : _container(arraySize){}
+  StubProcessArray(size_t arraySize) : _container(arraySize), _nValidElements(arraySize){}
 
   /** The test is friend to allow testing of the constructors.*/
   friend class StubProcessArrayTest<T>;
@@ -51,49 +53,54 @@ template<class T>
 //    _onGetCallbackFunction.clear();
 //  }
 //  
-//  /** Implementation of the copy assigmment operator for the StubProcessArray.
-//   *  It is needed to prevent a default copy assignment operator from being created, which would also copy
-//   *  the callback functions (although it never should be used because the calling code should not know
-//   *  that this is a StubProcessArray and always use operator=(ProcessArray<T> const & other).
-//   */
-//  /*  In addition it's faster because it directly uses the vector's assignment operator avoids
-//   *  calling iterating the incomming array.
-//   */
-//  StubProcessArray<T> & operator=(StubProcessArray<T> const & other){
-//    if(&other==this){
-//      return (*this);
-//    }
-//
-//    setWithoutCallback(other._container);
-//    return (*this);
-//  }
-//
-//  StubProcessArray<T> & operator=(ProcessArray<T> const & other){
-//    setWithoutCallback(other);
-//    return (*this);
-//  }
-//
-//  StubProcessArray<T> & operator=(std::vector<T> const & v){
-//    setWithoutCallback(v);
-//    return *this;
-//  }
-//
-//  void setWithoutCallback(ProcessArray<T> const & other){
-//    // fixme: check type for StubProcessArray and use more efficient function in this case
-//    if (other.size() > _container.size()){
-//      throw std::out_of_range("Assigned ProcessArray is too large.");
-//    }
-//    std::copy(other.cbegin(), other.cend(), _container.begin());
-//  }
-//
-//  void setWithoutCallback(T const & t){
-//    if (v.size() > _container.size()){
-//      throw std::out_of_range("Assigned vector is too large.");
-//    }
-//    // Only asign the template class, but not the callback functions.
-//    _container=v;
-//  }
-//
+  /** Implementation of the copy assigmment operator for the StubProcessArray.
+   *  It is needed to prevent a default copy assignment operator from being created, which would also copy
+   *  the callback functions (although it never should be used because the calling code should not know
+   *  that this is a StubProcessArray and always use operator=(ProcessArray<T> const & other).
+   */
+  /*  In addition it's faster because it directly uses the vector's assignment operator avoids
+   *  calling iterating the incomming array.
+   */
+  StubProcessArray<T> & operator=(StubProcessArray<T> const & other){
+    if(&other==this){
+      return (*this);
+    }
+
+    setWithoutCallback(other._container);
+    return (*this);
+  }
+
+  StubProcessArray<T> & operator=(ProcessArray<T> const & other){
+    setWithoutCallback(other);
+    return (*this);
+  }
+
+  StubProcessArray<T> & operator=(std::vector<T> const & v){
+    setWithoutCallback(v);
+    return *this;
+  }
+
+  void setWithoutCallback(ProcessArray<T> const & other){
+    if ( typeid(other) == typeid(StubProcessArray<T>) ){
+      // use static cast. We alredy did the type check.
+      StubProcessArray<T> const * stubProcessArray = static_cast< StubProcessArray<T> const * >( & other );
+      setWithoutCallback( stubProcessArray->_container );
+    }else{
+      if (other.size() != _container.size()){
+	throw std::out_of_range("Assigned ProcessArray is too large.");
+      }
+      std::copy(other.cbegin(), other.cend(), _container.begin());
+    }
+  }
+
+  void setWithoutCallback(std::vector<T> const & v){
+    if (v.size() != _container.size()){
+      throw std::out_of_range("Assigned vector is too large.");
+    }
+    // Only asign the template class, but not the callback functions.
+    _container=v;
+  }
+  
 //  void set(ProcessArray<T> const & other){
 //    StubProcessArray<T>::set( other.getWithoutCallback() );
 //  }
