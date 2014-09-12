@@ -114,36 +114,53 @@ namespace mtca4u{
 //     *  assignment operator.
 //     */
 //    virtual void setWithoutCallback(std::vector<T> const & other)=0;
-//  
-//    /** Random access operator without range check.
-//     */
-//    virtual T & operator[](size_t index)=0;
-//
-//    /** Random access to the element at a given index with range check.
-//     *  Throws std::out_of_range if index >= size.
-//     */
-//    virtual T & at(size_t index)=0;
-//
-//    /** Return the size of the array.
-//     */
-//    virtual size_t size()=0;
-//
-//    /** Get access to the first element. Behaviour for an empty array is undefined.
-//     */
-//    virtual T & front()=0;
-//
-//     /** Get access to the last element. Behaviour for an empty array is undefined.
-//     */
-//    virtual T & back()=0;
-//
-//    /** Returns true if size is 0;
-//     */
-//    virtual bool empty()=0;    
-//
-//    /** Fill all elements of the the array with the same value.
-//     */
-//    virtual void fill(T const &)=0;
-//    
+  
+    /** Random access operator without range check.
+     */
+    virtual T & operator[](size_t index)=0;
+
+    /** Constant random access operator without range check.
+     */
+    virtual T const & operator[](size_t index) const =0;
+
+    /** Random access to the element at a given index with range check.
+     *  Throws std::out_of_range if index >= size.
+     */
+    virtual T & at(size_t index)=0;
+
+    /** Constant random access to the element at a given index with range check.
+     *  Throws std::out_of_range if index >= size.
+     */
+    virtual T const & at(size_t index) const =0;
+
+    /** Return the size of the array.
+     */
+    virtual size_t size() const =0;
+
+    /** Get access to the first element. Behaviour for an empty array is undefined.
+     */
+    virtual T & front()=0;
+
+    /** Constant access to the first element. Behaviour for an empty array is undefined.
+     */
+    virtual T const & front() const =0;
+
+     /** Get access to the last element. Behaviour for an empty array is undefined.
+     */
+    virtual T & back()=0;
+
+     /** Constant access to the last element. Behaviour for an empty array is undefined.
+     */
+    virtual T const & back() const =0;
+
+    /** Returns true if size is 0;
+     */
+    virtual bool empty() const =0;    
+
+    /** Fill all elements of the the array with the same value.
+     */
+    //virtual void fill(T const &)=0;
+    
     /** Iterator to the first element.
      */
     virtual iterator begin()=0;

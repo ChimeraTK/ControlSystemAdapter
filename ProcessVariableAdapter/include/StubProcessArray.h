@@ -2,6 +2,7 @@
 #define MTCA4U_STUB_PROCESS_ARRAY_H
 
 #include "ProcessArray.h"
+#include <algorithm>
 
 namespace mtca4u{
 
@@ -120,6 +121,50 @@ template<class T>
 //    return _t;
 //  }
 //
+
+  virtual T & operator[](size_t index){
+    return _container[index];
+  }
+
+  virtual T const & operator[](size_t index) const{
+    return _container[index];    
+  }
+
+  virtual T & at(size_t index){
+    return _container.at(index);
+  }
+
+  virtual T const & at(size_t index) const{
+    return _container.at(index);
+  }
+
+  virtual size_t size() const{
+    return _container.size();
+  }
+
+  virtual T & front(){
+    return _container.front();
+  }
+
+  virtual T const & front() const{
+    return _container.front();
+  }
+  
+  virtual T & back(){
+    return _container.back();
+  }
+
+  virtual T const & back() const{
+    return _container.back();
+  }
+
+  virtual bool empty() const{
+    return _container.empty();
+  }
+
+  virtual void fill(T const & t){
+    std::fill(_container.begin(), _container.end(), t);
+  }  
 
   typename mtca4u::ProcessArray<T>::iterator begin(){
     return typename mtca4u::ProcessArray<T>::iterator(_container.begin());
