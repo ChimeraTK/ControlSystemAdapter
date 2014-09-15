@@ -2,8 +2,6 @@
 #define MTCA4U_STUB_PROCESS_VARIABLE_FACTORY
 
 #include <boost/any.hpp>
-
-#include "StubProcessVariable.h"
 #include "ProcessVariableFactory.h"
 
 namespace mtca4u{
@@ -27,6 +25,14 @@ namespace mtca4u{
      *  \throw std::bad_typeid is thrown if the type is not of the supported types.
      */
     boost::any createProcessVariable( std::type_info  const & variableType, std::string name );
+
+    /** Creates a StubProcesArray of the supported data types and the given size.
+     *
+     *  \throw std::bad_typeid is thrown if the type is not of the supported types.
+     */
+    boost::any createProcessArray( std::type_info  const & variableType, std::string name,
+				   size_t arraySize);
+   
   };
 
 }// namespace mtca4u

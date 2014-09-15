@@ -33,7 +33,7 @@ template<class T>
   /** The test is friend to allow testing of the constructors.*/
   friend class StubProcessArrayTest<T>;
   /** The factory is friend because someone has to be able to construct.*/
-  friend class StubProcessArrayFactory;
+  friend class StubProcessVariableFactory;
  public:
 
   void setOnSetCallbackFunction( 
