@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-all: ProcessVariableAdapterRequirements.pdf
+all: ControlSystemAdapterRequirements.pdf
 
 .tex.pdf:
 	${shell echo -e "\\\newcommand{\svnrevision}{Revision `svnversion -n`}" > svnrevision.tex}
@@ -11,3 +11,5 @@ all: ProcessVariableAdapterRequirements.pdf
 
 .SUFFIXES: .tex .pdf
 
+clean:
+	rm -rf *.aux *.log *.out *.pdf

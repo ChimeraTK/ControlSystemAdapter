@@ -44,7 +44,7 @@
 \SetWatermarkScale{3}
 \SetWatermarkText{DRAFT \svnshortrev}
 
-\title{Requirement for the MTCA4U Process Variable Adapter}
+\title{Requirement for the\\ MTCA4U Control System Adapter}
 \date{\svnrevision\\ PDF build \today}
 \author[1]{Martin Killenberg} \author[2]{Sebastian Marsching}
 \author[3]{Adam Poitrokwsi}
@@ -81,7 +81,7 @@ system, is not accessible. The history is, however, accessible via the control
 system. Like this, no control system functionality has to be abstracted or
 duplicated/implemented if not available on certain control systems. 
 
-The only exception are two lists of callback functions which can be registered as
+The only exception are two callback functions which can be registered as
 actions to be taken when the variable is changed or read. This is needed to allow the
 synchronisation with the control system. The business logic can choose between
 a set()-function which only informs the control system, or a set()-function
@@ -132,8 +132,8 @@ Control system specific data types are not supported.
 Depending on the control system implementation the string might have limited
 length. If an input string is too long it will be truncated. The string has a
 “truncated” flag which can be queried. It intentionally does not throw an
-exception in order not to avoid making servers crash which run fine on other
-control systems. In most cases, there will be a truncated status message, which
+exception in order to avoid servers from crashing which run fine on other
+control systems. In most cases there will be a truncated status message, which
 can be tolerated. There might be, however, malfunctions if the complete string
 is parsed automatically. In this case the parsing code will generate the error
 rather than the server terminating with an exception. 
@@ -154,10 +154,11 @@ reason it cannot be avoided to do one copy: From the lock-free variable used
 in the business logic into the control system variable. To avoid additional
 copying the ProcessVariable adapter does not contain an instance of the basic
 data type (or array), but accessors directly work with the control system
-variable. \fixme{Should it be recommended that the business logic always use a
-  copy of the variable and not directly use adaptor? It might be that the
-  variable changes during a calculation if used multiple time, and it might be
-  slow because of frequent locking/unlocking.}  
+variable. 
+If the business logic is performing calculations it is recommended that 
+it keeps a local copy and only synchronises with the ProcessVariable once.
+Usually all input variables are synchronied at the beginning of the 
+algorithm, all output variables at the end.
 
 The business logic has to create instances of process variables without
 knowing which particular implementation is needed. For this a factory pattern
@@ -176,28 +177,25 @@ the Control System Tools package, probably implementing an actor pattern.
 \subsection{The ProcessVariable adapter interface features}
 \begin{itemize}
 \item a get() method. It allows to register a callback function which is executed before
-  the variable content is returned. \fixme(Do we need a get function which does not trigger the callback?)
+  the variable content is returned.
 \item a set() method which triggers the ``on set'' callback functions
-\item a list of callback functions which are executed if the variable contents
-  changed \fixme{Do we really need a list of calback functions? If the user needs more than
-    one he can write a function which calls them and register this single function.}
-\item a set() method which does not trigger the callback functions. Like this
+\item methods to set the ``on set'' and ``on get'' callback functions which are executed 
+  if the corresponding accessors are called
+\item set() and get() methods which does not trigger the callback functions. Like this
   it is possible the execute the callback functions only when the variable
   content is changed externally (from the control system), but update the
   variable from inside the business logic to inform the control system about
   the new value without triggering the callbacks. 
-  \fixme{Do we want a second list of callbacks for this? MK: This is an implementation
-  detail of the adapter. DOOCS does not need it, other might have it. It's not part of the interface.}
-\item an assignment operator (for convenience, like set operator with
-  callback) \fixme{without callback? MK, no without triggering the callback, but with 
-  ``notifying'' the CS (whatever that means)}
-  \fixme{This will probably only possible with an additional copy. MK: No, it's an operator which works by reference. Not more copying than using the set().} 
-\item a const implicit conversion operator. \fixme{Do we really need this?
-  Business logic will use internal variables only. But how about simple,
-  synchronous I/O servers?}  This operator does not trigger the ``on get'' callback
+\item an assignment operator (for convenience, like set function without
+  callback)
+\item a const implicit conversion operator. This operator does not trigger the ``on get'' callback
   function.
 \item \fixme{Do we want range limits and engineering units?}
 \end{itemize}
+\fixme{It seems like get function and implicit conversion operator have to make a copy
+  because it a priory cannot be guaranteed that the controll system type allows
+  access by reference to the underlying simple data type instance. Or should we implement 
+  reference access where possible and hide the copy as implementation detail where required?}
 
 \subsection{Additional feature of the array interfaces}
 The array has an interface compatible with a boost::array/std::array.
@@ -208,7 +206,7 @@ The array has an interface compatible with a boost::array/std::array.
 \item front()
 \item back()
 \item empty() \fixme{Do we need it ?}
-\item swap() \fixme{Do we need it ?}
+\item swap() \fixme{Do we need it ? Might not be possible to implement this efficiently.}
 \item fill() \fixme{Do we need it ?}
 \end{itemize}
 
@@ -227,7 +225,10 @@ writes control-system dependent code.
 \item All arrays are implemented as fixed size during run time. The size is 
       determined at start time and the memory is allocated. It cannot be changed.
       In case not all values of the array have been written, a value \texttt{nValidElements}
-      can be set.
+      can be set. \fixme{Is this just a convenience number without further functionality in
+      the interface? Should it be recommended that only the shortened array is 
+      transferred by the control system, if possible?
+      What about the iterator range? Would it also be shorter?}
 \item Callback functions can be unregistered.
 \item In case signed variables have to be implemented as unsigned in the
   control system, or vice versa, a reinterpret-cast is done in order not to
@@ -250,7 +251,7 @@ protocols and can handle large data objects and high update rates efficiently
 (EPICS 4, Tango, Karabo, Tine(?) ).
 
 As the decision whether a special channel is needed, and for which which data sizes, depends on
-the control system, this has to be handled in the control system specific2
+the control system, this has to be handled in the control system specific
 ProcessVariable factory. For the business logic and in the interface the
 notion of a special channel for high data rates does not exist.
 
@@ -287,7 +288,7 @@ For the unit testing a factory for a control system stub is implemented.
 Stub variables can be set and modified via the ProcessVariable adapter and from
 the C++ application which hosts the stub, incl. the callback functions on
 change, but no control system functionality like network communication or
-history is available. This allows to implement to run the business logic
+history is available. This allows to implement and run the business logic
 stand-alone, enables full testing and even the possibility to write a GUI.
 
 Nice to have: The control system stub should also have Python bindings so PyQT
@@ -363,7 +364,7 @@ Not supported by DOOCS:
 \item uint (all sizes) $\rightarrow$ use signed int with range check
 \end{itemize}
 
-Although D\_textit{xxx}array seems like the obvious choise, it is almost never used in practice.
+Although D\_\textit{xxx}array seems like the obvious choise, it is almost never used in practice.
 Usually a D\_spectrum is used because it can directly be plotted in a panel. MTCA4U
 will follow this approach and implement arrays as D\_spectrum in the DOOCS adapter.
 
