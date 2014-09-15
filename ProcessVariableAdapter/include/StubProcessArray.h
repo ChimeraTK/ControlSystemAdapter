@@ -36,23 +36,23 @@ template<class T>
   friend class StubProcessArrayFactory;
  public:
 
-//  void setOnSetCallbackFunction( 
-//	boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction){
-//    _onSetCallbackFunction = onSetCallbackFunction;
-//  }
-//  
-//  void setOnGetCallbackFunction( boost::function<  void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction){
-//    _onGetCallbackFunction = onGetCallbackFunction;    
-//  }
-//
-//  void clearOnSetCallbackFunction(){
-//    _onSetCallbackFunction.clear();
-//  }
-//
-//  void clearOnGetCallbackFunction(){
-//    _onGetCallbackFunction.clear();
-//  }
-//  
+  void setOnSetCallbackFunction( 
+    boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction){
+      _onSetCallbackFunction = onSetCallbackFunction;
+  }
+  
+  void setOnGetCallbackFunction( boost::function<  void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction){
+    _onGetCallbackFunction = onGetCallbackFunction;    
+  }
+
+  void clearOnSetCallbackFunction(){
+    _onSetCallbackFunction.clear();
+  }
+
+  void clearOnGetCallbackFunction(){
+    _onGetCallbackFunction.clear();
+  }
+  
   /** Implementation of the copy assigmment operator for the StubProcessArray.
    *  It is needed to prevent a default copy assignment operator from being created, which would also copy
    *  the callback functions (although it never should be used because the calling code should not know
@@ -101,33 +101,30 @@ template<class T>
     _container=v;
   }
   
-//  void set(ProcessArray<T> const & other){
-//    StubProcessArray<T>::set( other.getWithoutCallback() );
-//  }
-//
-//  void set(T const & t){
-//    T oldValue = _t;
-//    _t = t;
-//    if (_onSetCallbackFunction){
-//      _onSetCallbackFunction(t,oldValue);
-//    }
-//  }
-//
-//  operator T () const {
-//    return _t;
-//  }
-//
-//  T get(){
-//    if (_onGetCallbackFunction){
-//      _t=_onGetCallbackFunction();
-//    }
-//    return _t;
-//  }
-//
-//  T getWithoutCallback() const{
-//    return _t;
-//  }
-//
+  void set(ProcessArray<T> const & other){
+    StubProcessArray<T>::setWithoutCallback( other );
+    if (_onSetCallbackFunction){
+      _onSetCallbackFunction(*this);
+    }
+  }
+
+  void set(std::vector<T> const & v){
+    StubProcessArray<T>::setWithoutCallback( v );
+    if (_onSetCallbackFunction){
+      _onSetCallbackFunction(*this);
+    }
+  }
+
+  /** Implementation dependent getter for use in the adapter.
+   *  It return a std::vector, as it is the internal representation of the
+   *  control system stub.
+   */
+  std::vector<T> const & get(){
+     if (_onGetCallbackFunction){
+      _onGetCallbackFunction(*this);
+     }
+     return _container;
+  }
 
   virtual T & operator[](size_t index){
     return _container[index];

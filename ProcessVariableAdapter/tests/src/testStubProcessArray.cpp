@@ -6,6 +6,7 @@
 using namespace boost::unit_test_framework;
 
 #include <boost/lambda/lambda.hpp>
+#include <boost/bind.hpp>
 
 #include "StubProcessArray.h"
 
@@ -28,26 +29,24 @@ class StubProcessArrayTest
  public:
   StubProcessArrayTest();
   static void testConstructors();
-//  void testOnSetCallbackFunction();
-//  void testOnGetCallbackFunction();
-//  void testSetters();
-//  void testSetWithoutCallback();
   void testIterators();
   void testRandomAccess();
   void testFrontBack();
   void testFill();
   void testAssignment();
+  void testSetWithoutCallback();
+  void testSet();
+  void testGet();
 
  private:
-//  unsigned int _callbackCounter;
-//  unsigned int _callbackWithEqualValuesCounter;
-//  unsigned int _getCounter;
+  unsigned int _setCallbackCounter;
+  unsigned int _getCallbackCounter;
   mtca4u::StubProcessArray<T> _stubProcessArray;
   mtca4u::ProcessArray<T> & _processArray;
   mtca4u::ProcessArray<T> const & _constArray; // a const reference to _processArray
   std::vector<T> _referenceVector;
-  //  void set(T const & newValue, T const & oldValue);
-  //  T get();
+  void set(ProcessArray<T> const & newValue);
+  void get(ProcessArray<T> & toBeFilled, T fillValue);
 
   static size_t const N_ELEMENTS=12;
   static size_t const SOME_NUMBER=42; // just some number to add so the content if not equal to the index
@@ -74,27 +73,27 @@ public:
 				processArrayTest ) );
     add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testAssignment,
     				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testOnSetCallbackFunction,
-//				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testOnGetCallbackFunction,
-//				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testSetters,
-//				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testSetWithoutCallback,
-//				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testEquals,
-//				processArrayTest ) );
-//    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testConversionOperator,
-//				processArrayTest ) );
-
+    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testSetWithoutCallback,
+				processArrayTest ) );
+    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testSet,
+				processArrayTest ) );
+    add( BOOST_CLASS_TEST_CASE( &StubProcessArrayTest<T>::testGet,
+				processArrayTest ) );
   }
 };
 
 template <class T>
 StubProcessArrayTest<T>::StubProcessArrayTest() 
-  : _stubProcessArray(N_ELEMENTS), _processArray(_stubProcessArray), _constArray(_stubProcessArray),
+  :  _setCallbackCounter(0), _getCallbackCounter(0), 
+     _stubProcessArray(N_ELEMENTS), _processArray(_stubProcessArray), _constArray(_stubProcessArray),
     _referenceVector(N_ELEMENTS) 
-{}
+{  // register the callback functions
+  _processArray.setOnSetCallbackFunction( 
+     boost::bind( &StubProcessArrayTest<T>::set, this, _1) );
+
+  _processArray.setOnGetCallbackFunction( 
+     boost::bind( &StubProcessArrayTest<T>::get, this, _1, SOME_NUMBER) );
+}
 
 template <class T>
 void StubProcessArrayTest<T>::testConstructors(){
@@ -273,158 +272,155 @@ void StubProcessArrayTest<T>::testAssignment(){
   BOOST_CHECK_THROW( _processArray = tooLargeVector, std::out_of_range );
 }
   
-//  mtca4u::StubProcessArray<T> processT2(2);
-//  _processT = processT2;
-//  BOOST_CHECK( _processT == 2 );
-//
-//  // test self assigmnent, nothing should happen
-//  _processT = _processT;
-//  BOOST_CHECK( _processT == 2 );
-//
-//  mtca4u::ProcessArray<T> * processArrayPointer = &processT2;
-//  processT2 = 17;
-//  _processT = *processArrayPointer;
-//  BOOST_CHECK( _processT == 17 );
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::set(T const & newValue, T const & oldValue){
-//  if (newValue == oldValue){
-//    ++_callbackWithEqualValuesCounter;
-//  }
-//  _t = newValue;
-//  ++_callbackCounter;
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testOnSetCallbackFunction(){
-//  _processT.setOnSetCallbackFunction( boost::bind( &StubProcessArrayTest<T>::set,
-//						   this, _1, _2 ) );
-//  _processT.set(5);
-//  BOOST_CHECK( _t == 5 );
-//  BOOST_CHECK( _callbackCounter == 1 );
-//  BOOST_CHECK( _callbackWithEqualValuesCounter == 0 );
-//
-//  _processT.clearOnSetCallbackFunction();
-//  _processT.set(6);
-//  BOOST_CHECK( _t == 5 );
-//  BOOST_CHECK( _callbackCounter == 1 );
-//  BOOST_CHECK( _callbackWithEqualValuesCounter == 0 );
-//
-//  // turn on the callback again, we use it to check the other operators
-//  _processT.setOnSetCallbackFunction( boost::bind( &StubProcessArrayTest<T>::set,
-//						   this, _1, _2 ) );  
-//
-//  // test same value assignment. Callback must be triggered
-//  _processT.set(6);
-//  BOOST_CHECK( _t == 6 );
-//  BOOST_CHECK( _callbackCounter == 2 );
-//  BOOST_CHECK( _callbackWithEqualValuesCounter == 1 );
-//
-//  // test self assignment. Callback should be triggered even now
-//  _processT.set(_processT);
-//  BOOST_CHECK( _t == 6 );
-//  BOOST_CHECK( _callbackCounter == 3 );
-//  BOOST_CHECK( _callbackWithEqualValuesCounter == 2 );
-//}
-//
-//template <class T>
-//T StubProcessArrayTest<T>::get(){
-//  ++_getCounter;
-//  return _t;
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testOnGetCallbackFunction(){
-//  _processT.setOnGetCallbackFunction( boost::bind( &StubProcessArrayTest<T>::get, this ) );
-//  
-//  BOOST_CHECK( _processT == 6 );
-//  _t = 19;
-//  BOOST_CHECK( _processT.get() == 19 );
-//  BOOST_CHECK( _processT == 19 );
-//  BOOST_CHECK( _getCounter == 1 );
-//
-//  _t = 17;
-//
-//  _processT.clearOnGetCallbackFunction();
-//  BOOST_CHECK( _processT.get() == 19 );
-//  BOOST_CHECK( _processT == 19 );
-//  BOOST_CHECK( _getCounter == 1 );
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testSetters(){
-//  _processT.set( 7 );
-//  BOOST_CHECK( _processT == 7 );
-//  BOOST_CHECK( _t == 7 );
-//  BOOST_CHECK( _callbackCounter == 4 );
-//
-//  mtca4u::StubProcessArray<T> processT1(8);
-//  _processT.set( processT1 );
-//  BOOST_CHECK( _processT == 8 );
-//  BOOST_CHECK( _t == 8 );
-//  BOOST_CHECK( _callbackCounter == 5 );
-//
-//  processT1=88;
-//  mtca4u::ProcessArray<T> * processArrayPointer = &processT1;
-//  _processT.set( *processArrayPointer );
-//  BOOST_CHECK( _processT == 88 );
-//  BOOST_CHECK( _t == 88 );
-//  BOOST_CHECK( _callbackCounter == 6 );
-//  
-// 
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testSetWithoutCallback(){
-//  _processT.setWithoutCallback( 9 );
-//  BOOST_CHECK( _processT == 9 );
-//  BOOST_CHECK( _t == 88 );
-//  BOOST_CHECK( _callbackCounter == 6 );
-//
-//  mtca4u::StubProcessArray<T> processT1(10);
-//  _processT.setWithoutCallback( processT1 );
-//  BOOST_CHECK( _processT == 10 );
-//  BOOST_CHECK( _t == 88 );
-//  BOOST_CHECK( _callbackCounter == 6 );
-//  
-//  // test self asignment, nothing should happen
-//   _processT.setWithoutCallback( _processT );
-//  BOOST_CHECK( _processT == 10 );
-//  BOOST_CHECK( _t == 88 );
-//  BOOST_CHECK( _callbackCounter == 6 );
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testEquals(){
-//  // we are using this all along. It uses the implicit conversion to T
-//  _processT = 11;
-//  BOOST_CHECK( _processT == 11 );
-// 
-//  // we can even compare two processarrays like this. Note that only the
-//  // content of the member T is compared, not the callback functions.
-//  mtca4u::StubProcessArray<T> processT1(N_ELEMENTS);
-//  _processT.set( processT1 );
-//  BOOST_CHECK( _processT ==  processT1 );
-//}
-//
-//template <class T>
-//void StubProcessArrayTest<T>::testConversionOperator(){
-//  T a = _processT;
-//  BOOST_CHECK( a == 12 );
-//  BOOST_CHECK( a == _processT );
-//  mtca4u::StubProcessArray<T> processT1(4);
-//  BOOST_CHECK( _processT * processT1 == 48 );
-//  BOOST_CHECK( 2.5 * processT1 == 10. );
-//  _processT.set(_processT/3);
-//  // compare to double. Implicit use if comparison (int, double)
-//  BOOST_CHECK( _processT == 4. );
-//  BOOST_CHECK( _t == 4. );
-//
-//  // This does not and should not compile. The implicit conversion returns a const
-//  // reference so the callback is not bypassed. And there is no *= operator defined.
-//  //  _processT *= 2;
-//}
+template <class T>
+void StubProcessArrayTest<T>::testSetWithoutCallback(){
+  // fill something known so we can check that it changed
+  _processArray.fill(5);
+
+  std::vector<T> referenceVector(N_ELEMENTS, 6);
+
+  _processArray.setWithoutCallback(referenceVector);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 6 );
+  }
+
+  StubProcessArray<T> referenceStubArray(N_ELEMENTS);
+  referenceStubArray.fill(7);
+
+  _processArray.setWithoutCallback(referenceStubArray);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 7 );
+  }
+
+  ProcessArray<T> & referenceArray = referenceStubArray;
+  referenceArray.fill(8);
+  _processArray.setWithoutCallback(referenceArray);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 8 );
+  }
+  
+  AssignTestProcessArray<T> assignTestProcessArray(N_ELEMENTS);
+  assignTestProcessArray.fill(9);
+   _processArray.setWithoutCallback(assignTestProcessArray);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 9 );
+  } 
+
+  AssignTestProcessArray<T> tooLargeAssignTestArray(N_ELEMENTS+1);
+  BOOST_CHECK_THROW( _processArray.setWithoutCallback( tooLargeAssignTestArray ), std::out_of_range );
+
+  StubProcessArray<T> tooLargeStubArray(N_ELEMENTS+1);
+  BOOST_CHECK_THROW( _processArray.setWithoutCallback( tooLargeStubArray ), std::out_of_range );
+  BOOST_CHECK_THROW( _stubProcessArray.setWithoutCallback( tooLargeStubArray ), std::out_of_range );
+
+  std::vector<T> tooLargeVector(N_ELEMENTS+1);
+  BOOST_CHECK_THROW( _processArray.setWithoutCallback( tooLargeVector ), std::out_of_range ); 
+}
+
+template <class T>
+void StubProcessArrayTest<T>::testSet(){
+  // fill something known so we can check that it changed
+  _processArray.fill(5);
+
+  // even though a lot has been executed, no callback must have been executed until now.
+  BOOST_CHECK( _setCallbackCounter == 0 );
+
+  std::vector<T> referenceVector(N_ELEMENTS, 6);
+  _processArray.set(referenceVector);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 6 );
+  }
+  BOOST_CHECK( _setCallbackCounter == 1 );
+
+  StubProcessArray<T> referenceStubArray(N_ELEMENTS);
+  referenceStubArray.fill(7);
+
+  _processArray.set(referenceStubArray);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 7 );
+  }
+  BOOST_CHECK( _setCallbackCounter == 2 );
+
+  // unregister the callback function and try again
+  _processArray.clearOnSetCallbackFunction();
+
+  referenceStubArray.fill(8);
+  _processArray.set(referenceStubArray);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 8 );
+  }
+  BOOST_CHECK( _setCallbackCounter == 2 );
+  
+  std::fill(referenceVector.begin(), referenceVector.end(), 9);
+   _processArray.set(referenceVector);
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == 9 );
+  }
+  BOOST_CHECK( _setCallbackCounter == 2 );
+ 
+  StubProcessArray<T> tooLargeStubArray(N_ELEMENTS+1);
+  BOOST_CHECK_THROW( _processArray.setWithoutCallback( tooLargeStubArray ), std::out_of_range );
+  std::vector<T> tooLargeVector(N_ELEMENTS+1);
+  BOOST_CHECK_THROW( _processArray.setWithoutCallback( tooLargeVector ), std::out_of_range ); 
+}
+
+template <class T>
+void StubProcessArrayTest<T>::set(ProcessArray<T> const & ){
+  ++_setCallbackCounter;
+}
+
+template <class T>
+void StubProcessArrayTest<T>::get(ProcessArray<T> & toBeFilled, T fillValue ){
+  toBeFilled.fill(fillValue);
+  ++_getCallbackCounter;  
+}
+
+template <class T>
+void StubProcessArrayTest<T>::testGet(){
+  // fill something known so we can check that it changed
+  _processArray.fill(5);
+
+  // even though a lot has been executed, no callback must have been executed until now.
+  BOOST_CHECK( _getCallbackCounter == 0 );
+
+  // only the StubProcessArray has a get function
+  std::vector<T> const & theGetResult = _stubProcessArray.get();
+  BOOST_CHECK( _getCallbackCounter == 1 );
+  // the get should have changed everything to SOME_NUMBER
+  for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+    BOOST_CHECK( *it == static_cast<T>(SOME_NUMBER) );
+  }
+  // the get should have changed everything to SOME_NUMBER
+  for( typename std::vector<T>::const_iterator it = theGetResult.begin();
+       it !=  theGetResult.end(); ++it ){
+    BOOST_CHECK( *it == static_cast<T>(SOME_NUMBER) );
+  }
+
+  // clear the getter callback function
+  _processArray.clearOnGetCallbackFunction();
+  _processArray.fill(5);
+  
+  std::vector<T> const & anotherGetResult = _stubProcessArray.get();
+  BOOST_CHECK( _getCallbackCounter == 1 );
+  // everything still has to be 5
+   for( typename ProcessArray<T>::const_iterator it = _processArray.cbegin();
+       it !=  _processArray.cend(); ++it ){
+     BOOST_CHECK( *it == 5 );
+  }
+  for( typename std::vector<T>::const_iterator it = anotherGetResult.begin();
+       it !=  anotherGetResult.end(); ++it ){
+    BOOST_CHECK( *it == 5 );
+  }
+}
 
 }//namespace mtca4u
 
@@ -434,13 +430,13 @@ init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
   framework::master_test_suite().p_name.value = "StubProcessArray test suite";
 
   framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<int32_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint32_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<int16_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint16_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<int8_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint8_t> );
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<double>);
-//  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<float>);
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint32_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<int16_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint16_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<int8_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<uint8_t> );
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<double>);
+  framework::master_test_suite().add( new mtca4u::StubProcessArrayTestSuite<float>);
 
   return NULL;
 }

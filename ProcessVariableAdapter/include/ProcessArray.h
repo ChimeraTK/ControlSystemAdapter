@@ -63,28 +63,28 @@ namespace mtca4u{
     typedef boost::range_detail::any_iterator<T const, boost::random_access_traversal_tag, T const &, std::ptrdiff_t> const_iterator;
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-//
-//    /** Register a function which is called when the set() function is executed.
-//     *  In contrast to the ProcessVariable, the signature of this function only 
-//     *  contains the new value in order to avoid unnecessary copying of the array content.
-//     */
-//    virtual void setOnSetCallbackFunction( 
-//      boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction)=0;
-//
-//    /** Register a function which is called when the get() function is executed.
-//     *  The argument is a reference to the array to be filled, which eventually will be *this in the
-//     *  calling code inside the ProcessArray implementation.
-//     */
-//    virtual void setOnGetCallbackFunction( 
-//      boost::function< void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction )=0;
-//    
-//    /** Clear the callback function for the set() method.
-//     */  
-//    virtual void clearOnSetCallbackFunction()=0;
-//    
-//    /** Clear the callback function for the get() method.
-//     */  
-//    virtual void clearOnGetCallbackFunction()=0;
+
+    /** Register a function which is called when the set() function is executed.
+     *  In contrast to the ProcessVariable, the signature of this function only 
+     *  contains the new value in order to avoid unnecessary copying of the array content.
+     */
+    virtual void setOnSetCallbackFunction( 
+      boost::function< void (ProcessArray<T> const & /*newValue*/) > onSetCallbackFunction)=0;
+
+    /** Register a function which is called when the get() function is executed.
+     *  The argument is a reference to the array to be filled, which eventually will be *this in the
+     *  calling code inside the ProcessArray implementation.
+     */
+    virtual void setOnGetCallbackFunction( 
+      boost::function< void (ProcessArray<T> & /*toBeFilled*/) > onGetCallbackFunction )=0;
+    
+    /** Clear the callback function for the set() method.
+     */  
+    virtual void clearOnSetCallbackFunction()=0;
+    
+    /** Clear the callback function for the get() method.
+     */  
+    virtual void clearOnGetCallbackFunction()=0;
 
     /** Assignment operator for another ProcessArray of the same template type.
      *  It can be of a different implementation, though. The size of the 
@@ -101,18 +101,18 @@ namespace mtca4u{
      */
     virtual ProcessArray<T> & operator=(std::vector<T> const & other)=0;
  
-//    virtual void set(ProcessArray<T> const & other)=0;
-//    virtual void set(std::vector<T> const & other)=0;
-//
-//    /** Set this ProcessArray from another ProcessArray. Behaves like the according
-//     *  assignment operator.
-//     */
-//    virtual void setWithoutCallback(ProcessArray<T> const & other)=0;
-//
-//    /** Set the ProcessArray from a std::vector. Behaves like the according
-//     *  assignment operator.
-//     */
-//    virtual void setWithoutCallback(std::vector<T> const & other)=0;
+    virtual void set(ProcessArray<T> const & other)=0;
+    virtual void set(std::vector<T> const & other)=0;
+
+    /** Set this ProcessArray from another ProcessArray. Behaves like the according
+     *  assignment operator.
+     */
+    virtual void setWithoutCallback(ProcessArray<T> const & other)=0;
+
+    /** Set the ProcessArray from a std::vector. Behaves like the according
+     *  assignment operator.
+     */
+    virtual void setWithoutCallback(std::vector<T> const & other)=0;
   
     /** Random access operator without range check.
      */
