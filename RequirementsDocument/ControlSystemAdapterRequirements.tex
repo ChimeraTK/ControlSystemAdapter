@@ -296,7 +296,72 @@ or simple control scripts can be used.
 
 \section{Requirements for the Control System Function Callbacks}
 \label{section_function_callbacks}
-\fixme{to be written}
+There are tree ways how actions in the business logic are called by or
+synchroinised with the control system:
+\begin{enumerate}
+  \item Synchronous actions with each read and write operation of a 
+    process variable. This is implemented by the ``on set'' and 
+    ``on get'' callback functions of the ProcessVariable adapter
+    (section~\ref{section_process_variable_adapter})
+  \item Update functions which are triggered by the control system.
+    This can either be a periodic function or a function triggered 
+    by an outside event, like a trigger signal which is send by the
+    control system.
+  \item Synchronisation functions which are called within the user code.
+    This might be needed if the use code is running its own thread which
+    for instance might be triggered by the hardware and the business logic
+    has to dedermine when the synchronisation is executed.
+\end{enumerate}
+
+In the first two cases the timing is fully controlled by the control system.
+In the third option the timing execution of the synchronisation is triggered by
+the business logic, but it can be blocked by the control system adapter if there is
+ongoing communication. The
+implementation of the control system adapter has to make sure that it is (thread)
+safe to access the ProcessVariables within the registered functions. It has to lock 
+a mutex which locks all variables which have been created by this instance of the factory.
+(In DOOCS this is one ``Location''. All variables are locked together so the user code
+can rely on a consistent state which does not change during execution).
+If more than one ``Location'' \fixme{How do we name this DOOCS-independently?} is needed,
+the business logic would just get several factories from the control system adapter.
+\fixme{What is the interface to get a factory? My first idea was just getting a pointer, but it
+seems multiple factories might be posible, and the name of the location has to be given to the
+factory. A ``master factory'', which gives access to multiple ProcessVariableFactories?}
+
+\subsection{Control System Triggered Functions}
+The business logic can register two functions with the control system adapter:
+\begin{itemize}
+  \item \texttt{void periodicUpdateFunction()}
+  \item \texttt{void triggeredUpdateFunction()}
+\end{itemize}
+The user must never call these functions. They are only to be called by
+the control system, which locks and unlocks the corresponding mutex so 
+the access to the process variables is safe.
+
+\subsection{Functions Triggered by the Business Logic}
+It is foreseen two have two synchrionisation points: One for inbound changes
+at the beginning of the user algorithm, one for outbound changes at the end of
+the algorithm. Depending on the application there might only be one point of
+synchronisation which is handling both inbound and outbound changes. For 
+simplicity the functions are just called.
+\begin{itemize}
+  \item \texttt{void syncFunction1()}
+  \item \texttt{void syncFunction2()}
+\end{itemize}
+The user is registering these functions with the control system adapter. The
+user code must never execute these functions directly, but instead call the
+\texttt{void synchonise1()} and \texttt{void synchonise2()} functions of the
+control system adapter. This does the locking and unlocking and assures that
+it is safe to modify the process variables and that they are not being changed
+from the outside.
+
+\fixme{How would I implement the following situation?: On a message driven control system
+with thread-safe process variables I would have code which just updates the variables at
+random times, each of them triggering an outbound message.}
+
+\fixme{How would I implement the consistency of a set of variables in the previous case
+without making copies? The variables could be changed by the control system any time if
+it does not provide a mechanism to lock several variables as a group.}
 
 \section{Further, General Requirements}
 As we have to support Ubuntu 12.4, C++11 is not used because the C++11 support
