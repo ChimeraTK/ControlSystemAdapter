@@ -157,7 +157,7 @@ data type (or array), but accessors directly work with the control system
 variable. 
 If the business logic is performing calculations it is recommended that 
 it keeps a local copy and only synchronises with the ProcessVariable once.
-Usually all input variables are synchronied at the beginning of the 
+Usually all input variables are synchronised at the beginning of the 
 algorithm, all output variables at the end.
 
 The business logic has to create instances of process variables without
@@ -193,7 +193,7 @@ the Control System Tools package, probably implementing an actor pattern.
 \item \fixme{Do we want range limits and engineering units?}
 \end{itemize}
 \fixme{It seems like get function and implicit conversion operator have to make a copy
-  because it a priory cannot be guaranteed that the controll system type allows
+  because it a priory cannot be guaranteed that the control system type allows
   access by reference to the underlying simple data type instance. Or should we implement 
   reference access where possible and hide the copy as implementation detail where required?}
 
@@ -205,10 +205,16 @@ The array has an interface compatible with a boost::array/std::array.
 \item size()
 \item front()
 \item back()
-\item empty() \fixme{Do we need it ?}
-\item swap() \fixme{Do we need it ? Might not be possible to implement this efficiently.}
-\item fill() \fixme{Do we need it ?}
+\item empty()
+\item swap() \fixme{Do we need it? Might not be possible to implement this efficiently. What to do if sizes are different? What is happening to the iterators (std::vector::swap also swaps the iterators, array does not)?}
+\item fill()
+\item a set() and setWithoutCallback() method for std::vectors
 \end{itemize}
+The std::vector is the container to be used in the business logic. It allows dynamic allocation at
+start-up (size might not be known at compile time) and opposes no overhead compared to
+a raw buffer if the size is not changed.
+
+\fixme{What about units for the x-axis (interpretation as binned data)?}
 
 \subsection{Implementation details}
 
@@ -239,7 +245,7 @@ writes control-system dependent code.
   precision' flag is set (statically in the concrete implementation.)
 \end{itemize}
 
-\subsection{Large data objects}
+\subsection{Large Data Objects}
 
 Some controls systems use synchronous operations like Remote Procedure Calls
 for data transmission. This is not efficient for large data objects or objects
@@ -254,6 +260,33 @@ As the decision whether a special channel is needed, and for which which data si
 the control system, this has to be handled in the control system specific
 ProcessVariable factory. For the business logic and in the interface the
 notion of a special channel for high data rates does not exist.
+
+\subsection{Time Stamps}
+There should be the possibility to have a time stamp with each process variable in order to
+synchronise them later. The time stamp should consist of
+\begin{itemize}
+  \item uint32\_t UNIX time (number of seconds since 1970-01-01 00:00:00 UTC)
+  \item uint32\_t Number of nanoseconds
+  \item 2 $\times$ uint32\_t Two indices for storing unique IDs, like run and event number, macro pulse number etc.
+\end{itemize}
+\fixme{DOOCS variables don't have this. We would lose functionality.}
+
+\fixme{I think this would be a huge overhead to always have this with every variable. Especially
+  simple data types would grow by at least a factor 3 (with the current time stamp proposal
+ seconds + nanoseconds + two user indices it would be a factor 5).}
+
+\fixme{Could we create a variable group which has one time stamp object? This would also
+  allow to send these objects in one transfer, for instance to the DAQ, which will be much more
+  efficient if the control system serialiser allows it.}
+
+\fixme{DOOCS variables do not have a history by default. How to determine which variables 
+  have a history? There are many applications which just want the current state of some
+  hardware, without the need to track changes. No time stamp or history is needed here.}
+
+Proposal (MK): Have a TimeStamp decorator for the ProcessVariables and arrays. There is a flag or
+separate function to get a variable with time stamp. When the variable has a time stamp,
+the history is activated automatically (or do we need a separate flag? A config word with 
+features to be activated by the control system?)
 
 \subsection{The ProcessVariable Factory}
 
@@ -297,7 +330,7 @@ or simple control scripts can be used.
 \section{Requirements for the Control System Function Callbacks}
 \label{section_function_callbacks}
 There are tree ways how actions in the business logic are called by or
-synchroinised with the control system:
+synchronised with the control system:
 \begin{enumerate}
   \item Synchronous actions with each read and write operation of a 
     process variable. This is implemented by the ``on set'' and 
@@ -310,7 +343,7 @@ synchroinised with the control system:
   \item Synchronisation functions which are called within the user code.
     This might be needed if the use code is running its own thread which
     for instance might be triggered by the hardware and the business logic
-    has to dedermine when the synchronisation is executed.
+    has to determine when the synchronisation is executed.
 \end{enumerate}
 
 In the first two cases the timing is fully controlled by the control system.
@@ -324,9 +357,16 @@ a mutex which locks all variables which have been created by this instance of th
 can rely on a consistent state which does not change during execution).
 If more than one ``Location'' \fixme{How do we name this DOOCS-independently?} is needed,
 the business logic would just get several factories from the control system adapter.
+
 \fixme{What is the interface to get a factory? My first idea was just getting a pointer, but it
-seems multiple factories might be posible, and the name of the location has to be given to the
+seems multiple factories might be possible, and the name of the location has to be given to the
 factory. A ``master factory'', which gives access to multiple ProcessVariableFactories?}
+
+\fixme{For the process variable callbacks it would be desirable to execute them in a separate
+  thread if they need a significant amount of time. But do we gain anything? We still have to
+  hold the location mutex, so all other actions on the location are still blocked.
+  Should we leave it to the user to implement a thread pool or actor pattern if this action can be
+  done without holding the mutex? I think it depends on the user application.}
 
 \subsection{Control System Triggered Functions}
 The business logic can register two functions with the control system adapter:
@@ -339,7 +379,7 @@ the control system, which locks and unlocks the corresponding mutex so
 the access to the process variables is safe.
 
 \subsection{Functions Triggered by the Business Logic}
-It is foreseen two have two synchrionisation points: One for inbound changes
+It is foreseen two have two synchronisation points: One for inbound changes
 at the beginning of the user algorithm, one for outbound changes at the end of
 the algorithm. Depending on the application there might only be one point of
 synchronisation which is handling both inbound and outbound changes. For 
@@ -350,7 +390,7 @@ simplicity the functions are just called.
 \end{itemize}
 The user is registering these functions with the control system adapter. The
 user code must never execute these functions directly, but instead call the
-\texttt{void synchonise1()} and \texttt{void synchonise2()} functions of the
+\texttt{void synchronise1()} and \texttt{void synchronise2()} functions of the
 control system adapter. This does the locking and unlocking and assures that
 it is safe to modify the process variables and that they are not being changed
 from the outside.
@@ -429,7 +469,7 @@ Not supported by DOOCS:
 \item uint (all sizes) $\rightarrow$ use signed int with range check
 \end{itemize}
 
-Although D\_\textit{xxx}array seems like the obvious choise, it is almost never used in practice.
+Although D\_\textit{xxx}array seems like the obvious choice, it is almost never used in practice.
 Usually a D\_spectrum is used because it can directly be plotted in a panel. MTCA4U
 will follow this approach and implement arrays as D\_spectrum in the DOOCS adapter.
 
