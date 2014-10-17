@@ -13,12 +13,21 @@ namespace mtca4u{
     /** The constructor can set all parameters. Only the seconds have to be specified, all other
      *  values default to 0.
      */
-    TimeStamp(uint32_t seconds_, uint32_t nanoSeconds_=0,
-	      uint32_t index0_=0, uint32_t index1_=0);
+    inline TimeStamp(uint32_t seconds_, uint32_t nanoSeconds_=0,
+		     uint32_t index0_=0, uint32_t index1_=0)
+      : seconds(seconds_), nanoSeconds(nanoSeconds_),
+	index0(index0_), index1(index1_){}
     uint32_t seconds; ///< Unix time in seconds
     uint32_t nanoSeconds; ///< Nano seconds should give enough resolution
     uint32_t index0; ///< An index to hold a unique number, for instance an event number.
     uint32_t index1; ///< Another index to hold a unique number, for instance a run number.
+
+    inline bool operator==(TimeStamp const & right){
+      return ( (seconds==right.seconds) &&
+	       (nanoSeconds==right.nanoSeconds) &&
+	       (index0==right.index0)&&
+	       (index1==right.index1) );	       
+    }
   };
 }
 

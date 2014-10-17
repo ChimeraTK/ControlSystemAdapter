@@ -2,6 +2,7 @@
 #define MTCA4U_CONTROL_SYSTEM_ADAPTER
 
 #include <boost/function.hpp>
+#include "TimeStamp.h"
 
 namespace mtca4u{
 
@@ -53,7 +54,7 @@ namespace mtca4u{
 					      
     /** Clear the synchronisation function for periodic updates.
      */
-    virtual void clearPeriodicSyncFunction()=0;
+    virtual void clearTriggeredSyncFunction()=0;
    
     /** Register a function which is triggered by the user logic.
      */
