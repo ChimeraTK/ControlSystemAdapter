@@ -26,13 +26,7 @@ namespace mtca4u{
      */
     void executeTriggeredSyncFunction( TimeStamp const & );
    
-    void registerUserSyncFunction1( boost::function< void() > );
-    void clearUserSyncFunction1();
-    void executeUserSyncFunction1();
-
-    void registerUserSyncFunction2( boost::function< void() > ) ;
-    void clearUserSyncFunction2();
-    void executeUserSyncFunction2();
+    void executeUserSyncFunction( boost::function< void() > );
 
   private:
     boost::function< void( TimeStamp const & ) > _periodicSyncFunction;

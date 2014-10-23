@@ -56,31 +56,13 @@ namespace mtca4u{
      */
     virtual void clearTriggeredSyncFunction()=0;
    
-    /** Register a function which is triggered by the user logic.
+    /** Execute a sync function from the business logic.
+     *  The control system adapter does all the necessary locking for thread safety
+     *  so it is safe to access the process variables inside the callback.
+     *  Always use this function to execute code that works on process variables.
      */
-    virtual void registerUserSyncFunction1( boost::function< void() > ) = 0;
-
-    /** Clear the first user sync function.
-     */
-    virtual void clearUserSyncFunction1()=0;
-
-    /** Execute the first user sync function.
-     */
-    virtual void executeUserSyncFunction1()=0;
-
-    /** Register a second function which is triggered by the user logic.
-     */
-    virtual void registerUserSyncFunction2( boost::function< void() > ) = 0;
-
-
-    /** Clear the second user sync function.
-     */
-    virtual void clearUserSyncFunction2()=0;
-
-
-    /** Execute the second user sync function.
-     */
-    virtual void executeUserSyncFunction2()=0;
+    virtual void executeUserSyncFunction( boost::function< void() >)=0;
+    
   };
 
 }//namespace mtca4u

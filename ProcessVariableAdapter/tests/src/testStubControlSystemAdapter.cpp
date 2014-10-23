@@ -15,6 +15,7 @@ class StubControlSystemAdapterTest
  public:
   void testPeriodicSyncFunction();
   void testTriggeredSyncFunction();
+  void testUserSyncFunction();
   StubControlSystemAdapterTest();
 
  private:
@@ -35,6 +36,8 @@ public:
     add( BOOST_CLASS_TEST_CASE( &StubControlSystemAdapterTest::testPeriodicSyncFunction,
 				stubControlSystemAdapterTest ));
     add( BOOST_CLASS_TEST_CASE( &StubControlSystemAdapterTest::testTriggeredSyncFunction,
+				stubControlSystemAdapterTest ));
+    add( BOOST_CLASS_TEST_CASE( &StubControlSystemAdapterTest::testUserSyncFunction,
 				stubControlSystemAdapterTest ));
   }
 };
@@ -72,6 +75,16 @@ void StubControlSystemAdapterTest::testTriggeredSyncFunction(){
   _controlSystemAdapter.executeTriggeredSyncFunction( TimeStamp(2,3,4,5) );
   BOOST_CHECK( _callbackCounter == 2 );
   BOOST_CHECK( _lastCallbacksTimeStamp == referenceTimeStamp );  
+}
+
+void StubControlSystemAdapterTest::testUserSyncFunction(){
+  _controlSystemAdapter.registerTriggeredSyncFunction( 
+     boost::bind( &StubControlSystemAdapterTest::increaseCounter, this, _1 ) );
+  TimeStamp referenceTimeStamp( 21, 2, 24 );
+  _controlSystemAdapter.executeUserSyncFunction( 
+     boost::bind(  &StubControlSystemAdapterTest::increaseCounter, this, referenceTimeStamp ));
+  BOOST_CHECK( _callbackCounter == 3 );
+  BOOST_CHECK( _lastCallbacksTimeStamp == referenceTimeStamp );
 }
 
 StubControlSystemAdapterTest::StubControlSystemAdapterTest()

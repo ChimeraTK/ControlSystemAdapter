@@ -35,30 +35,10 @@ namespace mtca4u{
     }
   }
 
-  void StubControlSystemAdapter::registerUserSyncFunction1(
-    boost::function< void() > ){
-      throw NotImplementedException("registerUserSyncFunction1 is not implemented yet");
-  }
-
-  void StubControlSystemAdapter::clearUserSyncFunction1(){
-    throw NotImplementedException("clearUserSyncFunction1 is not implemented yet");
-  }
-
-  void StubControlSystemAdapter::executeUserSyncFunction1(){
-    throw NotImplementedException("executeUserSyncFunction1 is not implemented yet");
-  }
- 
-  void StubControlSystemAdapter::registerUserSyncFunction2(
-    boost::function< void() > ){
-      throw NotImplementedException("registerUserSyncFunction2 is not implemented yet");
-  }
-
-  void StubControlSystemAdapter::clearUserSyncFunction2(){
-    throw NotImplementedException("clearUserSyncFunction2 is not implemented yet");
-  }
-
-  void StubControlSystemAdapter::executeUserSyncFunction2(){
-    throw NotImplementedException("executeUserSyncFunction2 is not implemented yet");
+  void StubControlSystemAdapter::executeUserSyncFunction( boost::function< void() > syncFunction){
+    if(syncFunction){
+      syncFunction();
+    }
   }
 
 }//namespace mtca4u
