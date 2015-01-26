@@ -115,8 +115,7 @@ adapters for the following simple data types\\[2ex]
 \begin{tabular}{rrrrr}
 float & int8 & int16 & int32\\
 double & uint8 & uint16 & uint32\\
-string\\[2ex]
-\end{tabular}
+\end{tabular}\\[1ex]
 
 It is assumed that float, double, 16 bit integer and 32 bit integer are
 supported by most control systems.
@@ -129,6 +128,7 @@ Control system specific data types are not supported.
 
 \subsection{Strings}
 
+In addition to the simple data types, strings are supported as process variables.
 Depending on the control system implementation the string might have limited
 length. If an input string is too long it will be truncated. The string has a
 “truncated” flag which can be queried. It intentionally does not throw an
@@ -186,6 +186,8 @@ the Control System Tools package, probably implementing an actor pattern.
   content is changed externally (from the control system), but update the
   variable from inside the business logic to inform the control system about
   the new value without triggering the callbacks. 
+  \fixme{Sebastian proposed that the onGet callback should have the current value as parameter, 
+    but I forgot what the use case was. Do we need it? MK}
 \item an assignment operator (for convenience, like set function without
   callback)
 \item a const implicit conversion operator. This operator does not trigger the ``on get'' callback
@@ -198,7 +200,8 @@ the Control System Tools package, probably implementing an actor pattern.
   reference access where possible and hide the copy as implementation detail where required?}
 
 \subsection{Additional feature of the array interfaces}
-The array has an interface compatible with a boost::array/std::array.
+It \textcolor{red}{would be} desirable if the array had an interface compatible 
+with a boost::array/std::array.
 \begin{itemize}
 \item {[ ]} operator to access individual elements
 \item iterators
@@ -209,12 +212,37 @@ The array has an interface compatible with a boost::array/std::array.
 \item swap() \fixme{Do we need it? Might not be possible to implement this efficiently. What to do if sizes are different? What is happening to the iterators (std::vector::swap also swaps the iterators, array does not)?}
 \item fill()
 \item a set() and setWithoutCallback() method for std::vectors
+\item a get() and getWithoutCallback() method for std::vectors
 \end{itemize}
 The std::vector is the container to be used in the business logic. It allows dynamic allocation at
 start-up (size might not be known at compile time) and opposes no overhead compared to
 a raw buffer if the size is not changed.
 
+However, with control systems that do not have a global lock the random access operator{[ ]} does not
+work well:
+\begin{itemize}
+\item It would have to lock/unlock the variable on each access, which has bad performance
+\item It is not guaranteed that the array is not changed or read while the business logic has only
+      partly modified it.
+\end{itemize}
+Hence the random access operator is NOT part of the adapter interface.
+
+Iterators have a similar issue. They would have to hold the lock which can make then inefficient.
+In addition, the abstraction/virtualisation of the iterator makes them inefficient, because each acces
+requies a virtual function call. In a first implementation, iterators will not be present.\\
+\fixme{One could acquire the lock on construction of the iterator, and release it in the destructor.
+Accessing and incrementing would still be efficient.}\\
+\fixme{One could have an \texttt{iterate} function, similar to \texttt{std::for\_each}, except that it 
+only has the function to be executed as argument. Can one write reasonable business logic with it?
+Could this be template code so we get away without virtual iterators?
+Such a function would also solve the problem when to trigger the ``onChange'' callback. With iterators 
+it would have to be on releasing the lock in the destructor of the last iterator instance.}
+
+In the current implementation the get() and set() functions, which do just copy, are the only reasonable
+implementations. Exactly what we wanted to avoid.
+
 \fixme{What about units for the x-axis (interpretation as binned data)?}
+
 
 \subsection{Implementation details}
 
@@ -243,6 +271,9 @@ writes control-system dependent code.
 \item If only single precision floating point numbers are provided by the
   control system, the double is converted loosing precision. A 'limited
   precision' flag is set (statically in the concrete implementation.)
+\item \fixme{Does it make sense to implement the callback functions asynchronously? One can use 
+boost::async and boost::future for this. DOOCS already implements a variable update as a separate thread.
+Is this implementation dependent?}
 \end{itemize}
 
 \subsection{Large Data Objects}
@@ -282,6 +313,8 @@ synchronise them later. The time stamp should consist of
 \fixme{DOOCS variables do not have a history by default. How to determine which variables 
   have a history? There are many applications which just want the current state of some
   hardware, without the need to track changes. No time stamp or history is needed here.}
+
+\fixme{Find a better name for the user ``indices'' (currently index0 and index1. userInt?}
 
 Proposal (MK): Have a TimeStamp decorator for the ProcessVariables and arrays. There is a flag or
 separate function to get a variable with time stamp. When the variable has a time stamp,
@@ -326,6 +359,11 @@ stand-alone, enables full testing and even the possibility to write a GUI.
 
 Nice to have: The control system stub should also have Python bindings so PyQT
 or simple control scripts can be used.
+
+\subsubsection{Implementation Detail}
+The stub should implement a global lock and check if it is held by the calling process.
+Like this the business logic can test if it is handling the process variables correctly.
+It it recommended that all business logic is tested against the control system stub.
 
 \section{Requirements for the Control System Function Callbacks}
 \label{section_function_callbacks}
@@ -378,30 +416,29 @@ The user must never call these functions. They are only to be called by
 the control system, which locks and unlocks the corresponding mutex so 
 the access to the process variables is safe.
 
+\fixme{Should these function have a time stamp as parameter, so the business logic knows when it was
+triggered and can add this to the data?}
+
 \subsection{Functions Triggered by the Business Logic}
-It is foreseen two have two synchronisation points: One for inbound changes
-at the beginning of the user algorithm, one for outbound changes at the end of
-the algorithm. Depending on the application there might only be one point of
-synchronisation which is handling both inbound and outbound changes. For 
-simplicity the functions are just called.
+As described above, some control systems require to hold a global lock, hence the busniness logic
+must not access any process variables without holding it. To assure this, the business logic must
+request the execution of all functions which are accessing process variables. These functions are called
+synchronisation functions because they will usually be executed at the beginning or the end of 
+the business logic's main loop to synchronise with the outside world.
+
 \begin{itemize}
-  \item \texttt{void syncFunction1()}
-  \item \texttt{void syncFunction2()}
+  \item \texttt{void executeSyncronisationFunction(boost::function<void ()>)}
 \end{itemize}
-The user is registering these functions with the control system adapter. The
-user code must never execute these functions directly, but instead call the
-\texttt{void synchronise1()} and \texttt{void synchronise2()} functions of the
-control system adapter. This does the locking and unlocking and assures that
+This does the locking and unlocking and assures that
 it is safe to modify the process variables and that they are not being changed
 from the outside.
 
-\fixme{How would I implement the following situation?: On a message driven control system
-with thread-safe process variables I would have code which just updates the variables at
-random times, each of them triggering an outbound message.}
-
-\fixme{How would I implement the consistency of a set of variables in the previous case
-without making copies? The variables could be changed by the control system any time if
-it does not provide a mechanism to lock several variables as a group.}
+The signature of the function is just \texttt{void(void)}. If any arguments are needed, this can be done
+using boost::bind before giving the function to the control system adapter for execution. Usually it
+should not be necessary to have return values. There typically will be multiple process variables which
+are class members of the business logic class which has the synchronisation function as a method, so
+they are availabe inside this function. If need be the process variables can be ``call by reference''
+parameter.
 
 \fixme{How does this look like if the control system class is a/ requires a state machine?
 Is business logic which is not a state machine compatible? How do both machines talk to each other?
