@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.0)
 
-project(ContorlSystemTools)
+project(ControlSystemAdapter)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 00)
@@ -50,7 +50,7 @@ if(TESTING_IS_ENABLED)
 
   #The make coverage command is only available in debug mode
   IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    configure_file(cmake/Makefile.coverage
+    configure_file(cmake/Makefile.coverage.in
       ${PROJECT_BINARY_DIR}/Makefile.coverage @ONLY)
     add_custom_target(coverage
       make -f Makefile.coverage
@@ -71,38 +71,29 @@ IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
                  prefix" FORCE)
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
-#Install the library and the executables
-#install(TARGETS ${PROJECT_NAME}
-#            RUNTIME DESTINATION bin
-#	    LIBRARY DESTINATION lib
-#  )
+#Install the library
+install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION bin
+	    LIBRARY DESTINATION lib
+)
 
 #all include files go into include/PROJECT_NAME
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include DESTINATION include/${PROJECT_NAME}
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAME}
           FILES_MATCHING PATTERN "*.h" 
 	  PATTERN ".svn" EXCLUDE
-	  PATTERN ${PROJECT_NAME} EXCLUDE)
+	  PATTERN "${PROJECT_NAME}" EXCLUDE)
 
-#create the config files by filling the correct variables into the template (*.cmake.in)
-#All variables @VARIABLE@ are replaced with the current values
+#Create the config files by filling the correct variables into the template (*.cmake.in).
+#All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
+#Only the reference header is needed. The other variables are for dependencies of this library,
+#but there are none.
+set(${PROJECT_NAME}_REFERENCE_HEADER "ControlSystemAdapter.h")
+set(${PROJECT_NAME}_CONFIG_INCLUDE_DIRS " ")
+set(${PROJECT_NAME}_CONFIG_LIBRARIES " ")
+set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS " ")
 
-##We have nested @-statements, so we have to parse twice
-#configure_file(cmake/${PROJECT_NAME}Config.cmake.in.in
-#  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in" @ONLY)
-#configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-#  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
-#
-#configure_file(cmake/${PROJECT_NAME}ConfigVersion.cmake.in.in
-#  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in" @ONLY)
-#configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in
-#  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
-# 
-## Install the ..Config.cmake and ..ConfigVersion.cmake
-#install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-#  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" 
-#  "${CMAKE_SOURCE_DIR}/cmake/Find${PROJECT_NAME}.cmake"
-#  DESTINATION . COMPONENT dev)
-# 
+include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
+
 ## The instructions to create a debian package are loaded from a separate file
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
 
