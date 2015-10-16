@@ -1,116 +1,119 @@
 #ifndef MTCA4U_PROCESS_VARIABLE_H
 #define MTCA4U_PROCESS_VARIABLE_H
 
-#include <boost/function.hpp>
+namespace mtca4u {
+  class ProcessVariable;
+}
 
-namespace mtca4u{
+#include <string>
+#include <typeinfo>
 
-/** The ProvessVariable class provides an interface to acces a control system variable holding a simple data type.
- *  It contains two types of accessors (getters and setters). The get() and set() functions
- *  can trigger a callback functions. They are intended to be called if the variable is
- *  updated or read by the control system.
- *  The second set of accessors is intended for use in by the business logic and does not
- *  trigger the callback. This is needed to avoid endless loops and efficient updates.
- *
- *  This class and its implementations are not guaranteed to be thread safe. Thread safety 
- *  has to be implemented in the adapter implementation so the ProcessVariables can be used safey in the 
- *  constol system function callbacks for synchronous and asynchronous update.
- */
-template<class T>
-class ProcessVariable{
- private:
-  /** The copy constructor is intentionally private and not implemented.
-   *  The derrived class shall not implement a copy constructor. Like this
-   *  it is assured that a compiler error is raised if a copy constructor is
-   *  used somewhere.
+#include <boost/smart_ptr.hpp>
+
+#include "TimeStampSource.h"
+
+#include "ProcessVariableDecl.h"
+
+namespace mtca4u {
+
+  /**
+   * Base class for all {@link ProcessScalar}s and {@link ProcessArray}s.
+   * This class provides methods that are independent of the actual type or
+   * implementation of a process variable.
    */
-  ProcessVariable(ProcessVariable<T> const &);
+  class ProcessVariable: public boost::enable_shared_from_this<ProcessVariable> {
+  public:
+    /**
+     * Type alias for a shared pointer to a process variable.
+     */
+    typedef boost::shared_ptr<ProcessVariable> SharedPtr;
 
- protected:
-  /** A default constructor has to be specified if a copy constructor is specified. But why?
-   */
-  ProcessVariable(){};
+    /**
+     * Returns the name that identifies the process variable.
+     */
+    const std::string& getName() const;
 
- public:
-  /** Register a function which is called when the set() function is executed.
-   *  The signature of this function contains the new and the old value and is
-   *  executed whenever set() is called, even if the new and the old value are the
-   *  same. Like this function can decide whether its body is executed even 
-   *  if the value has not changed.
-   */
-  virtual void setOnSetCallbackFunction( 
-     boost::function< void (T const & /*newValue*/, T const & /*oldValue*/) > onSetCallbackFunction)=0;
+    /**
+     * Returns the {@link std::type_info} for the value type of this process
+     * variable or array. This can be used to determine the type of a process
+     * variable at runtime.
+     */
+    virtual const std::type_info& getValueType() const =0;
 
-  /** Register a function which is called when the get() function is executed.
-   */
-  virtual void setOnGetCallbackFunction( boost::function< T () > onGetCallbackFunction )=0;
-  
-  /** Clear the callback function for the set() method.
-   */  
-  virtual void clearOnSetCallbackFunction()=0;
+    /**
+     * Returns <code>true</code> if this object is an instance of
+     * {@link ProcessArray<T>} and <code>false</code> if this object is an
+     * instance of {@link ProcessScalar<T>}.
+     */
+    virtual bool isArray() const =0;
 
-  /** Clear the callback function for the get() method.
-   */  
-  virtual void clearOnGetCallbackFunction()=0;
-  
-  /** Assign the content of another process variable of type T to this one.
-   *  It only assigns the variable content, but not the callback functions.
-   *  This operator behaves like setWithoutCallback() and does not trigger 
-   *  the "on set" callback function.
-   */
-  virtual ProcessVariable<T> & operator=(ProcessVariable<T> const & other)=0;
+    /**
+     * Returns <code>true</code> if this object represents the receiver in a
+     * sender / receiver pair, <code>false</code> otherwise.
+     */
+    virtual bool isReceiver() const =0;
 
-  /** Assign the content of the template type.
-   *  It only assigns the variable content, but not the callback functions.
-   *  This operator behaves like setWithoutCallback() and does not trigger 
-   *  the "on set" callback function.
-   */
-  virtual ProcessVariable<T> & operator=(T const & t)=0;
- 
-  /** Set the content to that of the other process variable.
-   *  This method trigger the "on set" callback function.
-   */
-  virtual void set(ProcessVariable<T> const & other)=0;
+    /**
+     * Returns <code>true</code> if this object represents the sender in a
+     * sender / receiver pair, <code>false</code> otherwise.
+     */
+    virtual bool isSender() const =0;
 
-  /** Set the content to the content of the template type.
-   *  This method trigger the "on set" callback function.
-   */  
-  virtual void set(T const & t)=0;
+    /**
+     * Returns the time stamp associated with the current value of the process
+     * variable. Typically, this is the time when the value was updated.
+     */
+    virtual TimeStamp getTimeStamp() const =0;
 
-  /** Set the content to that of the other process variable.
-   *  This method doen not trigger any callback functions.
-   */
-  virtual void setWithoutCallback(ProcessVariable<T> const & other)=0;
-  
-  /** Set the content to  to the content of the template type.
-   *  This method doen not trigger any callback functions.
-   */
-  virtual void setWithoutCallback(T const & t)=0;
-  
-  /** Automatic conversion operator which returns a \b copy of the simple type.
-   *  This means you cannot use this for assignment operations. You have to use
-   *  the = operator or the setter functions.
-   *  FIXME: Can this always be implemented?
-   *  \code virtual operator T const & () const=0; \endcode
-   *  For the time being we use the copying version as fallback solution.
-   */
-  virtual operator T () const=0;
+    /**
+     * Receives a new value from the sender if this process variable is a
+     * receiver. Returns <code>true</code> if a new value has been received and
+     * <code>false</code> if there is no new value available.
+     *
+     * Throws an exception if this process variable is not a receiver.
+     */
+    virtual bool receive() =0;
 
-  /** Get a copy of T. This method triggers the "on get" callback
-   *  function before it returns the value. This might change 
-   *  the internal state, which is why this function is not const.
-   */
-  virtual T get() =0;
+    /**
+     * Sends the current value to the receiver if this process variable is a
+     * sender. Returns <code>true</code> if an empty buffer was available and
+     * <code>false</code> if no empty buffer was available and thus a previously
+     * sent value has been dropped in order to send the current value.
+     *
+     * Throws an exception if this process variable is not a sender.
+     */
+    virtual bool send() =0;
 
-  /** Get a copy of T without triggering a callback function.
-   */
-  virtual T getWithoutCallback() const=0;
+  protected:
+    /**
+     * Creates a process variable with the specified name.
+     */
+    ProcessVariable(const std::string& name = std::string());
 
-  /** Every class with virtual functions should have a virtual destructor.
-   */
-  virtual ~ProcessVariable(){};
-};
+    /**
+     * Virtual destructor. The destructor is protected so that an instance
+     * cannot be destroyed through a pointer to this interface.
+     */
+    virtual ~ProcessVariable();
 
-}//namespace mtca4u
+  private:
+    /**
+     * Identifier uniquely identifying the process variable.
+     */
+    std::string _name;
 
-#endif// MTCA4U_PROCESS_VARIABLE_H
+    // Theoretically, the copy constructor and copy assignment operator should
+    // not be generated if a destructor is defined. However, some compilers do
+    // not enforce this. By making the constructor and operator private, we
+    // ensure that a process variable is never copied accidentally. This also
+    // applies to derived classes (the automatically generated implementations
+    // need the implementation in the parent class), so that it is sufficient
+    // if we do it once here.
+    ProcessVariable(const ProcessVariable&);
+    ProcessVariable& operator=(const ProcessVariable&);
+
+  };
+
+}
+
+#endif // MTCA4U_PROCESS_VARIABLE_H

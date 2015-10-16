@@ -12,7 +12,7 @@ set(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -fPIC -Wextra -Wshadow
 #-Weffc++ -ansi -pedantic -Wuninitialized -std=c++11")
 #skip -Weffc++ for the moment. It gives too many false positives
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -ansi -pedantic -Wuninitialized")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -pedantic -Wuninitialized")
 
 #use -DCMAKE_BUILD_TYPE=Debug in your cmake command to turn on the coverage option
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage")
@@ -20,6 +20,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage")
 #boost as such is required for shared pointers e.g.
 FIND_PACKAGE(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
+
+#boost chrono is needed for measuring time intervals.
+FIND_PACKAGE(Boost REQUIRED COMPONENTS chrono)
+
+#boost system is needed by boost::lockfree.
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
+
+#boost thread is needed for synchronization and multi-threading
+FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
 
 #the unit test component is optional
 FIND_PACKAGE(Boost COMPONENTS unit_test_framework)
@@ -37,15 +46,20 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 #Currently we assume that they are all tests contained in one file, so
 #each file gives a new executable. This section has to be adapted if this should change.
 if(TESTING_IS_ENABLED)
-  include_directories(${CMAKE_SOURCE_DIR}/tests/include})
+  #include_directories(${CMAKE_SOURCE_DIR}/tests/include)
   aux_source_directory(${CMAKE_SOURCE_DIR}/tests/src testSources)
+  aux_source_directory(${CMAKE_SOURCE_DIR}/tests/auxsrc testAuxSources)
   foreach( testSourceFile ${testSources})
     #NAME_WE means the base name without path and (longest) extension
-    get_filename_component(excutableName ${testSourceFile} NAME_WE)
-    add_executable(${excutableName} ${testSourceFile})
+    get_filename_component(executableName ${testSourceFile} NAME_WE)
+    add_executable(${executableName} ${testSourceFile} ${testAuxSources})
+    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
     #no target library yet
-    target_link_libraries(${excutableName} ${PROJECT_NAME} ${Boost_LIBRARIES})    
-    add_test(${excutableName} ${excutableName})
+    # Linking the boost libraries and using their included counterparts at the
+    # same time causes problems.
+    #target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_LIBRARIES})
+    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+    add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 
   #The make coverage command is only available in debug mode
@@ -63,6 +77,7 @@ endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
+target_link_libraries(${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
 
 #change the install prefix to the source directory in case the user has not specified a destination 
 #i. e. CMAKE_INSTALL_PREFIX is not set manually
@@ -87,12 +102,17 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAM
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
 #but there are none.
-set(${PROJECT_NAME}_REFERENCE_HEADER "ControlSystemAdapter.h")
-set(${PROJECT_NAME}_CONFIG_INCLUDE_DIRS " ")
-set(${PROJECT_NAME}_CONFIG_LIBRARIES " ")
-set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS " ")
+set(${PROJECT_NAME}_REFERENCE_HEADER "DeviceProcessVariable.h")
+set(${PROJECT_NAME}_CONFIG_INCLUDE_DIRS "${Boost_INCLUDE_DIRS}")
+set(${PROJECT_NAME}_CONFIG_LIBRARIES "${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY}")
+set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS "${Boost_LIBRARY_DIRS}")
 
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
+
+#Finally prepare a config file for inclusion in regular Makefiles
+configure_file(${CMAKE_SOURCE_DIR}/cmake/PROJECT_NAME.CONFIG.in
+	    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG DESTINATION .)
 
 ## The instructions to create a debian package are loaded from a separate file
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)

@@ -1,0 +1,19 @@
+Why do we need four buffers? In principle the algorithm works with three
+buffers. The only tradeoff is that we immediately lose data if the receiver
+is slow, but the latency is lower because we never have two elements in the 
+"full buffers" queue, the head being the older one which has to be processed
+first.
+
+The reason is that the receiver always has to be able to get a buffer which is
+ to be filled and should always be able to send.
+There can be one race condition with three buffers in this case:
+1. The sender checks the "available buffers" queue which is empty. After this
+ check the process is resheduled to the receiver.
+2. The receiver is poping the head of the "filled buffers" queue. Before it can
+put the old buffer to the "available" queue, the process is again rescheduled 
+to the sender.
+3. Now both queues are empty and the sender cannot get a fresh buffer.
+
+With four buffers, both queues are only empty in case the sender and the
+ receiver are each holding two buffers, in which case none of them will pop but
+the next action is always to push.

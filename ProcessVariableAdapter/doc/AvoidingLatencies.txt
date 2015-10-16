@@ -1,0 +1,13 @@
+If you don't care if you lose data, but always want the latest value,
+ you probably don't want to process all entries in the "filled buffers" queue
+because only the last one contains the latest information.
+
+You can simply receive until the queue is empty, and only use the latest value:
+
+bool received = false;
+while (processVariable->receive()){
+  received=true;
+}
+
+If the queue was empty, received will still be false. Otherwise the queue has
+ been emptied, and all except for the last entry have been discarded.
