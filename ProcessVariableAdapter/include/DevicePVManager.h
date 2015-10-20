@@ -262,6 +262,8 @@ namespace mtca4u {
     case deviceToControlSystem:
       return _pvManager->createProcessScalarDeviceToControlSystem<T>(
           processVariableName, initialValue, numberOfBuffers).second;
+    default:
+      throw std::invalid_argument("invalid SynchronizationDirection");
     }
   }
 
@@ -279,6 +281,8 @@ namespace mtca4u {
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
           processVariableName, std::vector<T>(size, initialValue), swappable,
           numberOfBuffers).second;
+    default:
+      throw std::invalid_argument("invalid SynchronizationDirection");
     }
   }
 
@@ -295,6 +299,8 @@ namespace mtca4u {
     case deviceToControlSystem:
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
           processVariableName, initialValue, swappable, numberOfBuffers).second;
+    default:
+      throw std::invalid_argument("invalid SynchronizationDirection");
     }
   }
 

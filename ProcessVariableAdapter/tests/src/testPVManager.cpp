@@ -10,6 +10,7 @@
 
 #include <ControlSystemPVManager.h>
 #include <DevicePVManager.h>
+#include <SynchronizationDirection.h>
 
 using namespace boost::unit_test_framework;
 using namespace mtca4u;
@@ -67,6 +68,10 @@ static void testCreateProcessVariables(const string& name,
   csPV = csManager->getProcessScalar<T>(name + "Out");
   BOOST_CHECK(csPV->getName() == name + "Out");
 
+  BOOST_CHECK_THROW( devManager->createProcessScalar<T>(
+   static_cast<SynchronizationDirection>(-1),name + "ShouldFail"),
+   std::invalid_argument );
+
   string arrayName = name + "Array";
   shared_ptr<ProcessArray<T> > createdPA = devManager->createProcessArray<T>(
       deviceToControlSystem, arrayName + "In", 5);
@@ -84,6 +89,11 @@ static void testCreateProcessVariables(const string& name,
   BOOST_CHECK(devPA->getName() == arrayName + "Out");
   csPA = csManager->getProcessArray<T>(arrayName + "Out");
   BOOST_CHECK(csPA->getName() == arrayName + "Out");
+
+  BOOST_CHECK_THROW( devManager->createProcessArray<T>(
+   static_cast<SynchronizationDirection>(-1),arrayName + "ShouldFail", 5),
+   std::invalid_argument );
+
 }
 
 // Create a test suite which holds all your tests.
