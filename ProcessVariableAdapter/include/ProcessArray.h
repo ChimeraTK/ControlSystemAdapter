@@ -330,7 +330,7 @@ namespace mtca4u {
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
         typename impl::ProcessArrayImpl<T> >(impl::ProcessArrayImpl<T>::SENDER,
         swappable, timeStampSource, sendNotificationListener, receiver);
-    return std::make_pair<typename ProcessArray<T>::SharedPtr,
+    return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
 
@@ -348,7 +348,7 @@ namespace mtca4u {
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
         typename impl::ProcessArrayImpl<T> >(impl::ProcessArrayImpl<T>::SENDER,
         swappable, timeStampSource, sendNotificationListener, receiver);
-    return std::make_pair<typename ProcessArray<T>::SharedPtr,
+    return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
 

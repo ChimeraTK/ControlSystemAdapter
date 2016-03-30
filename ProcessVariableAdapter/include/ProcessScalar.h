@@ -176,7 +176,7 @@ namespace mtca4u {
         typename impl::ProcessScalarImpl<T> >(
         impl::ProcessScalarImpl<T>::SENDER, timeStampSource,
         sendNotificationListener, receiver);
-    return std::make_pair<typename ProcessScalar<T>::SharedPtr,
+    return std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr>(sender, receiver);
   }
 
