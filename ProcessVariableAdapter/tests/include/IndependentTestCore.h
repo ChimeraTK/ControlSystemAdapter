@@ -10,6 +10,10 @@
 
 #include <limits>
 
+#include <boost/fusion/include/map.hpp>
+#include <boost/fusion/include/at_key.hpp>
+#include <boost/fusion/include/for_each.hpp>
+
 template<class DataType>
 struct TypedPVHolder{
   typename mtca4u::ProcessScalar<DataType>::SharedPtr toDeviceScalar;
@@ -28,18 +32,18 @@ struct TypedPVHolder{
     toDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR") ),
     fromDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR") ),
     dataTypeConstant( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ){
-      /*      if (std::numeric_limits<DataType>.is_integer){
-	if (std::numeric_limits<DataType>.is_signed){
+      if (std::numeric_limits<DataType>::is_integer){
+	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int
-	  (*dataTypeConstant) = -size_of(DataType);
+	  (*dataTypeConstant) = -sizeof(DataType);
 	}else{
 	  // unsigned int
-	  (*dataTypeConstant) = -size_of(DataType);
-	}else{
-	  // floating point
-	  (*dataTypeConstant) = 1./size_of(DataType);	  
+	  (*dataTypeConstant) = sizeof(DataType);
 	}
-	}*/
+      }else{
+	// floating point
+	(*dataTypeConstant) = 1./sizeof(DataType);	  
+      }
     }
 
   void inputToOutput(){
@@ -47,13 +51,25 @@ struct TypedPVHolder{
   }
 };
 
+/// A boost fusion map which allows to acces the holder instances by type
+typedef boost::fusion::map<
+  boost::fusion::pair<int8_t, TypedPVHolder<int8_t> >,
+  boost::fusion::pair<uint8_t, TypedPVHolder<uint8_t> >,
+  boost::fusion::pair<int16_t, TypedPVHolder<int16_t> >,
+  boost::fusion::pair<uint16_t, TypedPVHolder<uint16_t> >,
+  boost::fusion::pair<int32_t, TypedPVHolder<int32_t> >,
+  boost::fusion::pair<uint32_t, TypedPVHolder<uint32_t> >,
+  boost::fusion::pair<float, TypedPVHolder<float> >,
+  boost::fusion::pair<double, TypedPVHolder<double> >
+  > HolderMap;
+
+
 class IndependentTestCore{
  public:
   mtca4u::DevicePVManager::SharedPtr processVariableManager;
 
   //  boost::scoped_ptr< boost::thread > _deviceThread;
-  TypedPVHolder<int> intHolder;
-  TypedPVHolder<short> shortHolder;
+  HolderMap holderMap;
 
   // the syncUtil needs to be initalised after the PVs are added to the manager
   mtca4u::DeviceSynchronizationUtility syncUtil;
@@ -69,9 +85,20 @@ class IndependentTestCore{
   IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_)
     //initialise all process variables, using the factory
     : processVariableManager( processVariableManager_ ),
-      intHolder( processVariableManager, "INT"),
-      shortHolder( processVariableManager, "SHORT"),
-      syncUtil(processVariableManager){
+    holderMap(
+      boost::fusion::make_pair<int8_t>( TypedPVHolder<int8_t>( processVariableManager, "CHAR") ),
+      boost::fusion::make_pair<uint8_t>( TypedPVHolder<uint8_t>( processVariableManager, "UCHAR") ),
+      boost::fusion::make_pair<int16_t>( TypedPVHolder<int16_t>( processVariableManager, "SHORT") ),
+      boost::fusion::make_pair<uint16_t>( TypedPVHolder<uint16_t>( processVariableManager, "USHORT") ),
+      boost::fusion::make_pair<int32_t>( TypedPVHolder<int32_t>( processVariableManager, "INT") ),
+      boost::fusion::make_pair<uint32_t>( TypedPVHolder<uint32_t>( processVariableManager, "UINT") ),
+      boost::fusion::make_pair<float>( TypedPVHolder<float>( processVariableManager, "FLOAT") ),
+      boost::fusion::make_pair<double>( TypedPVHolder<double>( processVariableManager, "DOUBLE") )
+    ),
+    syncUtil(processVariableManager){
+
+    syncUtil.sendAll();
+
 
     // start the device thread, which is executing the main loop
     //_deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
@@ -98,11 +125,20 @@ class IndependentTestCore{
 //  }
 //}
 
-inline void IndependentTestCore::mainBody(){
-  syncUtil.receiveAll();
+struct PerformInputToOutput{
+  template< typename T >
+  void operator()( T& t ) const{
+    t.second.inputToOutput();
+  }
+};
 
-  intHolder.inputToOutput();
-  shortHolder.inputToOutput();
+inline void IndependentTestCore::mainBody(){
+  
+  syncUtil.receiveAll();
+ 
+  //  boost::fusion::at_key<int32_t>( holderMap ).inputToOutput();
+
+  for_each( holderMap, PerformInputToOutput() ),
 
   syncUtil.sendAll();
 }

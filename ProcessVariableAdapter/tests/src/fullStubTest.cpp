@@ -24,12 +24,22 @@ struct TestCoreFixture{
     devManager( pvManagers.second ),
     testCore(devManager),
     csSyncUtil(csManager){
+    csSyncUtil.receiveAll();
   }
 };
 
 BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
 
-BOOST_FIXTURE_TEST_CASE( test_something, TestCoreFixture){
+BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
+  // just after creation of the fixture the constants should be available to the control system
+  BOOST_CHECK( csManager->getProcessScalar<int8_t>("CHAR/DATA_TYPE_CONSTANT")->get() == -1 );
+  BOOST_CHECK( csManager->getProcessScalar<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->get() == 1 );
+  BOOST_CHECK( csManager->getProcessScalar<int16_t>("SHORT/DATA_TYPE_CONSTANT")->get() == -2 );
+  BOOST_CHECK( csManager->getProcessScalar<uint16_t>("USHORT/DATA_TYPE_CONSTANT")->get() == 2 );
+  BOOST_CHECK( csManager->getProcessScalar<int32_t>("INT/DATA_TYPE_CONSTANT")->get() == -4 );
+  BOOST_CHECK( csManager->getProcessScalar<uint32_t>("UINT/DATA_TYPE_CONSTANT")->get() == 4 );
+  BOOST_CHECK( csManager->getProcessScalar<float>("FLOAT/DATA_TYPE_CONSTANT")->get() == 1./4 );
+  BOOST_CHECK( csManager->getProcessScalar<double>("DOUBLE/DATA_TYPE_CONSTANT")->get() == 1./8 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
