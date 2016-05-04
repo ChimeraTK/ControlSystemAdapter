@@ -42,4 +42,24 @@ BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
   BOOST_CHECK( csManager->getProcessScalar<double>("DOUBLE/DATA_TYPE_CONSTANT")->get() == 1./8 );
 }
 
+BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){
+  auto toDeviceInt = csManager->getProcessScalar<int32_t>("INT/TO_DEVICE_SCALAR");
+  auto fromDeviceInt = csManager->getProcessScalar<int32_t>("INT/FROM_DEVICE_SCALAR");
+  // repeat for all data types
+
+  BOOST_CHECK( *fromDeviceInt == 0 );
+  // repeat for all data types
+
+  *toDeviceInt = 17;
+  // repeat for all data types
+
+  csSyncUtil.sendAll();
+  testCore.mainBody();
+  csSyncUtil.receiveAll();
+  
+  BOOST_CHECK( *fromDeviceInt == 17 );
+ 
+  
+}
+
 BOOST_AUTO_TEST_SUITE_END()
