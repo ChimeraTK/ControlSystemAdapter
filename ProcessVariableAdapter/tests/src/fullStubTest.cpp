@@ -26,6 +26,22 @@ struct TestCoreFixture{
     csSyncUtil(csManager){
     csSyncUtil.receiveAll();
   }
+
+  template<class UserType>
+  void typedWriteTest(std::string typeNamePrefix){
+    auto toDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/TO_DEVICE_SCALAR");
+    auto fromDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/FROM_DEVICE_SCALAR");
+
+    UserType previousReadValue =  *fromDeviceScalar;
+
+    *toDeviceScalar = previousReadValue+13;
+
+    csSyncUtil.sendAll();
+    testCore.mainBody();
+    csSyncUtil.receiveAll();
+  
+    BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
+  }
 };
 
 BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
@@ -43,23 +59,14 @@ BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
 }
 
 BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){
-  auto toDeviceInt = csManager->getProcessScalar<int32_t>("INT/TO_DEVICE_SCALAR");
-  auto fromDeviceInt = csManager->getProcessScalar<int32_t>("INT/FROM_DEVICE_SCALAR");
-  // repeat for all data types
-
-  BOOST_CHECK( *fromDeviceInt == 0 );
-  // repeat for all data types
-
-  *toDeviceInt = 17;
-  // repeat for all data types
-
-  csSyncUtil.sendAll();
-  testCore.mainBody();
-  csSyncUtil.receiveAll();
-  
-  BOOST_CHECK( *fromDeviceInt == 17 );
- 
-  
+  typedWriteTest<int8_t>("CHAR");
+  typedWriteTest<uint8_t>("UCHAR");
+  typedWriteTest<int16_t>("SHORT");
+  typedWriteTest<uint16_t>("USHORT");
+  typedWriteTest<int32_t>("INT");
+  typedWriteTest<uint32_t>("UINT");
+  typedWriteTest<float>("FLOAT");
+  typedWriteTest<double>("DOUBLE");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
