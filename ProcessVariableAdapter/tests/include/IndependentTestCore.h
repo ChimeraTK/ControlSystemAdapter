@@ -35,7 +35,7 @@ struct TypedPVHolder{
       if (std::numeric_limits<DataType>::is_integer){
 	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int
-	  (*dataTypeConstant) = -sizeof(DataType);
+	  (*dataTypeConstant) = static_cast<DataType>(-sizeof(DataType));
 	}else{
 	  // unsigned int
 	  (*dataTypeConstant) = sizeof(DataType);
