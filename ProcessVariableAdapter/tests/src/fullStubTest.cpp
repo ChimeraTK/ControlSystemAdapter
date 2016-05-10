@@ -28,7 +28,7 @@ struct TestCoreFixture{
   }
 
   template<class UserType>
-  void typedWriteTest(std::string typeNamePrefix){
+  void typedWriteScalarTest(std::string typeNamePrefix){
     auto toDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/TO_DEVICE_SCALAR");
     auto fromDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/FROM_DEVICE_SCALAR");
 
@@ -42,6 +42,43 @@ struct TestCoreFixture{
   
     BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
   }
+
+  template<class UserType>
+  void typedReadArrayTest(std::string typeNamePrefix){
+    UserType typeConstant = csManager->getProcessScalar<UserType>(typeNamePrefix+"/DATA_TYPE_CONSTANT")->get();
+
+    auto inputArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/CONSTANT_ARRAY");
+    BOOST_REQUIRE(inputArray);
+    for (size_t i = 0; i < inputArray->get().size(); ++i){
+      BOOST_CHECK(static_cast<UserType>(typeConstant*i*i) == inputArray->get()[i]);
+    }
+  }
+ 
+  template<class UserType>
+  void typedWriteArrayTest(std::string typeNamePrefix){
+    auto toDeviceArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/TO_DEVICE_ARRAY");
+    auto fromDeviceArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/FROM_DEVICE_ARRAY");
+    BOOST_REQUIRE(toDeviceArray);
+    BOOST_REQUIRE(fromDeviceArray);
+
+    // first check that there are all zeros in (startup condition)
+    for ( auto & t  : toDeviceArray->get() ){
+      BOOST_CHECK( t == 0 );
+    }
+
+    for (size_t i = 0; i < toDeviceArray->get().size(); ++i){
+      toDeviceArray->get()[i] = 13 + i;
+    }
+
+    csSyncUtil.sendAll();
+    testCore.mainBody();
+    csSyncUtil.receiveAll();
+
+    for (size_t i = 0; i < fromDeviceArray->get().size(); ++i){
+      BOOST_CHECK(fromDeviceArray->get()[i] == static_cast<UserType>(13 + i));
+    }
+  }
+ 
 };
 
 BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
@@ -59,14 +96,36 @@ BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
 }
 
 BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){
-  typedWriteTest<int8_t>("CHAR");
-  typedWriteTest<uint8_t>("UCHAR");
-  typedWriteTest<int16_t>("SHORT");
-  typedWriteTest<uint16_t>("USHORT");
-  typedWriteTest<int32_t>("INT");
-  typedWriteTest<uint32_t>("UINT");
-  typedWriteTest<float>("FLOAT");
-  typedWriteTest<double>("DOUBLE");
+  typedWriteScalarTest<int8_t>("CHAR");
+  typedWriteScalarTest<uint8_t>("UCHAR");
+  typedWriteScalarTest<int16_t>("SHORT");
+  typedWriteScalarTest<uint16_t>("USHORT");
+  typedWriteScalarTest<int32_t>("INT");
+  typedWriteScalarTest<uint32_t>("UINT");
+  typedWriteScalarTest<float>("FLOAT");
+  typedWriteScalarTest<double>("DOUBLE");
+}
+
+BOOST_FIXTURE_TEST_CASE( test_read_array, TestCoreFixture){
+  typedReadArrayTest<int8_t>("CHAR");	 
+  typedReadArrayTest<uint8_t>("UCHAR");
+  typedReadArrayTest<int16_t>("SHORT");
+  typedReadArrayTest<uint16_t>("USHORT");
+  typedReadArrayTest<int32_t>("INT");	 
+  typedReadArrayTest<uint32_t>("UINT");
+  typedReadArrayTest<float>("FLOAT");	 
+  typedReadArrayTest<double>("DOUBLE");  
+}
+
+BOOST_FIXTURE_TEST_CASE( test_write_array, TestCoreFixture){
+  typedWriteArrayTest<int8_t>("CHAR");	 
+  typedWriteArrayTest<uint8_t>("UCHAR");
+  typedWriteArrayTest<int16_t>("SHORT");
+  typedWriteArrayTest<uint16_t>("USHORT");
+  typedWriteArrayTest<int32_t>("INT");	 
+  typedWriteArrayTest<uint32_t>("UINT");
+  typedWriteArrayTest<float>("FLOAT");	 
+  typedWriteArrayTest<double>("DOUBLE");  
 }
 
 BOOST_AUTO_TEST_SUITE_END()
