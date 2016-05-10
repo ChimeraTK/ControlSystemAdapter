@@ -18,6 +18,8 @@ template<class DataType>
 struct TypedPVHolder{
   typename mtca4u::ProcessScalar<DataType>::SharedPtr toDeviceScalar;
   typename mtca4u::ProcessScalar<DataType>::SharedPtr fromDeviceScalar;
+  typename mtca4u::ProcessArray<DataType>::SharedPtr toDeviceArray;
+  typename mtca4u::ProcessArray<DataType>::SharedPtr fromDeviceArray;
   /** The "data type constant" is a value that depends on the data type. It is intended as
    *  'magic' constant which can be read out to test reading because the value it knows.
    *  
@@ -27,11 +29,15 @@ struct TypedPVHolder{
    *  \li 1./sizeof(type) for floating point types
    */
   typename mtca4u::ProcessScalar<DataType>::SharedPtr dataTypeConstant;
-
+  typename mtca4u::ProcessArray<DataType>::SharedPtr constantArray;
+ 
   TypedPVHolder(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager, std::string typeNamePrefix):
     toDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR") ),
     fromDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR") ),
-    dataTypeConstant( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ){
+    toDeviceArray( processVariableManager->createProcessArray<DataType>(mtca4u::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
+    fromDeviceArray( processVariableManager->createProcessArray<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
+    dataTypeConstant( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ),
+    constantArray( processVariableManager->createProcessArray<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) ){
       if (std::numeric_limits<DataType>::is_integer){
 	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int
@@ -44,10 +50,17 @@ struct TypedPVHolder{
 	// floating point
 	(*dataTypeConstant) = 1./sizeof(DataType);	  
       }
+      for (size_t i = 0; i < constantArray->get().size(); ++i){
+	constantArray->get()[i] = (*dataTypeConstant)*i*i;
+      }
+      
     }
 
   void inputToOutput(){
     fromDeviceScalar->set(*toDeviceScalar);
+    for (size_t i = 0; i < fromDeviceArray->get().size() &&  i < toDeviceArray->get().size() ; ++i){
+      fromDeviceArray->get()[i] = toDeviceArray->get()[i];
+    }
   }
 };
 
