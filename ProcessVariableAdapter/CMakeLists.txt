@@ -98,6 +98,9 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAM
 	  PATTERN ".svn" EXCLUDE
 	  PATTERN "${PROJECT_NAME}" EXCLUDE)
 
+#We additionally install the independent reference test application, it's header only
+install(FILES ${CMAKE_SOURCE_DIR}/tests/include/IndependentTestCore.h  DESTINATION include/${PROJECT_NAME}/testing)	
+
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
@@ -113,6 +116,14 @@ include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 configure_file(${CMAKE_SOURCE_DIR}/cmake/PROJECT_NAME.CONFIG.in
 	    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG DESTINATION .)
+
+set(${PROJECT_NAME}_CPPFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
+set(${PROJECT_NAME}_LDFLAGS "-L${CMAKE_INSTALL_PREFIX}/lib -l${PROJECT_NAME} -Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
+configure_file(cmake/PROJECT_NAME-config.in.in
+  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in" @ONLY)
+configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in
+  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config" @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin)
 
 ## The instructions to create a debian package are loaded from a separate file
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
