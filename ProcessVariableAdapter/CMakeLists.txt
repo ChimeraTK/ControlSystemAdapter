@@ -123,7 +123,7 @@ configure_file(cmake/PROJECT_NAME-config.in.in
   "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in" @ONLY)
 configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in
   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config" @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin COMPONENT dev)
 
 ## The instructions to create a debian package are loaded from a separate file
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
