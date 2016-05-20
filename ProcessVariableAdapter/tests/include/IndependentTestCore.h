@@ -9,6 +9,7 @@
 #include "SynchronizationDirection.h"
 
 #include <limits>
+#include <atomic>
 
 #include <boost/fusion/include/map.hpp>
 #include <boost/fusion/include/at_key.hpp>
@@ -81,21 +82,31 @@ class IndependentTestCore{
  public:
   mtca4u::DevicePVManager::SharedPtr processVariableManager;
 
-  //  boost::scoped_ptr< boost::thread > _deviceThread;
+  boost::scoped_ptr< boost::thread > _deviceThread;
   HolderMap holderMap;
 
   // the syncUtil needs to be initalised after the PVs are added to the manager
   mtca4u::DeviceSynchronizationUtility syncUtil;
 
-  // void mainLoop();
+  ///
+  static std::atomic_bool & mainBodyCompletelyExecuted(){
+    static std::atomic_bool _mainBodyCompletelyExecuted;
+    return _mainBodyCompletelyExecuted;
+  }
+
+  /// An infinite while loop, running mainBody()
+  void mainLoop();
 
   /// The 'body' of the main loop, i.e. the functionality once, without the loop around it.
   void mainBody();
 
   /** The constructor gets an instance of the variable factory to use. 
    *  The variables in the factory should already be initialised because the hardware is initialised here.
+   *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
+   *  an endless loop.
    */
-  IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_)
+   IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_,
+		       bool startThread = false)
     //initialise all process variables, using the factory
     : processVariableManager( processVariableManager_ ),
     holderMap(
@@ -112,31 +123,31 @@ class IndependentTestCore{
 
     syncUtil.sendAll();
 
-
+    mainBodyCompletelyExecuted() = false;
+    
     // start the device thread, which is executing the main loop
-    //_deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
+    if (startThread){
+      _deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
+    }
   }
   
   ~IndependentTestCore(){
     // stop the device thread before any other destructors are called
-    //    _deviceThread->interrupt();
-    //    _deviceThread->join();
+    if (_deviceThread){
+      _deviceThread->interrupt();
+      _deviceThread->join();
+    }
  }
 
 };
 
-//inline void IndependentTestCore::mainLoop(){
-//  mtca4u::DeviceSynchronizationUtility syncUtil(_processVariableManager);
-// 
-//  while (!boost::this_thread::interruption_requested()) {
-//    syncUtil.receiveAll();
-//    *_monitorVoltage = _hardware.getVoltage();	  (*dataTypeConstant) = -size_of(DataType);
-//
-//    _hardware.setVoltage( *_targetVoltage );
-//    syncUtil.sendAll();
-//    boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
-//  }
-//}
+inline void IndependentTestCore::mainLoop(){
+ 
+  while (!boost::this_thread::interruption_requested()) {
+    mainBody();
+    boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
+  }
+}
 
 struct PerformInputToOutput{
   template< typename T >
@@ -146,14 +157,24 @@ struct PerformInputToOutput{
 };
 
 inline void IndependentTestCore::mainBody(){
+  // Only set the completed flag if it was 'false' when entering this function.
+  // We have to remember this. Like this we can be sure that one full run of this
+  // function was executed while the flags was 'false'.
+  bool setMainBodyCompletelyEceutedWhenFinished = false;
+  if ( !mainBodyCompletelyExecuted() ){
+    setMainBodyCompletelyEceutedWhenFinished = true;
+  }
   
   syncUtil.receiveAll();
  
-  //  boost::fusion::at_key<int32_t>( holderMap ).inputToOutput();
-
   for_each( holderMap, PerformInputToOutput() ),
 
   syncUtil.sendAll();
+
+  // We have reached the end of the mainBody function. If the
+  if (setMainBodyCompletelyEceutedWhenFinished){
+    mainBodyCompletelyExecuted() = true;
+  }
 }
 
 #endif // _INDEPENDENT_CONTOL_CORE_H_

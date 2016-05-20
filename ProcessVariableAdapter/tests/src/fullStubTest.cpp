@@ -37,7 +37,10 @@ struct TestCoreFixture{
     *toDeviceScalar = previousReadValue+13;
 
     csSyncUtil.sendAll();
+    // test that the execution indicator is set correctly
+    IndependentTestCore::mainBodyCompletelyExecuted() = false;
     testCore.mainBody();
+    BOOST_CHECK(IndependentTestCore::mainBodyCompletelyExecuted() == true);
     csSyncUtil.receiveAll();
   
     BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
