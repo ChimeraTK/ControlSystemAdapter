@@ -123,7 +123,7 @@ class IndependentTestCore{
 
     syncUtil.sendAll();
 
-    mainBodyCompletelyExecuted() = false;
+    mainBodyCompletelyExecuted() = true;
     
     // start the device thread, which is executing the main loop
     if (startThread){
