@@ -3,10 +3,10 @@
 
 #include <boost/scoped_ptr.hpp>
 
-#include "DevicePVManager.h"
-#include "ProcessScalar.h"
-#include "DeviceSynchronizationUtility.h"
-#include "SynchronizationDirection.h"
+#include <ControlSystemAdapter/DevicePVManager.h>
+#include <ControlSystemAdapter/ProcessScalar.h>
+#include <ControlSystemAdapter/DeviceSynchronizationUtility.h>
+#include <ControlSystemAdapter/SynchronizationDirection.h>
 
 #include <limits>
 #include <atomic>
@@ -167,7 +167,7 @@ inline void IndependentTestCore::mainBody(){
   
   syncUtil.receiveAll();
  
-  for_each( holderMap, PerformInputToOutput() ),
+  for_each( holderMap, PerformInputToOutput() );
 
   syncUtil.sendAll();
 
