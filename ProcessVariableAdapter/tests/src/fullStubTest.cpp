@@ -24,7 +24,13 @@ struct TestCoreFixture{
     devManager( pvManagers.second ),
     testCore(devManager),
     csSyncUtil(csManager){
+    std::cout << "this is TestCoreFixture():" << std::endl;
+    IndependentTestCore::initialiseManualLoopControl();
     csSyncUtil.receiveAll();
+  }
+  ~TestCoreFixture(){
+    std::cout << "this is ~TestCoreFixture():" << std::endl;
+    IndependentTestCore::releaseManualLoopControl();
   }
 
   template<class UserType>
@@ -37,10 +43,7 @@ struct TestCoreFixture{
     *toDeviceScalar = previousReadValue+13;
 
     csSyncUtil.sendAll();
-    // test that the execution indicator is set correctly
-    IndependentTestCore::mainBodyCompletelyExecuted() = false;
-    testCore.mainBody();
-    BOOST_CHECK(IndependentTestCore::mainBodyCompletelyExecuted() == true);
+    IndependentTestCore::runMainLoopOnce();
     csSyncUtil.receiveAll();
   
     BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
@@ -53,7 +56,12 @@ struct TestCoreFixture{
     auto inputArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/CONSTANT_ARRAY");
     BOOST_REQUIRE(inputArray);
     for (size_t i = 0; i < inputArray->get().size(); ++i){
-      BOOST_CHECK(static_cast<UserType>(typeConstant*i*i) == inputArray->get()[i]);
+      std::stringstream errorMessage;
+      errorMessage << "check failed: " << typeNamePrefix+"/CONSTANT_ARRAY["
+		   << i << "] = "<< inputArray->get()[i] << ", expected " << typeConstant*i*i
+		   << std::endl;
+      BOOST_CHECK_MESSAGE(static_cast<UserType>(typeConstant*i*i) == inputArray->get()[i],
+			  errorMessage.str());
     }
   }
  
@@ -74,7 +82,7 @@ struct TestCoreFixture{
     }
 
     csSyncUtil.sendAll();
-    testCore.mainBody();
+    IndependentTestCore::runMainLoopOnce();
     csSyncUtil.receiveAll();
 
     for (size_t i = 0; i < fromDeviceArray->get().size(); ++i){

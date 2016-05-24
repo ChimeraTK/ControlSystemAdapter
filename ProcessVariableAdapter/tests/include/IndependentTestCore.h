@@ -10,6 +10,7 @@
 
 #include <limits>
 #include <atomic>
+#include <mutex>
 
 #include <boost/fusion/include/map.hpp>
 #include <boost/fusion/include/at_key.hpp>
@@ -54,14 +55,15 @@ struct TypedPVHolder{
       for (size_t i = 0; i < constantArray->get().size(); ++i){
 	constantArray->get()[i] = (*dataTypeConstant)*i*i;
       }
-      
     }
 
   void inputToOutput(){
     fromDeviceScalar->set(*toDeviceScalar);
+    fromDeviceScalar->send();
     for (size_t i = 0; i < fromDeviceArray->get().size() &&  i < toDeviceArray->get().size() ; ++i){
       fromDeviceArray->get()[i] = toDeviceArray->get()[i];
     }
+    fromDeviceArray->send();
   }
 };
 
@@ -88,11 +90,29 @@ class IndependentTestCore{
   // the syncUtil needs to be initalised after the PVs are added to the manager
   mtca4u::DeviceSynchronizationUtility syncUtil;
 
-  ///
-  static std::atomic_bool & mainBodyCompletelyExecuted(){
-    static std::atomic_bool _mainBodyCompletelyExecuted;
-    return _mainBodyCompletelyExecuted;
+  static std::mutex & mainLoopMutex(){
+    static std::mutex _mainLoopMutex;
+    return _mainLoopMutex;
   }
+
+  static std::atomic_bool & manuallyControlMainLoop(){
+    static std::atomic_bool _manuallyControlMainLoop(false);
+    return _manuallyControlMainLoop;
+  }
+
+  /// 
+  static bool & mainLoopExecutionRequested(){
+    static bool _mainLoopExecutionRequested(false);
+    return _mainLoopExecutionRequested;
+  }
+
+  static std::atomic_bool & initalisationForManualLoopControlFinished(){
+    static std::atomic_bool _initalisationForManualLoopControlFinished(false);
+    return _initalisationForManualLoopControlFinished;
+  }
+
+  static void initialiseManualLoopControl();
+  static void releaseManualLoopControl();
 
   /// An infinite while loop, running mainBody()
   void mainLoop();
@@ -100,15 +120,16 @@ class IndependentTestCore{
   /// The 'body' of the main loop, i.e. the functionality once, without the loop around it.
   void mainBody();
 
+  static void runMainLoopOnce();
+
   /** The constructor gets an instance of the variable factory to use. 
    *  The variables in the factory should already be initialised because the hardware is initialised here.
    *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
    *  an endless loop.
    */
-   IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_,
-		       bool startThread = false)
-    //initialise all process variables, using the factory
-    : processVariableManager( processVariableManager_ ),
+  IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_)
+      //initialise all process variables, using the factory
+      : processVariableManager( processVariableManager_ ),
     holderMap(
       boost::fusion::make_pair<int8_t>( TypedPVHolder<int8_t>( processVariableManager, "CHAR") ),
       boost::fusion::make_pair<uint8_t>( TypedPVHolder<uint8_t>( processVariableManager, "UCHAR") ),
@@ -123,12 +144,7 @@ class IndependentTestCore{
 
     syncUtil.sendAll();
 
-    mainBodyCompletelyExecuted() = true;
-    
-    // start the device thread, which is executing the main loop
-    if (startThread){
-      _deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
-    }
+    _deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
   }
   
   ~IndependentTestCore(){
@@ -142,11 +158,26 @@ class IndependentTestCore{
 };
 
 inline void IndependentTestCore::mainLoop(){
- 
+  mainLoopMutex().lock();
+  
   while (!boost::this_thread::interruption_requested()) {
+
     mainBody();
-    boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
+
+    if (manuallyControlMainLoop()){
+      mainLoopExecutionRequested() = false;
+      initalisationForManualLoopControlFinished() = true;
+      do{
+	mainLoopMutex().unlock();
+	boost::this_thread::sleep_for( boost::chrono::microseconds(10) );
+	mainLoopMutex().lock();      
+      }	while( !mainLoopExecutionRequested() );
+    }else{
+      boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
+    }
   }
+
+  mainLoopMutex().unlock();
 }
 
 struct PerformInputToOutput{
@@ -157,24 +188,33 @@ struct PerformInputToOutput{
 };
 
 inline void IndependentTestCore::mainBody(){
-  // Only set the completed flag if it was 'false' when entering this function.
-  // We have to remember this. Like this we can be sure that one full run of this
-  // function was executed while the flags was 'false'.
-  bool setMainBodyCompletelyEceutedWhenFinished = false;
-  if ( !mainBodyCompletelyExecuted() ){
-    setMainBodyCompletelyEceutedWhenFinished = true;
-  }
-  
+
   syncUtil.receiveAll();
- 
   for_each( holderMap, PerformInputToOutput() );
-
-  syncUtil.sendAll();
-
-  // We have reached the end of the mainBody function. If the
-  if (setMainBodyCompletelyEceutedWhenFinished){
-    mainBodyCompletelyExecuted() = true;
-  }
 }
 
+inline void IndependentTestCore::runMainLoopOnce(){
+  mainLoopExecutionRequested() = true;
+  do{
+    mainLoopMutex().unlock();
+    boost::this_thread::sleep_for( boost::chrono::microseconds(1) );
+    mainLoopMutex().lock();
+  // Loop until the execution requested flag has not been reset.
+  // This is the sign that the loop actually has been performed.
+  }while( mainLoopExecutionRequested() );
+}
+
+inline void IndependentTestCore::initialiseManualLoopControl(){
+  manuallyControlMainLoop() = true;
+  do{
+    boost::this_thread::sleep_for( boost::chrono::milliseconds(10) );
+  }while(!initalisationForManualLoopControlFinished());
+  mainLoopMutex().lock();
+}
+
+inline void IndependentTestCore::releaseManualLoopControl(){
+  manuallyControlMainLoop() = false;
+  initalisationForManualLoopControlFinished() = false;
+  mainLoopMutex().unlock();
+}
 #endif // _INDEPENDENT_CONTOL_CORE_H_

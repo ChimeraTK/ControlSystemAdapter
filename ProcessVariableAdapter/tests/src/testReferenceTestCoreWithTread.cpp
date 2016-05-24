@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE( testInt32_t ){
   auto devManager = pvManagers.second;
 
   // create the control core with it's own thread running the main loop
-  IndependentTestCore testCore( devManager, true /*startThread*/);
+  IndependentTestCore testCore( devManager );
 
   ControlSystemSynchronizationUtility csSyncUtil(csManager);
 
@@ -35,27 +35,18 @@ BOOST_AUTO_TEST_CASE( testInt32_t ){
 
   csSyncUtil.sendAll();
   
-  // Now we have to wait until the thread in  the test core has executed the main loop.
-  // For this we set the mainBodyCompletelyExecuted variable to false and wait unti it becomes true.
-  IndependentTestCore::mainBodyCompletelyExecuted() = false;
-
   // Wait for max 1000 iterations. Each time we wait for the expected execution time. If it is not
   // true after 1000 waiting periods we declare this test as failed.
-  for (int i = 0; i < 1000 ; ++i){
-    if (IndependentTestCore::mainBodyCompletelyExecuted()){
+  int i = 0;
+  for ( ; i < 1000 ; ++i){
+    csSyncUtil.receiveAll();
+    if ( *fromDeviceScalar == previousReadValue+13){
       break;
     }
     boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
   }
 
-  if (!IndependentTestCore::mainBodyCompletelyExecuted()){
-    // We ran into the timeout. The mainBody has not been executed, something went wrong.
-    BOOST_ERROR( "Synchronisation with the mainBody of the ReferenceTestCore failed." );
-  }
-
-  csSyncUtil.receiveAll();
-  
-  BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
+  BOOST_CHECK_MESSAGE( i< 1000, "Reading the correct value timed out." );
 
 }
 
