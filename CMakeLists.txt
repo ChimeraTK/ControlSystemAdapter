@@ -112,11 +112,7 @@ set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS "${Boost_LIBRARY_DIRS}")
 
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 
-#Finally prepare a config file for inclusion in regular Makefiles
-configure_file(${CMAKE_SOURCE_DIR}/cmake/PROJECT_NAME.CONFIG.in
-	    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.CONFIG DESTINATION .)
-
+#Finally prepare a config script for use in regular Makefiles
 set(${PROJECT_NAME}_CPPFLAGS "-I${CMAKE_INSTALL_PREFIX}/include -std=c++11")
 set(${PROJECT_NAME}_LDFLAGS "-L${CMAKE_INSTALL_PREFIX}/lib -l${PROJECT_NAME} -Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
 configure_file(cmake/PROJECT_NAME-config.in.in

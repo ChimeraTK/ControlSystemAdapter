@@ -26,4 +26,4 @@ configure_file(cmake/FindPROJECT_NAME.cmake.in
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" 
   "${PROJECT_BINARY_DIR}/Find${PROJECT_NAME}.cmake"
-  DESTINATION . COMPONENT dev)
+  DESTINATION share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules COMPONENT dev)
