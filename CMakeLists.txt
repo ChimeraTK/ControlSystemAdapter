@@ -105,7 +105,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/tests/include/IndependentTestCore.h  DESTINATI
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
 #but there are none.
-set(${PROJECT_NAME}_REFERENCE_HEADER "DeviceProcessVariable.h")
+set(${PROJECT_NAME}_REFERENCE_HEADER "ControlSystemAdapter/ControlSystemPVManager.h")
 set(${PROJECT_NAME}_CONFIG_INCLUDE_DIRS "${Boost_INCLUDE_DIRS}")
 set(${PROJECT_NAME}_CONFIG_LIBRARIES "${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY}")
 set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS "${Boost_LIBRARY_DIRS}")
@@ -124,6 +124,7 @@ configure_file(cmake/PROJECT_NAME-config.in.in
 configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in
   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config" @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin COMPONENT dev)
+
 
 ## The instructions to create a debian package are loaded from a separate file
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
