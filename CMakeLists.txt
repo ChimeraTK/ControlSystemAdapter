@@ -105,21 +105,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/tests/include/IndependentTestCore.h  DESTINATI
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
 #but there are none.
-set(${PROJECT_NAME}_REFERENCE_HEADER "ControlSystemPVManager.h")
-set(${PROJECT_NAME}_CONFIG_INCLUDE_DIRS "${Boost_INCLUDE_DIRS}")
-set(${PROJECT_NAME}_CONFIG_LIBRARIES "${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY}")
-set(${PROJECT_NAME}_CONFIG_LIBRARY_DIRS "${Boost_LIBRARY_DIRS}")
-
+set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
+set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY}")
+set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS}")
+set(${PROJECT_NAME}_CPPFLAGS "-std=c++11")
+set(${PROJECT_NAME}_LDFLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
-
-#Finally prepare a config script for use in regular Makefiles
-set(${PROJECT_NAME}_CPPFLAGS "-I${CMAKE_INSTALL_PREFIX}/include -std=c++11")
-set(${PROJECT_NAME}_LDFLAGS "-L${CMAKE_INSTALL_PREFIX}/lib -l${PROJECT_NAME} -Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
-configure_file(cmake/PROJECT_NAME-config.in.in
-  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in" @ONLY)
-configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config" @ONLY)
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin COMPONENT dev)
 
 
 ## The instructions to create a debian package are loaded from a separate file

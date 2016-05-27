@@ -1,8 +1,0 @@
-# A configuration to be loaded in regular Makefiles
-#
-# It provides variables to link against the @PROJECT_NAME@ library.
-# ReadMe.Makefile.txt for more information.
-
-@PROJECT_NAME@_INCLUDE_FLAGS=-I@CMAKE_INSTALL_PREFIX@/include
-@PROJECT_NAME@_LIB_FLAGS=-L@CMAKE_INSTALL_PREFIX@/lib -l@PROJECT_NAME@
-@PROJECT_NAME@_RUNPATH_FLAGS=-Wl,-rpath=@CMAKE_INSTALL_PREFIX@/lib,--enable-new-dtags
