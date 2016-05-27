@@ -108,8 +108,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/tests/include/IndependentTestCore.h  DESTINATI
 set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
 set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY}")
 set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS}")
-set(${PROJECT_NAME}_CPPFLAGS "-std=c++11")
-set(${PROJECT_NAME}_LDFLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
+set(${PROJECT_NAME}_CXX_FLAGS "-std=c++11")
+set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 
 
