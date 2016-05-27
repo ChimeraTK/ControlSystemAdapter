@@ -34,10 +34,6 @@ foreach(LIBRARY ${LIST})
   set(${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE "${${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE} -l${LIBRARY}")
 endforeach()
 
-string(REPLACE ";" " " ${PROJECT_NAME}_INCLUDE_DIRS ${${PROJECT_NAME}_INCLUDE_DIRS})
-string(REPLACE ";" " " ${PROJECT_NAME}_LIBRARY_DIRS ${${PROJECT_NAME}_LIBRARY_DIRS})
-string(REPLACE ";" " " ${PROJECT_NAME}_LIBRARIES ${${PROJECT_NAME}_LIBRARIES})
-
 # force the lists to be space separated (may be sometimes semicolon separated)
 # we have nested @-statements, so we have to parse twice:
 
