@@ -1,29 +1,53 @@
-#check that all config variables which have to be replaced are set
-foreach( CONFIG_VARIABLE CONFIG_INCLUDE_DIRS 
-                         REFERENCE_HEADER
-			 CONFIG_LIBRARIES
-			 CONFIG_LIBRARY_DIRS )
-  if(NOT ${PROJECT_NAME}_${CONFIG_VARIABLE})
-    message(FATAL_ERROR "${PROJECT_NAME}_${CONFIG_VARIABLE} not set in CMakeListst.txt")
-  endif(NOT ${PROJECT_NAME}_${CONFIG_VARIABLE})
-endforeach(CONFIG_VARIABLE)
+#######################################################################################################################
+# create_cmake_config_files.cmake
+#
+# Create the Find${PROJECT_NAME}.cmake cmake macro and the ${PROJECT_NAME}-config shell script and installs them.
+#
+# Expects the following input variables:
+#   ${PROJECT_NAME}_SOVERSION - version of the .so library file
+#   ${PROJECT_NAME}_INCLUDE_DIRS - list include directories needed when compiling against this project
+#   ${PROJECT_NAME}_LIBRARY_DIRS - list of library directories needed when linking against this project
+#   ${PROJECT_NAME}_LIBRARIES - list of libraries needed when linking against this project
+#   ${PROJECT_NAME}_CXX_FLAGS - list of additional C++ compiler flags needed when compiling against this project
+#   ${PROJECT_NAME}_LINKER_FLAGS - list of additional linker flags needed when linking against this project
+#   ${PROJECT_NAME}_MEXFLAGS - (optional) mex compiler flags
+#
+#######################################################################################################################
 
-#We have nested @-statements, so we have to parse twice
-configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in
-  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in" @ONLY)
-configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
+# create variables for standard makefiles
+set(${PROJECT_NAME}_CXX_FLAGS_MAKEFILE "${${PROJECT_NAME}_CXX_FLAGS}")
 
-configure_file(cmake/PROJECT_NAMEConfigVersion.cmake.in.in
-  "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in" @ONLY)
-configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
+string(REPLACE " " ";" LIST ${${PROJECT_NAME}_INCLUDE_DIRS})
+foreach(INCLUDE_DIR ${LIST})
+  set(${PROJECT_NAME}_CXX_FLAGS_MAKEFILE "${${PROJECT_NAME}_CXX_FLAGS_MAKEFILE} -I${INCLUDE_DIR}")
+endforeach()
 
-configure_file(cmake/FindPROJECT_NAME.cmake.in
-  "${PROJECT_BINARY_DIR}/Find${PROJECT_NAME}.cmake" @ONLY)
+set(${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE "${${PROJECT_NAME}_LINKER_FLAGS}")
 
-# Install the ..Config.cmake and ..ConfigVersion.cmake
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" 
-  "${PROJECT_BINARY_DIR}/Find${PROJECT_NAME}.cmake"
+string(REPLACE " " ";" LIST ${${PROJECT_NAME}_LIBRARY_DIRS})
+foreach(LIBRARY_DIR ${LIST})
+  set(${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE "${${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE} -L${LIBRARY_DIR}")
+endforeach()
+
+string(REPLACE " " ";" LIST ${${PROJECT_NAME}_LIBRARIES})
+foreach(LIBRARY ${LIST})
+  set(${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE "${${PROJECT_NAME}_LINKER_FLAGS_MAKEFILE} -l${LIBRARY}")
+endforeach()
+
+# force the lists to be space separated (may be sometimes semicolon separated)
+# we have nested @-statements, so we have to parse twice:
+
+# create the cmake Find package script
+configure_file(cmake/FindPROJECT_NAME.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/Find${PROJECT_NAME}.cmake.in" @ONLY)
+configure_file(${PROJECT_BINARY_DIR}/cmake/Find${PROJECT_NAME}.cmake.in "${PROJECT_BINARY_DIR}/Find${PROJECT_NAME}.cmake" @ONLY)
+
+# create the shell script for standard make files
+configure_file(cmake/PROJECT_NAME-config.in.in "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in" @ONLY)
+configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}-config.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config" @ONLY)
+
+# install the script
+install(FILES "${PROJECT_BINARY_DIR}/Find${PROJECT_NAME}.cmake"
   DESTINATION share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules COMPONENT dev)
+
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin COMPONENT dev)
+
