@@ -40,6 +40,11 @@ BOOST_AUTO_TEST_CASE( testScalarCreation ){
 
   auto scalarFloat = createSimpleProcessScalar<float>("scalarFloat");
   BOOST_CHECK_THROW( secondIntAccessor.replace(scalarFloat), std::runtime_error) ;
+
+  // test copy construction (automatically created, but it's a feature we want
+  ProcessScalarAccessor<int> thirdIntAccessor( secondIntAccessor );
+  secondIntAccessor.set( 46 );
+  BOOST_CHECK( thirdIntAccessor.get() == 46 );
 }
 
 BOOST_AUTO_TEST_CASE( testPVAccessor ){
@@ -78,5 +83,37 @@ BOOST_AUTO_TEST_CASE( testPVAccessor ){
   BOOST_CHECK( scalarReceiver == 2 );
 
 }
+
+BOOST_AUTO_TEST_CASE( testScalarOperations ){
+  // test getters, setters  and operators
+  auto scalarInt = createSimpleProcessScalar<int>("scalarInt",42);
+  ProcessScalarAccessor<int> scalarIntAccessor(scalarInt);
+
+  // implicit conversion
+  int i;
+  i = scalarIntAccessor;
+  BOOST_CHECK( i == 42 );
+
+  // assigment
+  i = 43;
+  scalarIntAccessor = i;
+  // we test with the underlying impl
+  BOOST_CHECK( scalarInt->get() == 43 );
+  // now we can also test the get function
+  BOOST_CHECK( scalarIntAccessor.get() == 43 );
+
+  auto anotherScalarInt = createSimpleProcessScalar<int>("anotherScalarInt",44);
+  scalarIntAccessor.set(*anotherScalarInt);
+  BOOST_CHECK( scalarIntAccessor.get() == 44 );
+  scalarIntAccessor.set( 45 );
+  BOOST_CHECK( scalarIntAccessor.get() == 45 );
+
+  ProcessScalarAccessor<int> anotherScalarIntAccessor(anotherScalarInt);
+  anotherScalarIntAccessor.set(46);
+  scalarIntAccessor.set( anotherScalarIntAccessor );
+  BOOST_CHECK( scalarIntAccessor.get() == 46 );
+  
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

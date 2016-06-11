@@ -37,6 +37,14 @@ namespace mtca4u {
     }
 
     /**
+     * Set the value of this process variable to the one of the other process
+     * variable accessor
+     */
+    void set(ProcessScalarAccessor<T> const & other){
+      set(other.get());
+    }
+
+    /**
      * Set the value of this process variable to the specified one.
      */
     void set(T const & t){
