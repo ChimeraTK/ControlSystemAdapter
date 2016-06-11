@@ -103,6 +103,7 @@ namespace mtca4u {
       _impl = otherImpl;
     }
 
+  public:
     /** 
      * Replace function which direktly takes a ProcessVariable (sharedPtr). Can be used
      * to initalise an accessor which has been created with the default constuctor of the child
