@@ -4,6 +4,7 @@
 
 #include "ProcessScalarAccessor.h"
 #include "ProcessArray.h"
+#include "ManualTimeStampSource.h" 
 
 using namespace mtca4u;
 
@@ -42,8 +43,40 @@ BOOST_AUTO_TEST_CASE( testScalarCreation ){
 }
 
 BOOST_AUTO_TEST_CASE( testPVAccessor ){
-  // testing the base class. 
-  
+  // testing the base class. We are mainly testing sending and receiving, so
+  // we need a pair
+  auto myTimeStampSource = boost::make_shared<ManualTimeStampSource>();
+  TimeStamp testTimeStamp;
+  testTimeStamp.seconds = 123;
+  myTimeStampSource->setTimeStamp(testTimeStamp);
+
+  auto senderReceiverPair = createSynchronizedProcessScalar<int>("anInt",
+    0 /*start value*/, 1 /* nBuffers */, myTimeStampSource );
+
+  ProcessScalarAccessor<int> scalarSender(senderReceiverPair.first);
+  ProcessScalarAccessor<int> scalarReceiver(senderReceiverPair.second);
+
+  ProcessVariableAccessor & sender = scalarSender;
+  ProcessVariableAccessor & receiver = scalarReceiver;
+
+  BOOST_CHECK( sender.getName() == "anInt" );
+  BOOST_CHECK( sender.getValueType() == typeid(int) );
+  BOOST_CHECK( sender.isArray() == false );
+
+  BOOST_CHECK( sender.isReceiver() == false );
+  BOOST_CHECK( sender.isSender() == true );
+  BOOST_CHECK( receiver.isReceiver() == true );
+  BOOST_CHECK( receiver.isSender() == false );
+
+  BOOST_CHECK( !(sender.getTimeStamp() == testTimeStamp) );
+  BOOST_CHECK( scalarReceiver != 2 );
+  scalarSender.set(2); 
+  sender.send();
+  BOOST_CHECK( sender.getTimeStamp() == testTimeStamp );
+  receiver.receive();
+  BOOST_CHECK( receiver.getTimeStamp() == testTimeStamp );
+  BOOST_CHECK( scalarReceiver == 2 );
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
