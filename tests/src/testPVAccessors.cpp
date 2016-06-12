@@ -3,7 +3,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "ProcessScalarAccessor.h"
-#include "ProcessArray.h"
+#include "ProcessArrayAccessor.h"
 #include "ManualTimeStampSource.h" 
 
 using namespace mtca4u;
@@ -11,8 +11,6 @@ using namespace mtca4u;
 BOOST_AUTO_TEST_SUITE( PvAccessorsTestSuite )
 
 BOOST_AUTO_TEST_CASE( testScalarCreation ){
-  // These tests are just to check that they are working
-
   // checking that the default constructor is working
   ProcessScalarAccessor<int> scalarIntAccessor;
 
@@ -112,8 +110,48 @@ BOOST_AUTO_TEST_CASE( testScalarOperations ){
   anotherScalarIntAccessor.set(46);
   scalarIntAccessor.set( anotherScalarIntAccessor );
   BOOST_CHECK( scalarIntAccessor.get() == 46 );
-  
 }
 
+BOOST_AUTO_TEST_CASE( testArrayCreation ){
+  // checking that the default constructor is working
+  ProcessArrayAccessor<int> arrayIntAccessor;
+
+  // There are two ways to create. Just run them both:
+  auto firstIntArray = createSimpleProcessArray<int>(10,"first", 42);
+  arrayIntAccessor.replace( firstIntArray );
+
+  BOOST_CHECK( arrayIntAccessor.get().size() == 10 );
+  BOOST_CHECK( arrayIntAccessor.get()[0] == 42 );
+  
+  auto secondIntArray = createSimpleProcessArray<int>(11,"second",43);
+  ProcessArrayAccessor<int> secondIntArrayAccessor(secondIntArray);
+
+  BOOST_CHECK( secondIntArrayAccessor.get().size() == 11 );
+  BOOST_CHECK( secondIntArrayAccessor.get()[0] == 43 );
+
+  arrayIntAccessor.replace( secondIntArrayAccessor );
+
+  BOOST_CHECK( arrayIntAccessor.get().size() == 11 );
+  BOOST_CHECK( arrayIntAccessor.get()[0] == 43 );
+  // both must point to the same impl (shared prt pointing to the same instance
+  
+  for (auto & i : arrayIntAccessor.get()){
+    i = 44;
+  } 
+  BOOST_CHECK( secondIntArrayAccessor.get()[0] == 44 );
+
+  auto scalarInt = createSimpleProcessScalar<int>("scalarInt");
+  BOOST_CHECK_THROW( secondIntArrayAccessor.replace(scalarInt), std::runtime_error) ;
+
+  auto arrayFloat = createSimpleProcessArray<float>(10, "arrayFloat");
+  BOOST_CHECK_THROW( secondIntArrayAccessor.replace(arrayFloat), std::runtime_error) ;
+
+  // test copy construction (automatically created, but it's a feature we want
+  ProcessArrayAccessor<int> thirdIntArrayAccessor( secondIntArrayAccessor );
+  for (auto & i : secondIntArrayAccessor.get()){
+    i = 46;
+  } 
+  BOOST_CHECK( thirdIntArrayAccessor.get()[0] == 46 );
+}
 
 BOOST_AUTO_TEST_SUITE_END()

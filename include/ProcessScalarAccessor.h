@@ -64,7 +64,7 @@ namespace mtca4u {
      * Returns a \b copy of this process variable's value. As no reference is
      * returned, this cannot be used for assignment.
      */
-    virtual T get() const{
+    T get() const{
       return boost::static_pointer_cast< ProcessScalar<T> >(_impl)->get();
     }
 
