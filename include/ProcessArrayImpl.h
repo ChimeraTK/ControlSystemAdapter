@@ -24,26 +24,26 @@ namespace mtca4u {
     template<class T>
     class ProcessArrayImpl: public ProcessArray<T> {
 
-      // Allow the factory functions to create instances of this class.
-      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
-          T>(std::size_t, const std::string &, T);
+//      // Allow the factory functions to create instances of this class.
+//      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
+//          T>(std::size_t, const std::string &, T);
+//
+//      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
+//          T>(const std::vector<T>&, const std::string &);
+//
+//      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
+//          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
+//          T>(std::size_t, const std::string &, T, bool, std::size_t,
+//          boost::shared_ptr<TimeStampSource>,
+//          boost::shared_ptr<ProcessVariableListener>);
+//
+//      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
+//          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
+//          T>(const std::vector<T>&, const std::string &, bool, std::size_t,
+//          boost::shared_ptr<TimeStampSource>,
+//          boost::shared_ptr<ProcessVariableListener>);
 
-      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
-          T>(const std::vector<T>&, const std::string &);
-
-      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
-          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
-          T>(std::size_t, const std::string &, T, bool, std::size_t,
-          boost::shared_ptr<TimeStampSource>,
-          boost::shared_ptr<ProcessVariableListener>);
-
-      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
-          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
-          T>(const std::vector<T>&, const std::string &, bool, std::size_t,
-          boost::shared_ptr<TimeStampSource>,
-          boost::shared_ptr<ProcessVariableListener>);
-
-    private:
+    public:
       /**
        * Type of the instance. This defines the behavior (send or receive
        * possible, modifications allowed, etc.). This enum type is private so
