@@ -17,32 +17,33 @@ namespace mtca4u {
    * should only be used from a single thread.
    */
   template<class T>
-  class ProcessArray: public ProcessVariable {
+  class ProcessArrayHowItLookedLike: public ProcessVariable {
   public:
     /**
      * Type alias for a shared pointer to this type.
      */
-    typedef boost::shared_ptr<ProcessArray> SharedPtr;
+    typedef boost::shared_ptr<ProcessArrayHowItLookedLike> SharedPtr;
 
     /**
      * Assignment operator for another ProcessArray of the same template type.
      * It can be of a different implementation, though. The size of the assigned
      * array must be smaller than or equal to the target size.
      */
-    ProcessArray<T> & operator=(ProcessArray<T> const & other) {
-      this->set(other);
-      return *this;
-    }
+    // we don't want this behavious anyway.
+    //ProcessArray<T> & operator=(ProcessArray<T> const & other) {
+    //  this->set(other);
+    //  return *this;
+    //}
 
     /**
      * Assignment operator for a std::vector of the template data type.
      * The size of the assigned array must be smaller than or equal to the
      * target size.
      */
-    ProcessArray<T> & operator=(std::vector<T> const & other) {
-      this->set(other);
-      return *this;
-    }
+//    ProcessArray<T> & operator=(std::vector<T> const & other) {
+//      this->set(other);
+//      return *this;
+//    }
 
     /**
      * Returns a reference to the vector that represents the current value of
@@ -105,7 +106,7 @@ namespace mtca4u {
      * If this instance of the process array must not be modified (because it is
      * a receiver and does not allow swapping), this method throws an exception.
      */
-    virtual void set(ProcessArray<T> const & other) =0;
+    //    virtual void set(ProcessArray<T> const & other) =0;
 
     /**
      * Updates this process variable's value with the elements from the
@@ -152,16 +153,16 @@ namespace mtca4u {
     /**
      * Creates a process array with the specified name.
      */
-    ProcessArray(const std::string& name = std::string()) :
-        ProcessVariable(name) {
-    }
-
-    /**
-     * Protected destructor. Instances should not be destroyed through
-     * pointers to this base type.
-     */
-    virtual ~ProcessArray() {
-    }
+//    ProcessArray(const std::string& name = std::string()) :
+//        ProcessVariable(name) {
+//    }
+//
+//    /**
+//     * Protected destructor. Instances should not be destroyed through
+//     * pointers to this base type.
+//     */
+//    virtual ~ProcessArray() {
+//    }
 
   };
 }
@@ -171,6 +172,10 @@ namespace mtca4u {
 #include "ProcessArrayImpl.h"
 
 namespace mtca4u {
+
+  // temporary typedef
+  template<class T>
+  using ProcessArray = impl::ProcessArrayImpl<T>;
 
   /**
    * Creates a simple process array. A simple process array just works on its

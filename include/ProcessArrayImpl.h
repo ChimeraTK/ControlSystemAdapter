@@ -11,7 +11,7 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 
-#include "ProcessArray.h"
+#include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
 
 namespace mtca4u {
@@ -22,7 +22,7 @@ namespace mtca4u {
      * three use cases (sender, receiver, and stand-alone).
      */
     template<class T>
-    class ProcessArrayImpl: public ProcessArray<T> {
+    class ProcessArrayImpl: public ProcessVariable {
 
 //      // Allow the factory functions to create instances of this class.
 //      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
@@ -44,6 +44,9 @@ namespace mtca4u {
 //          boost::shared_ptr<ProcessVariableListener>);
 
     public:
+
+      typedef boost::shared_ptr<ProcessArrayImpl> SharedPtr;
+
       /**
        * Type of the instance. This defines the behavior (send or receive
        * possible, modifications allowed, etc.). This enum type is private so
@@ -77,7 +80,7 @@ namespace mtca4u {
        */
       ProcessArrayImpl(InstanceType instanceType, const std::string& name,
           const std::vector<T>& initialValue) :
-          ProcessArray<T>(name), _instanceType(instanceType), _vectorSize(
+          ProcessVariable(name), _instanceType(instanceType), _vectorSize(
               initialValue.size()), _swappable(true), _buffers(
               boost::make_shared<std::vector<Buffer> >(1)), _currentIndex(0), _lastSentIndex(
               0) {
@@ -110,7 +113,7 @@ namespace mtca4u {
       ProcessArrayImpl(InstanceType instanceType, const std::string& name,
           const std::vector<T>& initialValue, std::size_t numberOfBuffers,
           bool swappable) :
-          ProcessArray<T>(name), _instanceType(instanceType), _vectorSize(
+          ProcessVariable(name), _instanceType(instanceType), _vectorSize(
               initialValue.size()), _swappable(swappable), _buffers(
               boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
               boost::make_shared<boost::lockfree::queue<std::size_t> >(
@@ -178,7 +181,7 @@ namespace mtca4u {
           boost::shared_ptr<TimeStampSource> timeStampSource,
           boost::shared_ptr<ProcessVariableListener> sendNotificationListener,
           boost::shared_ptr<ProcessArrayImpl> receiver) :
-          ProcessArray<T>(receiver->getName()), _instanceType(instanceType), _vectorSize(
+          ProcessVariable(receiver->getName()), _instanceType(instanceType), _vectorSize(
               receiver->_vectorSize), _swappable(swappable), _buffers(
               receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
               receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
@@ -211,10 +214,10 @@ namespace mtca4u {
       /**
        * Assignment operator. This behaves exactly like the set(...) method.
        */
-      ProcessArrayImpl<T> & operator=(ProcessArray<T> const & other) {
-        set(other.getConst());
-        return (*this);
-      }
+//      ProcessArrayImpl<T> & operator=(ProcessArray<T> const & other) {
+//        set(other.getConst());
+//        return (*this);
+//      }
 
       /**
        * Assignment operator. This behaves exactly like the set(...) method.
@@ -232,7 +235,7 @@ namespace mtca4u {
         get() = v;
       }
 
-      void set(ProcessArray<T> const & other) {
+      void set(ProcessArrayImpl<T> const & other) {
         set(other.getConst());
       }
 
@@ -365,6 +368,15 @@ namespace mtca4u {
         }
         return foundEmptyBuffer;
       }
+      
+      const std::type_info& getValueType() const {
+	return typeid(T);
+      }
+      
+      bool isArray() const {
+	return true;
+      }
+     
 
     private:
 
