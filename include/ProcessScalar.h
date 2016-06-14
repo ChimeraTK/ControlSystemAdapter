@@ -153,14 +153,6 @@ namespace mtca4u{
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
           boost::shared_ptr<ProcessVariableListener>());
 
-} // namespace mtca4u
-
-// ProcessScalarImpl.h must be included after the class definition and the
-// template function declaration, because it depends on it.
-#include "ProcessScalarImpl.h"
-
-namespace mtca4u {
-
   template<class T>
   typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar(
       const std::string & name, T initialValue) {
