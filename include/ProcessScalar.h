@@ -103,7 +103,6 @@ namespace mtca4u {
 
 // FIXME ProcessScalarImpl.h must be included before defining the creator functions, because
 // these have been hacked to return the impl.
-    namespace impl {
 
     /**
      * Implementation of the ProcessScalar. This implementation is used for all
@@ -403,11 +402,10 @@ namespace mtca4u {
 
     };
 
-  } // namespace impl
 
   // for the transition phase ProcessScalar and Impl are the same
   template<class T>
-    using ProcessScalar = impl::ProcessScalarImpl<T>;
+    using ProcessScalar = ProcessScalarImpl<T>;
 
   /**
    * Creates a simple process scalar. A simple process scalar just works on its
@@ -464,8 +462,8 @@ namespace mtca4u {
   template<class T>
   typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar(
       const std::string & name, T initialValue) {
-    return boost::make_shared<typename impl::ProcessScalarImpl<T> >(
-        impl::ProcessScalarImpl<T>::STAND_ALONE, name, initialValue);
+    return boost::make_shared<ProcessScalarImpl<T> >(
+        ProcessScalarImpl<T>::STAND_ALONE, name, initialValue);
   }
 
   template<class T>
@@ -474,13 +472,13 @@ namespace mtca4u {
       const std::string & name, T initialValue, std::size_t numberOfBuffers,
       boost::shared_ptr<TimeStampSource> timeStampSource,
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener) {
-    boost::shared_ptr<typename impl::ProcessScalarImpl<T> > receiver =
-        boost::make_shared<typename impl::ProcessScalarImpl<T> >(
-            impl::ProcessScalarImpl<T>::RECEIVER, name, initialValue,
+    boost::shared_ptr<ProcessScalarImpl<T> > receiver =
+        boost::make_shared<ProcessScalarImpl<T> >(
+            ProcessScalarImpl<T>::RECEIVER, name, initialValue,
             numberOfBuffers);
     typename ProcessScalar<T>::SharedPtr sender = boost::make_shared<
-        typename impl::ProcessScalarImpl<T> >(
-        impl::ProcessScalarImpl<T>::SENDER, timeStampSource,
+        ProcessScalarImpl<T> >(
+        ProcessScalarImpl<T>::SENDER, timeStampSource,
         sendNotificationListener, receiver);
     return std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr>(sender, receiver);
