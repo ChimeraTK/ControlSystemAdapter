@@ -30,9 +30,13 @@ namespace mtca4u {
 
   private:
     static size_t const N_ELEMENTS = 12;
-    static size_t const SOME_NUMBER = 42; // just some number to add so the content if not equal to the index
 
   };
+
+  // Just some number to add so the content is not equal to the index. We
+  // declare and define this constant outside of the ProcessArrayTest class, so
+  // that it can be used with references.
+  static size_t const SOME_NUMBER = 42;
 
   /**
    * The boost test suite which executes the ProcessArrayTest.
