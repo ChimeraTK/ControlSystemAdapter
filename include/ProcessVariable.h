@@ -34,7 +34,7 @@ namespace mtca4u {
     const std::string& getName() const;
 
     /**
-     * Returns the {@link std::type_info} for the value type of this process
+     * Returns the \c std::type_info for the value type of this process
      * variable or array. This can be used to determine the type of a process
      * variable at runtime.
      */
@@ -42,8 +42,8 @@ namespace mtca4u {
 
     /**
      * Returns <code>true</code> if this object is an instance of
-     * {@link ProcessArray<T>} and <code>false</code> if this object is an
-     * instance of {@link ProcessScalar<T>}.
+     * {@link ProcessArray}\<T\> and <code>false</code> if this object is an
+     * instance of {@link ProcessScalar}\<T\>.
      */
     virtual bool isArray() const =0;
 
