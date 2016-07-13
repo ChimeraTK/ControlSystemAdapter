@@ -154,4 +154,9 @@ BOOST_AUTO_TEST_CASE( testArrayCreation ){
   BOOST_CHECK( thirdIntArrayAccessor.get()[0] == 46 );
 }
 
+BOOST_AUTO_TEST_CASE( testArrayOperations ){
+  auto firstIntArray = createSimpleProcessArray<int>(10,"first", 42);
+  ProcessArrayAccessor<int> arrayIntAccessor( firstIntArray );
+}
+
 BOOST_AUTO_TEST_SUITE_END()

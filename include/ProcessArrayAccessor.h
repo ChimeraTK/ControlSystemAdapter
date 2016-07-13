@@ -5,20 +5,52 @@
 #include "ProcessVariableAccessor.h"
 
 namespace mtca4u{
-  template<class T>
+  template<class UserType>
     class ProcessArrayAccessor: public ProcessVariableAccessor{
 
   public:
-  ProcessArrayAccessor(typename ProcessArray<T>::SharedPtr const & processArray =
-			typename ProcessArray<T>::SharedPtr())
+  ProcessArrayAccessor(typename ProcessArray<UserType>::SharedPtr const & processArray =
+			typename ProcessArray<UserType>::SharedPtr())
     : ProcessVariableAccessor(processArray){
-      //      _processArray( boost::static_pointer_cast< ProcessArray<T> >( _impl ) ){      
+      //      _processArray( boost::static_pointer_cast< ProcessArray<UserType> >( _impl ) ){      
     }
 
-    std::vector<T> & get(){
-      return boost::static_pointer_cast< ProcessArray<T> >(_impl)->get();
+    std::vector<UserType> & get(){
+      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->get();
     }
     
+    UserType& operator[](unsigned int element) {
+      return get()[element];
+    }
+
+    /** Access data with std::vector-like iterators */
+    typedef typename std::vector<UserType>::iterator iterator;
+    typedef typename std::vector<UserType>::const_iterator const_iterator;
+    typedef typename std::vector<UserType>::reverse_iterator reverse_iterator;
+    typedef typename std::vector<UserType>::const_reverse_iterator const_reverse_iterator;
+
+    iterator begin() { return get().begin(); }
+    const_iterator begin() const { return get().cbegin(); }
+    const_iterator cbegin() const { return get().cbegin(); }
+    iterator end() { return get().end(); }
+    const_iterator end() const { return get().cend(); }
+    const_iterator cend() const { return get().cend(); }
+    reverse_iterator rbegin() { return get().rbegin(); }
+    const_reverse_iterator rbegin() const { return get().crbegin(); }
+    const_reverse_iterator crbegin() const { return get().crbegin(); }
+    reverse_iterator rend() { return get().rend(); }
+    const_reverse_iterator rend() const { return get().crend(); }
+    const_reverse_iterator crend() const { return get().crend(); }
+
+    /* Swap content of (cooked) buffer with std::vector */
+    void swap(std::vector<UserType> &x) {
+      boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->swap(x);
+    }
+
+    UserType* data() {
+      return get().data();
+    }
+
   };
 
 } //namespace mtca4u
