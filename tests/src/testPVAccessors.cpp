@@ -157,6 +157,77 @@ BOOST_AUTO_TEST_CASE( testArrayCreation ){
 BOOST_AUTO_TEST_CASE( testArrayOperations ){
   auto firstIntArray = createSimpleProcessArray<int>(10,"first", 42);
   ProcessArrayAccessor<int> arrayIntAccessor( firstIntArray );
+  
+  // get the underlying vector to prepare it
+  int i = 45;
+  for ( auto & c : arrayIntAccessor.get() ){
+    c = i++;
+  }
+
+  // test the [] operator
+  for (int j = 0; static_cast<unsigned int>(j) < arrayIntAccessor.size(); ++j){
+    BOOST_CHECK( arrayIntAccessor[j] == 45+j );
+  }
+
+  // test the accessors. Start with modifiying the array.
+  // NOTE: We are not really testing the accessors themselves, but that we get the
+  // right one, so that we don't accidentally return the reverst iterator instead of
+  // the forward one.
+  for ( auto & c : arrayIntAccessor ){
+    c++;
+ }
+ // Check with the [] operator, wich we already verified
+  for (int j = 0; static_cast<unsigned int>(j) < arrayIntAccessor.size(); ++j){
+    BOOST_CHECK( arrayIntAccessor[j] == 46+j );
+  }
+
+  // now recheck with the const iterator. Use a const object to check that it's really const.
+  ProcessArrayAccessor<int> const & constArrayIntAccessor = arrayIntAccessor;
+  i = 46;
+  for (auto it = constArrayIntAccessor.cbegin(); it < constArrayIntAccessor.cend(); ++it ){
+    BOOST_CHECK( (*it) == i++ );
+  }
+
+  // also check the const begin and end iterators
+  i = 46;
+  for (auto it = constArrayIntAccessor.begin(); it < constArrayIntAccessor.end(); ++it ){
+    BOOST_CHECK( (*it) == i++ );
+  }
+
+  // also try the const get methods
+  i = 46;
+  for ( auto & c : constArrayIntAccessor.get() ){
+    BOOST_CHECK( c == i++ );
+  }
+  i = 46;
+  for ( auto & c : constArrayIntAccessor.getConst() ){
+    BOOST_CHECK( c == i++ );
+  }
+
+  // Now test the reverse iterators
+  // Modify with the writeable one
+  i =78;
+  for (auto it = arrayIntAccessor.rbegin(); it <  arrayIntAccessor.rend(); ++it){
+    (*it) = i++;
+  }
+
+  // check with normal, already testes iterators
+  i = 87;
+  for (auto const & c : arrayIntAccessor){
+    BOOST_CHECK( c == i-- );
+  }
+
+  // check with const reverse iterators
+  i = 78;
+  for (auto it = constArrayIntAccessor.rbegin();  it < constArrayIntAccessor.rend(); ++it){
+    BOOST_CHECK( (*it) == i++ );
+  }
+  
+  i = 78;
+  for (auto it = constArrayIntAccessor.crbegin();  it < constArrayIntAccessor.crend(); ++it){
+    BOOST_CHECK( (*it) == i++ );
+  }
+  
 }
 
 BOOST_AUTO_TEST_SUITE_END()

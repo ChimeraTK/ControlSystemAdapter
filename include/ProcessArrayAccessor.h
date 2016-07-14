@@ -18,6 +18,12 @@ namespace mtca4u{
     std::vector<UserType> & get(){
       return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->get();
     }
+    std::vector<UserType> const & get() const{
+      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->getConst();
+    }
+    std::vector<UserType> const & getConst() const{
+      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->getConst();
+    }
     
     UserType& operator[](unsigned int element) {
       return get()[element];
@@ -30,17 +36,19 @@ namespace mtca4u{
     typedef typename std::vector<UserType>::const_reverse_iterator const_reverse_iterator;
 
     iterator begin() { return get().begin(); }
-    const_iterator begin() const { return get().cbegin(); }
-    const_iterator cbegin() const { return get().cbegin(); }
+    const_iterator begin() const { return getConst().cbegin(); }
+    const_iterator cbegin() const { return getConst().cbegin(); }
     iterator end() { return get().end(); }
-    const_iterator end() const { return get().cend(); }
-    const_iterator cend() const { return get().cend(); }
+    const_iterator end() const { return getConst().cend(); }
+    const_iterator cend() const { return getConst().cend(); }
     reverse_iterator rbegin() { return get().rbegin(); }
-    const_reverse_iterator rbegin() const { return get().crbegin(); }
-    const_reverse_iterator crbegin() const { return get().crbegin(); }
+    const_reverse_iterator rbegin() const { return getConst().crbegin(); }
+    const_reverse_iterator crbegin() const { return getConst().crbegin(); }
     reverse_iterator rend() { return get().rend(); }
-    const_reverse_iterator rend() const { return get().crend(); }
-    const_reverse_iterator crend() const { return get().crend(); }
+    const_reverse_iterator rend() const { return getConst().crend(); }
+    const_reverse_iterator crend() const { return getConst().crend(); }
+
+    size_t size(){ return get().size(); }
 
     /* Swap content of (cooked) buffer with std::vector */
     void swap(std::vector<UserType> &x) {
