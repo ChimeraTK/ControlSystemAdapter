@@ -19,41 +19,9 @@
 #include "ProcessVariableListener.h"
 
 namespace mtca4u {
-  /**
-   * Interface implemented by all process arrays.
-   *
-   * Instances implementing this interface are typically not thread-safe and
-   * should only be used from a single thread.
-   */
   template<class T>
   class ProcessArrayHowItLookedLike: public ProcessVariable {
   public:
-    /**
-     * Type alias for a shared pointer to this type.
-     */
-    typedef boost::shared_ptr<ProcessArrayHowItLookedLike> SharedPtr;
-
-    /**
-     * Assignment operator for another ProcessArray of the same template type.
-     * It can be of a different implementation, though. The size of the assigned
-     * array must be smaller than or equal to the target size.
-     */
-    // we don't want this behavious anyway.
-    //ProcessArray<T> & operator=(ProcessArray<T> const & other) {
-    //  this->set(other);
-    //  return *this;
-    //}
-
-    /**
-     * Assignment operator for a std::vector of the template data type.
-     * The size of the assigned array must be smaller than or equal to the
-     * target size.
-     */
-//    ProcessArray<T> & operator=(std::vector<T> const & other) {
-//      this->set(other);
-//      return *this;
-//    }
-
     /**
      * Returns a reference to the vector that represents the current value of
      * this process array.
@@ -176,8 +144,11 @@ namespace mtca4u {
   };
 
   /**
-   * Implementation of the ProcessArray. This implementation is used for all
+   * Array implementation of the ProcessVariable. This implementation is used for all
    * three use cases (sender, receiver, and stand-alone).
+   *
+   * This class is not thread-safe and
+   * should only be used from a single thread.
    */
   template<class T>
     class ProcessArray: public ProcessVariable {
@@ -203,7 +174,12 @@ namespace mtca4u {
     
   public:
     
+    /**
+     * Type alias for a shared pointer to this type.
+     */
     typedef boost::shared_ptr<ProcessArray> SharedPtr;
+    
+    //FIXME: This was private, but what for?
     
     /**
      * Type of the instance. This defines the behavior (send or receive
@@ -362,7 +338,12 @@ namespace mtca4u {
     }
 
     /**
-     * Assignment operator. This behaves excactly like the set(...) method.
+     * FIXME: I think we don't want this. The base class is no copy/assignable anyway.
+     *
+     * Assignment operator for another ProcessArray of the same template type.
+     * It can be of a different implementation, though. The size of the assigned
+     * array must be smaller than or equal to the target size.
+     * This behaves excactly like the set(...) method.
      */
     ProcessArray<T> & operator=(ProcessArray<T> const & other) {
       set(other.getConst());
@@ -370,7 +351,10 @@ namespace mtca4u {
     }
 
     /**
-     * Assignment operator. This behaves exactly like the set(...) method.
+     * Assignment operator for a std::vector of the template data type.
+     * The size of the assigned array must be smaller than or equal to the
+     * target size.
+     * This behaves exactly like the set(...) method.
      */
     ProcessArray<T> & operator=(std::vector<T> const & v) {
       set(v);
@@ -381,10 +365,26 @@ namespace mtca4u {
       return getConst();
     }
 
+    /**
+     * Updates this process variable's value with the elements from the
+     * specified vector. The vector's number of elements must match this process
+     * variable's number of elements.
+     *
+     * If this instance of the process array must not be modified (because it is
+     * a receiver and does not allow swapping), this method throws an exception.
+     */
     void set(std::vector<T> const & v) {
       get() = v;
     }
 
+    /**
+     * Updates this process variable's value with the other process variable's
+     * value. The other process variable's number of elements must match this
+     * process variable's number of elements.
+     *
+     * If this instance of the process array must not be modified (because it is
+     * a receiver and does not allow swapping), this method throws an exception.
+     */
     void set(ProcessArray<T> const & other) {
       set(other.getConst());
     }
