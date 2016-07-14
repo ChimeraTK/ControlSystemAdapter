@@ -19,91 +19,12 @@
 #include "ProcessVariableListener.h"
 
 namespace mtca4u {
-  /**
-   * Interface implemented by all process scalars.
-   *
-   * Instances implementing this interface are typically not thread-safe and
-   * should only be used from a single thread.
-   */
-  template<class T>
-  class ProcessScalarHowItLookedLike: public ProcessVariable {
-  public:
-    /**
-     * Assign the content of another process variable of type T to this one.
-     * It only assigns the variable content, but not the callback functions.
-     * This operator behaves like set().
-     */
-    //    ProcessScalar<T> & operator=(ProcessScalar<T> const & other) {
-    //      this->set(other);
-    //      return *this;
-    //    }
-
-    /**
-     * Assign the content of the template type. This operator behaves like
-     * set().
-     */
-    //    ProcessScalar<T> & operator=(T const & t) {
-    //      this->set(t);
-    //      return *this;
-    //    }
-
-    /**
-     * Set the value of this process variable to the one of the other process
-     * variable. This does not trigger the on-set callback function, however it
-     * notifies the control system that this process variable's value has
-     * changed.
-     */
-    //    virtual void set(ProcessScalar<T> const & other)=0;
-
-    /**
-     * Set the value of this process variable to the specified one. This does
-     * not trigger the on-set callback function, however it notifies the control
-     * system that this process variable's value has changed.
-     */
-    //virtual void set(T const & t)=0;
-
-    /**
-     * Automatic conversion operator which returns a \b copy of this process
-     * variable's value. As no reference is returned, this cannot be used for
-     * assignment.
-     */
-    //virtual operator T() const =0;
-
-    /**
-     * Returns a \b copy of this process variable's value. As no reference is
-     * returned, this cannot be used for assignment.
-     */
-    //virtual T get() const =0;
-
-    //    const std::type_info& getValueType() const {
-    //      return typeid(T);
-    //    }
-
-    //    bool isArray() const {
-    //      return false;
-    //    }
-
-  protected:
-    /**
-     * Creates a process scalar with the specified name.
-     */
-    //ProcessScalar(const std::string& name = std::string()) :
-    //        ProcessVariable(name) {
-    //    }
-
-    /**
-     * Protected destructor. Instances should not be destroyed through
-     * pointers to this base type.
-     */
-    //    virtual ~ProcessScalar() {
-    //    }
-
-  };
-
 
   /**
-   * Implementation of the ProcessScalar. This implementation is used for all
+   * The scalar implementation of a ProcessVariable. This implementation is used for all
    * three use cases (sender, receiver, and stand-alone).
+   *
+   * This class is not thread-safe and  should only be used from a single thread.
    */
   template<class T>
   class ProcessScalar: public ProcessVariable {
@@ -237,7 +158,12 @@ namespace mtca4u {
     }
 
     /**
-     * Assignment operator. This behaves excactly like the set(...) method.
+     * Assign the content of another process variable of type T to this one.
+     * It only assigns the variable content, but not the callback functions.
+     * This operator behaves like set().
+     *
+     * FIXME: Should we remove this? It might not behave as 
+     * expected, and the base class is intentionally non-copyable.
      */
     ProcessScalar<T> & operator=(ProcessScalar<T> const & other) {
       set(other.get());
@@ -245,27 +171,29 @@ namespace mtca4u {
     }
 
     /**
-     * Assignment operator. This behaves exactly like the set(...) method.
-     */
-    // currently commented out while removing the impl-inheritance. will be needed later
-    // in the pimpl pattern
-    //      ProcessScalar<T> & operator=(ProcessScalar<T> const & other) {
-    //        set(other.get());
-    //        return (*this);
-    //      }
-
-    /**
-     * Assignment operator. This behaves exactly like the set(...) method.
+     * Assign the content of the template type. This operator behaves like
+     * set().
      */
     ProcessScalar<T> & operator=(T const & t) {
       set(t);
       return *this;
     }
 
-    operator T() const {
+
+    /**
+     * Automatic conversion operator which returns a \b copy of this process
+     * variable's value. As no reference is returned, this cannot be used for
+     * assignment.
+     */
+     operator T() const {
       return get();
     }
 
+    /**
+     * Set the value of this process variable to the specified one. This does
+     * not trigger the on-set callback function, however it notifies the control
+     * system that this process variable's value has changed.
+     */
     void set(T const & t) {
       _value = t;
     }
@@ -280,13 +208,26 @@ namespace mtca4u {
 	return false;
     }
 
+    /**
+     * Set the value of this process variable to the one of the other process
+     * variable. This does not trigger the on-set callback function, however it
+     * notifies the control system that this process variable's value has
+     * changed.
+     */
     void set(ProcessScalar<T> const & other) {
       set(other.get());
     }
 
+    /**
+     * Returns a \b copy of this process variable's value. As no reference is
+     * returned, this cannot be used for assignment.
+     */
     T get() const {
       return _value;
     }
+
+    // -----------------------------------------------
+    // Implementations of the derrived functions. They are documented in ProcessVariable
 
     bool isReceiver() const {
       return _instanceType == RECEIVER;
@@ -296,6 +237,7 @@ namespace mtca4u {
       return _instanceType == SENDER;
     }
 
+    // deprecated
     TimeStamp getTimeStamp() const {
       return _timeStamp;
     }
@@ -452,6 +394,11 @@ namespace mtca4u {
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
           boost::shared_ptr<ProcessVariableListener>());
 
+  /**
+   * A process variable which is not a sender/receiver pair but a single instance.
+   * You can neither send nor receive it.
+   * FIXME: This sounds pretty useless. Should we remove it?
+   */
   template<class T>
   typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar(
       const std::string & name, T initialValue) {
