@@ -227,6 +227,35 @@ BOOST_AUTO_TEST_CASE( testArrayOperations ){
   for (auto it = constArrayIntAccessor.crbegin();  it < constArrayIntAccessor.crend(); ++it){
     BOOST_CHECK( (*it) == i++ );
   }
+
+  // test swapping with a vector
+  std::vector<int> v(10,42);
+  arrayIntAccessor.swap(v);
+  for (auto & c : constArrayIntAccessor ){
+    BOOST_CHECK( c == 42 );
+  }
+  i= 87;
+  for (auto const & c : v){
+    BOOST_CHECK( c == i-- );
+  }
+ 
+  // set using the direct pointer
+  int * ptr = arrayIntAccessor.data();
+  for (size_t j = 0; j < arrayIntAccessor.size(); ++j){
+    ptr[j] = 13 + j;
+  }
+
+  // check with iterator (already verified)
+  i = 13;
+  for (auto & c : constArrayIntAccessor ){
+    BOOST_CHECK( c == i++ );
+  }
+
+  int const * cptr = constArrayIntAccessor.data();
+  for (size_t j = 0; j < constArrayIntAccessor.size(); ++j){
+    BOOST_CHECK( cptr[j] == static_cast<int>(13 + j) );
+  }
+  
   
 }
 

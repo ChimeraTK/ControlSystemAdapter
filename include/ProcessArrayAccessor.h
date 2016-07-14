@@ -48,17 +48,21 @@ namespace mtca4u{
     const_reverse_iterator rend() const { return getConst().crend(); }
     const_reverse_iterator crend() const { return getConst().crend(); }
 
-    size_t size(){ return get().size(); }
+    size_t size() const{ return get().size(); }
 
     /* Swap content of (cooked) buffer with std::vector */
     void swap(std::vector<UserType> &x) {
-      boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->swap(x);
+      get().swap(x);
     }
 
     UserType* data() {
       return get().data();
     }
+    UserType const * data() const{
+      return get().data();
+    }
 
+  
   };
 
 } //namespace mtca4u
