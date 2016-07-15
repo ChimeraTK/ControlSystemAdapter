@@ -29,33 +29,12 @@ namespace mtca4u {
   template<class T>
     class ProcessArray: public ProcessVariable {
     
-//      // Allow the factory functions to create instances of this class.
-//      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
-//          T>(std::size_t, const std::string &, T);
-//
-//      friend typename ProcessArray<T>::SharedPtr mtca4u::createSimpleProcessArray<
-//          T>(const std::vector<T>&, const std::string &);
-//
-//      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
-//          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
-//          T>(std::size_t, const std::string &, T, bool, std::size_t,
-//          boost::shared_ptr<TimeStampSource>,
-//          boost::shared_ptr<ProcessVariableListener>);
-//
-//      friend typename std::pair<typename ProcessArray<T>::SharedPtr,
-//          typename ProcessArray<T>::SharedPtr> mtca4u::createSynchronizedProcessArray<
-//          T>(const std::vector<T>&, const std::string &, bool, std::size_t,
-//          boost::shared_ptr<TimeStampSource>,
-//          boost::shared_ptr<ProcessVariableListener>);
-    
   public:
     
     /**
      * Type alias for a shared pointer to this type.
      */
     typedef boost::shared_ptr<ProcessArray> SharedPtr;
-    
-    //FIXME: This was private, but what for?
     
     /**
      * Type of the instance. This defines the behavior (send or receive
@@ -81,7 +60,6 @@ namespace mtca4u {
       RECEIVER
     };
     
-  public:
     /**
      * Creates a process array that works independently. This means that the
      * instance is not synchronized with any other instance and thus the send

@@ -29,17 +29,6 @@ namespace mtca4u {
   template<class T>
   class ProcessScalar: public ProcessVariable {
 
-  // Allow the factory functions to create instances of this class.
-    //    friend typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar<T>(
-    //          const std::string &, T);
-
-    //    friend typename std::pair<typename ProcessScalar<T>::SharedPtr,
-    //          typename ProcessScalar<T>::SharedPtr> createSynchronizedProcessScalar<
-    //          T>(const std::string &, T, std::size_t,
-    //          boost::shared_ptr<TimeStampSource>,
-    //          boost::shared_ptr<ProcessVariableListener>);
-
-    //   fixme whould be private:
   public:
     /**
      * Type of the instance. This defines the behavior (send or receive
@@ -65,7 +54,6 @@ namespace mtca4u {
       RECEIVER
     };
 
-  public:
     /**
      * Type alias for a shared pointer to this type.
      */
