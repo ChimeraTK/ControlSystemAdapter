@@ -19,130 +19,6 @@
 #include "ProcessVariableListener.h"
 
 namespace mtca4u {
-  template<class T>
-  class ProcessArrayHowItLookedLike: public ProcessVariable {
-  public:
-    /**
-     * Returns a reference to the vector that represents the current value of
-     * this process array.
-     *
-     * If this instance of the process array must not be modified (because it is a receiver and does not allow swapping), this
-     * method throws an exception. In this case, you should use the
-     * {@link #getConst()} method instead.
-     *
-     * The reference returned by this method becomes invalid when a receive,
-     * send, or swap operation is performed on this process variable. Use of an
-     * invalid reference results in undefined behavior.
-     */
-    virtual std::vector<T> & get() =0;
-
-    /**
-     * Returns a constant reference to the vector that represents the current
-     * value of this process array. This version of the get method is used if
-     * this process array is const.
-     *
-     * The reference returned by this method becomes invalid when a receive,
-     * send, or swap operation is performed on this process variable. Use of an
-     * invalid reference results in undefined behavior.
-     */
-    virtual std::vector<T> const & get() const =0;
-
-    /**
-     * Returns a constant reference to the the vector that represents the
-     * current value of this process array. This method should be preferred for
-     * receiver process variables because it works even if the process array
-     * does not allow swapping and thus the {@link #get()} method cannot be
-     * used.
-     *
-     * The reference returned by this method becomes invalid when a receive,
-     * send, or swap operation is performed on this process variable. Use of an
-     * invalid reference results in undefined behavior.
-     */
-    virtual std::vector<T> const & getConst() const =0;
-
-    /**
-     * Returns a constant reference to the vector that represents the value that
-     * has been sent with the last sent operation.
-     *
-     * This method may only be used on a process variable that is a sender and
-     * if swapping is not allowed for the respective receiver. In all other
-     * cases, calling this method results in an exception.
-     *
-     * While the reference returned by this method stays valid even after a
-     * receive, send, or swap operation is performed on this process variable,
-     * it is recommended to not retain this reference because it might point
-     * to a different vector than expected.
-     */
-    virtual std::vector<T> const & getLastSent() const =0;
-
-    /**
-     * Updates this process variable's value with the other process variable's
-     * value. The other process variable's number of elements must match this
-     * process variable's number of elements.
-     *
-     * If this instance of the process array must not be modified (because it is
-     * a receiver and does not allow swapping), this method throws an exception.
-     */
-    //    virtual void set(ProcessArray<T> const & other) =0;
-
-    /**
-     * Updates this process variable's value with the elements from the
-     * specified vector. The vector's number of elements must match this process
-     * variable's number of elements.
-     *
-     * If this instance of the process array must not be modified (because it is
-     * a receiver and does not allow swapping), this method throws an exception.
-     */
-    virtual void set(std::vector<T> const & other) =0;
-
-    const std::type_info& getValueType() const {
-      return typeid(T);
-    }
-
-    bool isArray() const {
-      return true;
-    }
-
-    /**
-     * Tells whether this array supports swapping. If <code>true</code>, the
-     * <code>swap</code> method can be used to swap the vector backing this
-     * array with a different one, thus avoiding copying during synchronization.
-     * If <code>false</code>, calling <code>swap</code> results in an exception.
-     * Swapping (and other modifications) are always supported on the sender
-     * side but might not be supported on the receiver side.
-     */
-    virtual bool isSwappable() const =0;
-
-    /**
-     * Swaps the vector backing this process array with a different vector.
-     * This method may only be called by the peer control-system process array
-     * when synchronizing with this process array and only if
-     * <code>isSwappable()</code> returns <code>true</code>. Otherwise, this
-     * method throws an <code>std::logic_error</code>.
-     *
-     * The <code>boost::scoped_ptr</code> passed must not be <code>null</code>
-     * and must point to a vector that has the same size as the vector it is
-     * swapped with.
-     */
-    virtual void swap(boost::scoped_ptr<std::vector<T> >& otherVector) =0;
-
-  protected:
-    /**
-     * Creates a process array with the specified name.
-     */
-//    ProcessArray(const std::string& name = std::string()) :
-//        ProcessVariable(name) {
-//    }
-//
-//    /**
-//     * Protected destructor. Instances should not be destroyed through
-//     * pointers to this base type.
-//     */
-//    virtual ~ProcessArray() {
-//    }
-
-  };
-
   /**
    * Array implementation of the ProcessVariable. This implementation is used for all
    * three use cases (sender, receiver, and stand-alone).
@@ -372,6 +248,10 @@ namespace mtca4u {
      *
      * If this instance of the process array must not be modified (because it is
      * a receiver and does not allow swapping), this method throws an exception.
+     *
+     * FIXME: The description says it is throwing, but the implementation does not
+     * do it. Throwing will be obsolete in future because it is planned to have
+     * receivers always swappable.
      */
     void set(std::vector<T> const & v) {
       get() = v;
@@ -384,11 +264,26 @@ namespace mtca4u {
      *
      * If this instance of the process array must not be modified (because it is
      * a receiver and does not allow swapping), this method throws an exception.
+     *
+     * FIXME: The description says it is throwing, but the implementation does not
+     * do it. Throwing will be obsolete in future because it is planned to have
+     * receivers always swappable.
      */
     void set(ProcessArray<T> const & other) {
       set(other.getConst());
     }
 
+    /**
+     * Swaps the vector backing this process array with a different vector.
+     * This method may only be called by the peer control-system process array
+     * when synchronizing with this process array and only if
+     * <code>isSwappable()</code> returns <code>true</code>. Otherwise, this
+     * method throws an <code>std::logic_error</code>.
+     *
+     * The <code>boost::scoped_ptr</code> passed must not be <code>null</code>
+     * and must point to a vector that has the same size as the vector it is
+     * swapped with.
+     */
     void swap(boost::scoped_ptr<std::vector<T> > & otherVector) {
       if (!isSwappable()) {
         throw std::logic_error(
@@ -400,6 +295,19 @@ namespace mtca4u {
       (*_buffers)[_currentIndex].value.swap(otherVector);
     }
 
+    /**
+     * Returns a reference to the vector that represents the current value of
+     * this process array.
+     *
+     * If this instance of the process array must not be modified
+     * (because it is a receiver and does not allow swapping), this
+     * method throws an exception. In this case, you should use the
+     * {@link #getConst()} method instead.
+     *
+     * The reference returned by this method becomes invalid when a receive,
+     * send, or swap operation is performed on this process variable. Use of an
+     * invalid reference results in undefined behavior.
+     */
     std::vector<T> & get() {
       if (_instanceType == RECEIVER && !_swappable) {
         throw std::logic_error(
@@ -408,14 +316,50 @@ namespace mtca4u {
       return *(((*_buffers)[_currentIndex]).value);
     }
 
+    /**
+     * Returns a constant reference to the vector that represents the current
+     * value of this process array. This version of the get method is used if
+     * this process array is const.
+     *
+     * The reference returned by this method becomes invalid when a receive,
+     * send, or swap operation is performed on this process variable. Use of an
+     * invalid reference results in undefined behavior.
+     */
     std::vector<T> const & get() const {
       return getConst();
     }
 
+    /**
+     * Returns a constant reference to the the vector that represents the
+     * current value of this process array. This method should be preferred for
+     * receiver process variables because it works even if the process array
+     * does not allow swapping and thus the {@link #get()} method cannot be
+     * used.
+     *
+     * The reference returned by this method becomes invalid when a receive,
+     * send, or swap operation is performed on this process variable. Use of an
+     * invalid reference results in undefined behavior.
+     */
     std::vector<T> const & getConst() const {
       return *(((*_buffers)[_currentIndex]).value);
     }
 
+    /**
+     * @deprecated
+     * It is planned that receivers are always swappable.
+     *
+     * Returns a constant reference to the vector that represents the value that
+     * has been sent with the last sent operation.
+     *
+     * This method may only be used on a process variable that is a sender and
+     * if swapping is not allowed for the respective receiver. In all other
+     * cases, calling this method results in an exception.
+     *
+     * While the reference returned by this method stays valid even after a
+     * receive, send, or swap operation is performed on this process variable,
+     * it is recommended to not retain this reference because it might point
+     * to a different vector than expected.
+     */
     std::vector<T> const & getLastSent() const {
       if (_instanceType != SENDER || _swappable) {
         throw std::logic_error(
@@ -436,6 +380,14 @@ namespace mtca4u {
       return ((*_buffers)[_currentIndex]).timeStamp;
     }
 
+    /**
+     * Tells whether this array supports swapping. If <code>true</code>, the
+     * <code>swap</code> method can be used to swap the vector backing this
+     * array with a different one, thus avoiding copying during synchronization.
+     * If <code>false</code>, calling <code>swap</code> results in an exception.
+     * Swapping (and other modifications) are always supported on the sender
+     * side but might not be supported on the receiver side.
+     */
     bool isSwappable() const {
       // Senders and stand-alone instances are always swappable. For
       // receivers, it depends on the swappable flag.
@@ -761,10 +713,6 @@ namespace mtca4u {
           TimeStampSource>(),
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
           boost::shared_ptr<ProcessVariableListener>());
-
-} // namespace mtca4u
-
-namespace mtca4u {
 
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size,
