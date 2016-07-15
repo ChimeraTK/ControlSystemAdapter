@@ -61,7 +61,7 @@ namespace mtca4u {
      * Creates a new process scalar and registers it with the PV manager.
      * Creating a process scalar with a name that is already used for a
      * different process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The number of buffers (the minimum and default value is one) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -82,7 +82,7 @@ namespace mtca4u {
      * Creates a new process array and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * If the <code>swappable</code> flag is <code>true</code> (the default),
      * the control-system PV is marked as swappable and thus the control system
@@ -110,7 +110,7 @@ namespace mtca4u {
      * Creates a new process array and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -155,7 +155,7 @@ namespace mtca4u {
      * using the
      * {@link createProcessArray(SynchronizationDirection, const std::string&, std::size_t, T, bool, std::size_t)}
      * or
-     * {@link createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, T, bool, std::size_t)}
+     * {@link createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name. Throws a bad_cast exception if
      * there is a process scalar or array with the specified name but its type
@@ -170,12 +170,19 @@ namespace mtca4u {
      * {@link createProcessScalar(SynchronizationDirection, const std::string&, T, std::size_t)},
      * {@link createProcessArray(SynchronizationDirection, const std::string&, std::size_t, T, bool, std::size_t)},
      * or
-     * {@link createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, T, bool, std::size_t)}
+     * {@link createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name.
+     */
+    /* (intentionally not doxygen)
+     * FIXME: It these should be links, but Doxygen can't resolve then, so we leave it normal to avoid
+     * non-working links:
      *
      * The {@link getProcessScalar(const std::string&)} and
      * {@link getProcessArray(const std:.string&)} methods should be preferred
+     */
+    /** The \c getProcessScalar(const std::string&) and
+     * \c getProcessArray(const std:.string&) methods should be preferred
      * if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(

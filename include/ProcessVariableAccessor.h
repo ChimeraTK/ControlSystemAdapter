@@ -1,8 +1,12 @@
 #ifndef MTCA4U_PROCESS_VARIABLE_ACCESSOR_H
 #define MTCA4U_PROCESS_VARIABLE_ACCESSOR_H
 
+#include "ProcessVariable.h"
+
 namespace mtca4u {
- public:
+
+  class ProcessVariableAccessor{
+  public:
     /**
      * Returns the name that identifies the process variable.
      */
@@ -11,7 +15,7 @@ namespace mtca4u {
     }
 
     /**
-     * Returns the {@link std::type_info} for the value type of this process
+     * Returns the \c std::type_info for the value type of this process
      * variable or array. This can be used to determine the type of a process
      * variable at runtime.
      */
@@ -21,8 +25,8 @@ namespace mtca4u {
 
     /**
      * Returns <code>true</code> if the implementation is an instance of
-     * {@link ProcessArray<T>} and <code>false</code> if this object is an
-     * instance of {@link ProcessScalar<T>}.
+     * {@link ProcessArray}\<T\> and <code>false</code> if this object is an
+     * instance of {@link ProcessScalar}\<T\>.
      */
     bool isArray() const{
       return _impl->isArray();
@@ -80,36 +84,36 @@ namespace mtca4u {
      * a assignment operator. The assignment operator was turned off to avoid confusion with
      * assigning the content of the other process variable, which is accessed by set.
      */
-    void replace(ProcessScalarAccessor const & other){
-      replaceImpl( other.impl );
+    void replace(ProcessVariableAccessor const & other){
+      replaceImpl( other._impl );
     }
 
  private:
     
     /** The replace impl to avoid code duplication. Requires impl to be valid.
      */
-    void replaceImpl(ProcessScalar::SharedPtr const & otherImpl){
+    void replaceImpl(ProcessVariable::SharedPtr const & otherImpl){
       // current safety check
       // FIXME: Do we want this in future when the accessors childen
       // should work with all kinds of impl? Just one impl?
-      if ( (_impl->isArray() != other.impl->isArray() ) ||
-	   (_impl->getValueType() != other.impl->getValueType() ) ){
-	throw std::runtime_error("ProcessScalarAccessors can only be replaced by accessors of the 
-same type");
+      if ( (_impl->isArray() != otherImpl->isArray() ) ||
+	   (_impl->getValueType() != otherImpl->getValueType() ) ){
+	throw std::runtime_error("ProcessVariableAccessors can only be replaced by accessors of the same type");
       }
       _impl = otherImpl;
     }
 
+  public:
     /** 
-     * Replace function which direktly takes a ProcessScalar (sharedPtr). Can be used
+     * Replace function which direktly takes a ProcessVariable (sharedPtr). Can be used
      * to initalise an accessor which has been created with the default constuctor of the child
      * (empty shared ptr).
      */
-    void replace(ProcessScalar::SharedPrt const & impl){
+    void replace(ProcessVariable::SharedPtr const & impl){
       if (_impl){ // my current impl exists. replace with safety check
 	replaceImpl( impl );
       }else{ // I don't have an impl yet, just assign it.
-      _impl = other.impl;
+      _impl = impl;
       }
     }
     
@@ -118,8 +122,7 @@ same type");
 
     /**
      */
-    class ProcessVariableAccessor{
-    ProcessVariableAccessor(ProcessVariable<T>::SharedPtr & impl)
+    ProcessVariableAccessor(ProcessVariable::SharedPtr const & impl)
       : _impl(impl){      
       }
 
@@ -129,7 +132,7 @@ same type");
      * access it. It intentionally is not implemented. Use replace() instead to replace the impl,
      * and set() to replace the content.
      */
-    ProcessScalarAccessor & operator=(ProcessScalarAccessor const & other);    
+    ProcessVariableAccessor & operator=(ProcessVariableAccessor const & other);    
   };
 
 } //namespace mtca4u

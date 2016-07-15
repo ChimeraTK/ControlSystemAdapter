@@ -65,7 +65,7 @@ namespace mtca4u {
      * library to the control system and registers it with the PV manager.
      * Creating a process scalar with a name that is already used for a
      * different process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The number of buffers (the minimum and default value is one) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -88,7 +88,7 @@ namespace mtca4u {
      * system to the device library and registers it with the PV manager.
      * Creating a process scalar with a name that is already used for a
      * different process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The number of buffers (the minimum and default value is one) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -111,7 +111,7 @@ namespace mtca4u {
      * to the control system and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -145,7 +145,7 @@ namespace mtca4u {
      * to the device library and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * {@link std::invalid_argument} exception to be thrown.
+     * \c std::invalid_argument exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the

@@ -5,32 +5,157 @@
 
 #include <boost/smart_ptr.hpp>
 
+#include <limits>
+#include <stdexcept>
+#include <typeinfo>
+#include <vector>
+
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
+
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
 
 namespace mtca4u {
+
   /**
-   * Interface implemented by all process scalars.
+   * The scalar implementation of a ProcessVariable. This implementation is used for all
+   * three use cases (sender, receiver, and stand-alone).
    *
-   * Instances implementing this interface are typically not thread-safe and
-   * should only be used from a single thread.
+   * This class is not thread-safe and  should only be used from a single thread.
    */
   template<class T>
   class ProcessScalar: public ProcessVariable {
+
   public:
+    /**
+     * Type of the instance. This defines the behavior (send or receive
+     * possible, modifications allowed, etc.). This enum type is private so
+     * that only friend functions can construct instances of this class. The
+     * constructors themselves have to be public so that boost::make_shared
+     * can be used.
+     */
+    enum InstanceType {
+      /**
+       * Instance acts on is own.
+       */
+      STAND_ALONE,
+
+      /**
+       * Instance acts as the sender in a sender / receiver pair.
+       */
+      SENDER,
+
+      /**
+       * Instance acts as the receiver in a sender / receiver pair.
+       */
+      RECEIVER
+    };
+
     /**
      * Type alias for a shared pointer to this type.
      */
     typedef boost::shared_ptr<ProcessScalar> SharedPtr;
 
     /**
+     * Creates a process scalar that works independently. This means that the
+     * instance is not synchronized with any other instance and thus the send
+     * and receive operations are not supported. However, all other operations
+     * can be used like on any process variable.
+     */
+    ProcessScalar(InstanceType instanceType, const std::string& name,
+        T initialValue) :
+        ProcessVariable(name), _instanceType(instanceType), _value(
+            initialValue) {
+      // It would be better to do the validation before initializing, but this
+      // would mean that we would have to initialize twice.
+      if (instanceType != STAND_ALONE) {
+        throw std::invalid_argument(
+            "This constructor may only be used for a stand-alone process scalar.");
+      }
+    }
+
+    /**
+     * Creates a process scalar that acts as a receiver. A receiver is
+     * intended to work as a tandem with a sender and receives values that
+     * have been set to the sender.
+     *
+     * This constructor creates the buffers and queues that are needed for the
+     * send/receive process and are shared with the sender.
+     */
+    ProcessScalar(InstanceType instanceType, const std::string& name,
+        T initialValue, std::size_t numberOfBuffers) :
+        ProcessVariable(name), _instanceType(instanceType), _value(
+            initialValue), _bufferQueue(
+            boost::make_shared<boost::lockfree::queue<Buffer> >(
+                numberOfBuffers)) {
+      // It would be better to do the validation before initializing, but this
+      // would mean that we would have to initialize twice.
+      if (instanceType != RECEIVER) {
+        throw std::invalid_argument(
+            "This constructor may only be used for a receiver process scalar.");
+      }
+      if (numberOfBuffers < 1) {
+        throw std::invalid_argument(
+            "The number of buffers must be at least one.");
+      }
+    }
+
+    /**
+     * Creates a process scalar that acts as a sender. A sender is intended
+     * intended to work as a tandem with a receiver and send set values to
+     * it. It uses the buffers and queues that have been created by the
+     * receiver.
+     *
+     * If the <code>swappable</code> option is true, the swap operation is
+     * allowed on the receiver. The <code>swappable</code> flag must be the
+     * same for the sender and receiver. Allowing swapping has the side effect
+     * that a value cannot be read after having been sent.
+     *
+     * The optional send-notification listener is notified every time the
+     * sender's {@link ProcessScalar::send()} method is called. It can be
+     * used to queue a request for the receiver's
+     * {@link ProcessScalar::receive()} method to be called. The process
+     * variable passed to the listener is the receiver and not the sender.
+     */
+    ProcessScalar(InstanceType instanceType,
+        boost::shared_ptr<TimeStampSource> timeStampSource,
+        boost::shared_ptr<ProcessVariableListener> sendNotificationListener,
+        boost::shared_ptr<ProcessScalar> receiver) :
+        ProcessVariable(receiver->getName()), _instanceType(instanceType), _timeStamp(
+            receiver->_timeStamp), _value(receiver->_value), _bufferQueue(
+            receiver->_bufferQueue), _receiver(receiver), _timeStampSource(
+            timeStampSource), _sendNotificationListener(
+            sendNotificationListener) {
+      // It would be better to do the validation before initializing, but this
+      // would mean that we would have to initialize twice.
+      if (instanceType != SENDER) {
+        throw std::invalid_argument(
+            "This constructor may only be used for a sender process scalar.");
+      }
+      if (!receiver) {
+        throw std::invalid_argument(
+            "The pointer to the receiver must not be null.");
+      }
+      if (receiver->_instanceType != RECEIVER) {
+        throw std::invalid_argument(
+            "The pointer to the receiver must point to an instance that is actually a receiver.");
+      }
+    }
+
+    /**
      * Assign the content of another process variable of type T to this one.
      * It only assigns the variable content, but not the callback functions.
      * This operator behaves like set().
+     *
+     * FIXME: Should we remove this? It might not behave as 
+     * expected, and the base class is intentionally non-copyable.
      */
     ProcessScalar<T> & operator=(ProcessScalar<T> const & other) {
-      this->set(other);
-      return *this;
+      set(other.get());
+      return (*this);
     }
 
     /**
@@ -38,8 +163,37 @@ namespace mtca4u {
      * set().
      */
     ProcessScalar<T> & operator=(T const & t) {
-      this->set(t);
+      set(t);
       return *this;
+    }
+
+
+    /**
+     * Automatic conversion operator which returns a \b copy of this process
+     * variable's value. As no reference is returned, this cannot be used for
+     * assignment.
+     */
+     operator T() const {
+      return get();
+    }
+
+    /**
+     * Set the value of this process variable to the specified one. This does
+     * not trigger the on-set callback function, however it notifies the control
+     * system that this process variable's value has changed.
+     */
+    void set(T const & t) {
+      _value = t;
+    }
+    
+    // FIXME: this belongs to ProcessScalar, not the Impl. Moved here to remove the impl
+    // inheritence for creating the pimpl pattern, where impl and not are typedefed.
+    const std::type_info& getValueType() const {
+	return typeid(T);
+    }
+
+    bool isArray() const {
+	return false;
     }
 
     /**
@@ -48,52 +202,133 @@ namespace mtca4u {
      * notifies the control system that this process variable's value has
      * changed.
      */
-    virtual void set(ProcessScalar<T> const & other)=0;
-
-    /**
-     * Set the value of this process variable to the specified one. This does
-     * not trigger the on-set callback function, however it notifies the control
-     * system that this process variable's value has changed.
-     */
-    virtual void set(T const & t)=0;
-
-    /**
-     * Automatic conversion operator which returns a \b copy of this process
-     * variable's value. As no reference is returned, this cannot be used for
-     * assignment.
-     */
-    virtual operator T() const =0;
+    void set(ProcessScalar<T> const & other) {
+      set(other.get());
+    }
 
     /**
      * Returns a \b copy of this process variable's value. As no reference is
      * returned, this cannot be used for assignment.
      */
-    virtual T get() const =0;
-
-    const std::type_info& getValueType() const {
-      return typeid(T);
+    T get() const {
+      return _value;
     }
 
-    bool isArray() const {
-      return false;
+    // -----------------------------------------------
+    // Implementations of the derrived functions. They are documented in ProcessVariable
+
+    bool isReceiver() const {
+      return _instanceType == RECEIVER;
     }
 
-  protected:
+    bool isSender() const {
+      return _instanceType == SENDER;
+    }
+
+    // deprecated
+    TimeStamp getTimeStamp() const {
+      return _timeStamp;
+    }
+
+    bool receive() {
+      if (_instanceType != RECEIVER) {
+        throw std::logic_error(
+            "Receive operation is only allowed for a receiver process variable.");
+      }
+      Buffer nextBuffer;
+      if (_bufferQueue->pop(nextBuffer)) {
+        _timeStamp = nextBuffer.timeStamp;
+        _value = nextBuffer.value;
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    bool send() {
+      if (_instanceType != SENDER) {
+        throw std::logic_error(
+            "Send operation is only allowed for a sender process variable.");
+      }
+      // Before sending the value, we have to update our time stamp.
+      _timeStamp =
+          _timeStampSource ?
+              _timeStampSource->getCurrentTimeStamp() :
+              TimeStamp::currentTime();
+      Buffer nextBuffer;
+      nextBuffer.timeStamp = _timeStamp;
+      nextBuffer.value = _value;
+      bool foundEmptyBuffer;
+      if (_bufferQueue->bounded_push(nextBuffer)) {
+        foundEmptyBuffer = true;
+      } else {
+        // We are not interested in the old value, but we have to provided
+        // a reference.
+        Buffer oldBuffer;
+        // If we remove an element, pop returns true, otherwise the receiving
+        // thread just took the last element and we can continue without
+        // losing data.
+        foundEmptyBuffer = !_bufferQueue->pop(oldBuffer);
+        // Now we can be sure that the push is successful.
+        _bufferQueue->bounded_push(nextBuffer);
+      }
+      if (_sendNotificationListener) {
+        _sendNotificationListener->notify(_receiver);
+      }
+      return foundEmptyBuffer;
+    }
+
+  private:
     /**
-     * Creates a process scalar with the specified name.
+     * Type for the individual buffers. Each buffer stores a value and a time
+     * stamp.
      */
-    ProcessScalar(const std::string& name = std::string()) :
-        ProcessVariable(name) {
-    }
+    struct Buffer {
+      TimeStamp timeStamp;
+      T value;
+    };
 
     /**
-     * Protected destructor. Instances should not be destroyed through
-     * pointers to this base type.
+     * Type this instance is representing.
      */
-    virtual ~ProcessScalar() {
-    }
+    InstanceType _instanceType;
+
+    /**
+     * Time stamp of the current value.
+     */
+    TimeStamp _timeStamp;
+
+    /**
+     * Current value.
+     */
+    T _value;
+
+    /**
+     * Queue holding the values that have been sent but not received yet.
+     * We do not use an spsc_queue for this queue, because might want to take
+     * elements from the sending thread, so there are two threads which might
+     * consume elements and thus an spsc_queue is not safe.
+     */
+    boost::shared_ptr<boost::lockfree::queue<Buffer> > _bufferQueue;
+
+    /**
+     * Pointer to the receiver associated with this sender. This field is only
+     * used if this process variable represents a sender.
+     */
+    boost::shared_ptr<ProcessScalar<T> > _receiver;
+
+    /**
+     * Time-stamp source used to update the time-stamp when sending a value.
+     */
+    boost::shared_ptr<TimeStampSource> _timeStampSource;
+
+    /**
+     * Listener that is notified when the process variable is sent.
+     */
+    boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
 
   };
+
 
   /**
    * Creates a simple process scalar. A simple process scalar just works on its
@@ -147,19 +382,16 @@ namespace mtca4u {
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
           boost::shared_ptr<ProcessVariableListener>());
 
-} // namespace mtca4u
-
-// ProcessScalarImpl.h must be included after the class definition and the
-// template function declaration, because it depends on it.
-#include "ProcessScalarImpl.h"
-
-namespace mtca4u {
-
+  /**
+   * A process variable which is not a sender/receiver pair but a single instance.
+   * You can neither send nor receive it.
+   * FIXME: This sounds pretty useless. Should we remove it?
+   */
   template<class T>
   typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar(
       const std::string & name, T initialValue) {
-    return boost::make_shared<typename impl::ProcessScalarImpl<T> >(
-        impl::ProcessScalarImpl<T>::STAND_ALONE, name, initialValue);
+    return boost::make_shared<ProcessScalar<T> >(
+        ProcessScalar<T>::STAND_ALONE, name, initialValue);
   }
 
   template<class T>
@@ -168,13 +400,13 @@ namespace mtca4u {
       const std::string & name, T initialValue, std::size_t numberOfBuffers,
       boost::shared_ptr<TimeStampSource> timeStampSource,
       boost::shared_ptr<ProcessVariableListener> sendNotificationListener) {
-    boost::shared_ptr<typename impl::ProcessScalarImpl<T> > receiver =
-        boost::make_shared<typename impl::ProcessScalarImpl<T> >(
-            impl::ProcessScalarImpl<T>::RECEIVER, name, initialValue,
+    boost::shared_ptr<ProcessScalar<T> > receiver =
+        boost::make_shared<ProcessScalar<T> >(
+            ProcessScalar<T>::RECEIVER, name, initialValue,
             numberOfBuffers);
     typename ProcessScalar<T>::SharedPtr sender = boost::make_shared<
-        typename impl::ProcessScalarImpl<T> >(
-        impl::ProcessScalarImpl<T>::SENDER, timeStampSource,
+        ProcessScalar<T> >(
+        ProcessScalar<T>::SENDER, timeStampSource,
         sendNotificationListener, receiver);
     return std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr>(sender, receiver);

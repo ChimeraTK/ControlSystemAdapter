@@ -2,14 +2,21 @@
 #define MTCA4U_PROCESS_SCALAR_ACCESSOR_H
 
 #include "ProcessScalar.h"
+#include "ProcessVariableAccessor.h"
 
 namespace mtca4u {
 
   template<class T>
     class ProcessScalarAccessor: public ProcessVariableAccessor{
+
+    //  protected:
+    //    typename ProcessScalar<T>::SharedPtr & _processScalar;
+
   public:
-    ProcessScalarAccessor(ProcessScalar<T>::SharedPtr & processScalar)
-      : _processScalar(processScalar){      
+  ProcessScalarAccessor(typename ProcessScalar<T>::SharedPtr const & processScalar =
+			typename ProcessScalar<T>::SharedPtr())
+      : ProcessVariableAccessor(processScalar){
+      //      _processScalar( boost::static_pointer_cast< ProcessScalar<T> >( _impl ) ){      
     }
 
    /**
@@ -17,23 +24,31 @@ namespace mtca4u {
     * set(T).
     */
     ProcessScalarAccessor<T> & operator=(T const & t) {
-      processScalar->set(t);
+      boost::static_pointer_cast< ProcessScalar<T> >(_impl)->set(t);
       return *this;
     }
-
+	
     /**
      * Set the value of this process variable to the one of the other process
      * variable.
      */
     void set(ProcessScalar<T> const & other){
-      processScalar->set(other);
+      boost::static_pointer_cast< ProcessScalar<T> >(_impl)->set(other);
+    }
+
+    /**
+     * Set the value of this process variable to the one of the other process
+     * variable accessor
+     */
+    void set(ProcessScalarAccessor<T> const & other){
+      set(other.get());
     }
 
     /**
      * Set the value of this process variable to the specified one.
      */
     void set(T const & t){
-       processScalar->set(t);     
+       boost::static_pointer_cast< ProcessScalar<T> >(_impl)->set(t);     
     }
 
     /**
@@ -42,17 +57,18 @@ namespace mtca4u {
      * assignment.
      */
     operator T() const{
-      return processScalar->get();
+      return boost::static_pointer_cast< ProcessScalar<T> >(_impl)->get();
     }
 
     /**
      * Returns a \b copy of this process variable's value. As no reference is
      * returned, this cannot be used for assignment.
      */
-    virtual T get() const{
-      return processScalar->get();
+    T get() const{
+      return boost::static_pointer_cast< ProcessScalar<T> >(_impl)->get();
     }
-};
+
+  };
 
 }
 
