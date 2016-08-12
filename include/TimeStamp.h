@@ -6,7 +6,7 @@
 namespace ChimeraTK {
 
   /**
-   * The MTCA4U time stamp consists of the unix time stamp (number of seconds
+   * The ChimeraTK time stamp consists of the unix time stamp (number of seconds
    * since 01.01.1970 00:00:00 UTC).
    * The unsigned 32 bit value will have an overflow on Sun, 7 February 2106.
    * If you need higher resolution than once per second, the nanoseconds field

@@ -44,7 +44,7 @@
 \SetWatermarkScale{3}
 \SetWatermarkText{DRAFT \svnshortrev}
 
-\title{Requirement for the\\ MTCA4U Control System Adapter}
+\title{Requirement for the\\ ChimeraTK Control System Adapter}
 \date{\svnrevision\\ PDF build \today}
 \author[1]{Martin Killenberg} \author[2]{Sebastian Marsching}
 \author[3]{Adam Poitrokwsi}
@@ -62,7 +62,7 @@
 \maketitle
 \section{Objective and Scope}
 
-MTCA4U's control system interface adapter is intended to decouple the business
+ChimeraTK's control system interface adapter is intended to decouple the business
 logic of a server from the actual control system in use. For this it provides
 two functionalities: 
 \begin{enumerate}
@@ -140,7 +140,7 @@ rather than the server terminating with an exception.
 
 \subsection{Arrays}
 
-MTCA4U supports arrays of all supported simple data types.
+ChimeraTK supports arrays of all supported simple data types.
 
 \section{Requirements for the ProcessVariable Adapter}\label{section_process_variable_adapter}
 
@@ -171,7 +171,7 @@ The ProcessVariable adapter is not thread safe. If the underlying control
 system variables are thread safe, then the adapter is also thread safe as it
 does no further caching but directly accesses the underlying variable. But this
 is not guaranteed by the interface and the user has to implement a thread safe
-mechanism himself. MTCA4U will provide thread support as a separate tool of
+mechanism himself. ChimeraTK will provide thread support as a separate tool of
 the Control System Tools package, probably implementing an actor pattern.
 
 \subsection{The ProcessVariable adapter interface features}
@@ -442,7 +442,7 @@ parameter.
 
 \fixme{How does this look like if the control system class is a/ requires a state machine?
 Is business logic which is not a state machine compatible? How do both machines talk to each other?
-Do we need a state machine adapter? Should all business logic in MTCA4U also be a state machine?}
+Do we need a state machine adapter? Should all business logic in ChimeraTK also be a state machine?}
 
 \section{Further, General Requirements}
 As we have to support Ubuntu 12.4, C++11 is not used because the C++11 support
@@ -511,7 +511,7 @@ Not supported by DOOCS:
 \end{itemize}
 
 Although D\_\textit{xxx}array seems like the obvious choice, it is almost never used in practice.
-Usually a D\_spectrum is used because it can directly be plotted in a panel. MTCA4U
+Usually a D\_spectrum is used because it can directly be plotted in a panel. ChimeraTK
 will follow this approach and implement arrays as D\_spectrum in the DOOCS adapter.
 \fixme{The D\_spectrum only exists for floats, which means it can only hold integers up to 24 bits. What to do with real 32 bit arrays?}
 
