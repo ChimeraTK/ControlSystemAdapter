@@ -92,14 +92,16 @@ install(TARGETS ${PROJECT_NAME}
 	    LIBRARY DESTINATION lib
 )
 
-#all include files go into include/PROJECT_NAME
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAME}
-          FILES_MATCHING PATTERN "*.h" 
-	  PATTERN ".svn" EXCLUDE
-	  PATTERN "${PROJECT_NAME}" EXCLUDE)
+#all include files go into include
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include
+        FILES_MATCHING
+            PATTERN "ChimeraTK/*.h"
+            PATTERN "ChimeraTK/ControlSystemAdapter/*.h")
 
 #We additionally install the independent reference test application, it's header only
-install(FILES ${CMAKE_SOURCE_DIR}/tests/include/IndependentTestCore.h  DESTINATION include/${PROJECT_NAME}/testing)	
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
+        FILES_MATCHING
+            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/IndependentTestCore.h")	
 
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....

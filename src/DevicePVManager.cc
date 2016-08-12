@@ -1,6 +1,6 @@
 #include <exception>
 
-#include "DevicePVManager.h"
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 
 namespace ChimeraTK {
 

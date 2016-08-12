@@ -1,4 +1,4 @@
-#include "ControlSystemPVManager.h"
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
 
 namespace ChimeraTK {
 

@@ -6,7 +6,8 @@ using namespace boost::unit_test_framework;
 
 #include <boost/thread.hpp>
 
-#include "TimeStamp.h"
+#include <ChimeraTK/ControlSystemAdapter/TimeStamp.h>
+
 using namespace ChimeraTK;
 
 // Create a test suite which holds all your tests.

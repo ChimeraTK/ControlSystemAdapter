@@ -8,9 +8,9 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ControlSystemPVManager.h>
-#include <DevicePVManager.h>
-#include <SynchronizationDirection.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

@@ -9,10 +9,10 @@
 //#include <ControlSystemAdapter/ProcessScalar.h>
 //#include <ControlSystemAdapter/DeviceSynchronizationUtility.h>
 //#include <ControlSystemAdapter/SynchronizationDirection.h>
-#include <DevicePVManager.h>
-#include <ProcessScalar.h>
-#include <DeviceSynchronizationUtility.h>
-#include <SynchronizationDirection.h>
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
+#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
 /** Some dummy "hardware". You can read/write a voltage (int). */
 class Hardware{

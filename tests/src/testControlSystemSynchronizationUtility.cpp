@@ -9,11 +9,11 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ControlSystemPVManager.h>
-#include <DevicePVManager.h>
-#include <ControlSystemSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
 
-#include <CountingProcessVariableListener.h>
+#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

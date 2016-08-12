@@ -1,7 +1,7 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_COUNTING_TIME_STAMP_SOURCE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_COUNTING_TIME_STAMP_SOURCE_H
 
-#include <TimeStampSource.h>
+#include <ChimeraTK/ControlSystemAdapter/TimeStampSource.h>
 
 namespace ChimeraTK {
 

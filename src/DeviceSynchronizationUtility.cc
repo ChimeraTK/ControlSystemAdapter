@@ -1,4 +1,4 @@
-#include <DeviceSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 
 namespace ChimeraTK {
 

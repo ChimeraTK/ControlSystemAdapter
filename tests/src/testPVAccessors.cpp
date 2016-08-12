@@ -2,9 +2,9 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include "ProcessScalarAccessor.h"
-#include "ProcessArrayAccessor.h"
-#include "ManualTimeStampSource.h" 
+#include <ChimeraTK/ControlSystemAdapter/ProcessScalarAccessor.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessArrayAccessor.h>
+#include <ChimeraTK/ControlSystemAdapter/ManualTimeStampSource.h>
 
 using namespace ChimeraTK;
 

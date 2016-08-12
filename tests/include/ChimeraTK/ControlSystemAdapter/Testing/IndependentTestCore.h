@@ -3,10 +3,10 @@
 
 #include <boost/scoped_ptr.hpp>
 
-#include <ControlSystemAdapter/DevicePVManager.h>
-#include <ControlSystemAdapter/ProcessScalar.h>
-#include <ControlSystemAdapter/DeviceSynchronizationUtility.h>
-#include <ControlSystemAdapter/SynchronizationDirection.h>
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
+#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
 #include <limits>
 #include <atomic>

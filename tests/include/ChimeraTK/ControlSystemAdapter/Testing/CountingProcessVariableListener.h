@@ -1,7 +1,7 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_COUNTING_PROCESS_VARIABLE_LISTENER_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_COUNTING_PROCESS_VARIABLE_LISTENER_H
 
-#include <ProcessVariableListener.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessVariableListener.h>
 
 namespace ChimeraTK {
 

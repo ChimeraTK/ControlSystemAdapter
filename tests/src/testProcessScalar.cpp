@@ -3,10 +3,10 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <ProcessScalar.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
 
-#include <CountingProcessVariableListener.h>
-#include <CountingTimeStampSource.h>
+#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
+#include <ChimeraTK/ControlSystemAdapter/Testing/CountingTimeStampSource.h>
 
 namespace ChimeraTK {
   /**

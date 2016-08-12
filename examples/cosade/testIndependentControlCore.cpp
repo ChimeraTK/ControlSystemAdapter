@@ -4,10 +4,7 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-//FIXME: in a real example an installed version of the adapter has to be used,
-//which has the headers installed under the namespace folder
-//#include <ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
-#include <ControlSystemSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
 
 #include "IndependentControlCore.h"
 

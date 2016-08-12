@@ -1,6 +1,6 @@
 #include <boost/chrono.hpp>
 
-#include <ControlSystemSynchronizationUtility.h>
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
 
 namespace ChimeraTK {
 
