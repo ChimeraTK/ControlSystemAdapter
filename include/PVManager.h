@@ -1,5 +1,5 @@
-#ifndef MTCA4U_PV_MANAGER_H
-#define MTCA4U_PV_MANAGER_H
+#ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_H
+#define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_H
 
 #include <list>
 #include <utility>
@@ -678,4 +678,4 @@ namespace ChimeraTK {
 
 }
 
-#endif // MTCA4U_PV_MANAGER_H
+#endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_H

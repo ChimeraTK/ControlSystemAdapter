@@ -1,5 +1,5 @@
-#ifndef MTCA4U_TIME_STAMP_H
-#define MTCA4U_TIME_STAMP_H
+#ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TIME_STAMP_H
+#define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TIME_STAMP_H
 
 #include <boost/date_time.hpp>
 
@@ -75,4 +75,4 @@ namespace ChimeraTK {
 
 } // namespace ChimeraTK
 
-#endif // MTCA4U_TIME_STAMP_H
+#endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TIME_STAMP_H

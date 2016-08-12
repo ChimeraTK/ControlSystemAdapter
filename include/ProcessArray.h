@@ -1,5 +1,5 @@
-#ifndef MTCA4U_PROCESS_ARRAY_H
-#define MTCA4U_PROCESS_ARRAY_H
+#ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
+#define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
 
 #include <vector>
 #include <utility>
@@ -745,4 +745,4 @@ namespace ChimeraTK {
 
 } // namespace ChimeraTK
 
-#endif // MTCA4U_PROCESS_ARRAY_H
+#endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
