@@ -18,7 +18,7 @@
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * The scalar implementation of a ProcessVariable. This implementation is used for all
@@ -412,6 +412,6 @@ namespace mtca4u {
         typename ProcessScalar<T>::SharedPtr>(sender, receiver);
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_PROCESS_SCALAR_H

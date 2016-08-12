@@ -5,7 +5,7 @@
 
 #include "TimeStamp.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Interface for a time-stamp source. A time-stamp source is used by a process

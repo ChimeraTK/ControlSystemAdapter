@@ -4,7 +4,7 @@
 #include "ControlSystemPVManager.h"
 #include "DevicePVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   using boost::atomic;
   using boost::shared_ptr;

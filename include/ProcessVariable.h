@@ -1,7 +1,7 @@
 #ifndef MTCA4U_PROCESS_VARIABLE_H
 #define MTCA4U_PROCESS_VARIABLE_H
 
-namespace mtca4u {
+namespace ChimeraTK {
   class ProcessVariable;
 }
 
@@ -14,7 +14,7 @@ namespace mtca4u {
 
 #include "ProcessVariableDecl.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Base class for all {@link ProcessScalar}s and {@link ProcessArray}s.

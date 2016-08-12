@@ -6,7 +6,7 @@
 #include "ProcessArrayAccessor.h"
 #include "ManualTimeStampSource.h" 
 
-using namespace mtca4u;
+using namespace ChimeraTK;
 
 BOOST_AUTO_TEST_SUITE( PvAccessorsTestSuite )
 

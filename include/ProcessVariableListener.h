@@ -5,7 +5,7 @@
 
 #include "ProcessVariableDecl.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
 /**
  * Listener receiving event notifications for a process variable. The exact

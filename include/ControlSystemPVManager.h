@@ -9,7 +9,7 @@
 
 #include "PVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Manager for process variables on the control-system side. Provides methods

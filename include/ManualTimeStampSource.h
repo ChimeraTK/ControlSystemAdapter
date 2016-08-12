@@ -1,7 +1,7 @@
 #ifndef MTCA4U_MANUAL_TIME_STAMP_SOURCE_H
 #define MTCA4U_MANUAL_TIME_STAMP_SOURCE_H
 
-namespace  mtca4u {
+namespace ChimeraTK {
 
   /** The code manually has to set a time stamp, which is then disctributed
    *  to the connected PVs.

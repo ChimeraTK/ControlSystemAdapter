@@ -3,7 +3,7 @@
 
 #include "ProcessVariable.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   class ProcessVariableAccessor{
   public:
@@ -135,6 +135,6 @@ namespace mtca4u {
     ProcessVariableAccessor & operator=(ProcessVariableAccessor const & other);    
   };
 
-} //namespace mtca4u
+} //namespace ChimeraTK
 
 #endif // MTCA4U_PROCESS_VARIABLE_ACCESSOR_H

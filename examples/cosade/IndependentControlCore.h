@@ -31,13 +31,13 @@ class Hardware{
  */
 class IndependentControlCore{
  private:
-  mtca4u::DevicePVManager::SharedPtr _processVariableManager;
+  ChimeraTK::DevicePVManager::SharedPtr _processVariableManager;
 
   /** The target voltage to be transmitted to the hardware */
-  mtca4u::ProcessScalar<int>::SharedPtr _targetVoltage;
+  ChimeraTK::ProcessScalar<int>::SharedPtr _targetVoltage;
 
   /** The monitor voltage which is read back from the hardware */
-  mtca4u::ProcessScalar<int>::SharedPtr _monitorVoltage;
+  ChimeraTK::ProcessScalar<int>::SharedPtr _monitorVoltage;
   
   Hardware _hardware; ///< Some hardware
  
@@ -49,11 +49,11 @@ class IndependentControlCore{
   /** The constructor gets an instance of the variable factory to use. 
    *  The variables in the factory should already be initialised because the hardware is initialised here.
    */
-  IndependentControlCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager)
+  IndependentControlCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager)
     //initialise all process variables, using the factory
     : _processVariableManager( processVariableManager ),
-    _targetVoltage( processVariableManager->createProcessScalar<int>(mtca4u::controlSystemToDevice,"TARGET_VOLTAGE") ),
-    _monitorVoltage( processVariableManager->createProcessScalar<int>(mtca4u::deviceToControlSystem,"MONITOR_VOLTAGE") ){
+    _targetVoltage( processVariableManager->createProcessScalar<int>(ChimeraTK::controlSystemToDevice,"TARGET_VOLTAGE") ),
+    _monitorVoltage( processVariableManager->createProcessScalar<int>(ChimeraTK::deviceToControlSystem,"MONITOR_VOLTAGE") ){
 
     // initialise the hardware here
     *_targetVoltage = 0;
@@ -73,7 +73,7 @@ class IndependentControlCore{
 };
 
 inline void IndependentControlCore::mainLoop(){
-  mtca4u::DeviceSynchronizationUtility syncUtil(_processVariableManager);
+  ChimeraTK::DeviceSynchronizationUtility syncUtil(_processVariableManager);
  
   while (!boost::this_thread::interruption_requested()) {
     syncUtil.receiveAll();

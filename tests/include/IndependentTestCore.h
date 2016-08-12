@@ -18,10 +18,10 @@
 
 template<class DataType>
 struct TypedPVHolder{
-  typename mtca4u::ProcessScalar<DataType>::SharedPtr toDeviceScalar;
-  typename mtca4u::ProcessScalar<DataType>::SharedPtr fromDeviceScalar;
-  typename mtca4u::ProcessArray<DataType>::SharedPtr toDeviceArray;
-  typename mtca4u::ProcessArray<DataType>::SharedPtr fromDeviceArray;
+  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr toDeviceScalar;
+  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr fromDeviceScalar;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceArray;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceArray;
   /** The "data type constant" is a value that depends on the data type. It is intended as
    *  'magic' constant which can be read out to test reading because the value it knows.
    *  
@@ -30,16 +30,16 @@ struct TypedPVHolder{
    *  \li -sizeof(type) for signed integer types
    *  \li 1./sizeof(type) for floating point types
    */
-  typename mtca4u::ProcessScalar<DataType>::SharedPtr dataTypeConstant;
-  typename mtca4u::ProcessArray<DataType>::SharedPtr constantArray;
+  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr dataTypeConstant;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
  
-  TypedPVHolder(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager, std::string typeNamePrefix):
-    toDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR") ),
-    fromDeviceScalar( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR") ),
-    toDeviceArray( processVariableManager->createProcessArray<DataType>(mtca4u::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
-    fromDeviceArray( processVariableManager->createProcessArray<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
-    dataTypeConstant( processVariableManager->createProcessScalar<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ),
-    constantArray( processVariableManager->createProcessArray<DataType>(mtca4u::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) ){
+  TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager, std::string typeNamePrefix):
+    toDeviceScalar( processVariableManager->createProcessScalar<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR") ),
+    fromDeviceScalar( processVariableManager->createProcessScalar<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR") ),
+    toDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
+    fromDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
+    dataTypeConstant( processVariableManager->createProcessScalar<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ),
+    constantArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) ){
       if (std::numeric_limits<DataType>::is_integer){
 	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int
@@ -82,13 +82,13 @@ typedef boost::fusion::map<
 
 class IndependentTestCore{
  public:
-  mtca4u::DevicePVManager::SharedPtr processVariableManager;
+  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
   boost::scoped_ptr< boost::thread > _deviceThread;
   HolderMap holderMap;
 
   // the syncUtil needs to be initalised after the PVs are added to the manager
-  mtca4u::DeviceSynchronizationUtility syncUtil;
+  ChimeraTK::DeviceSynchronizationUtility syncUtil;
 
   static std::mutex & mainLoopMutex(){
     static std::mutex _mainLoopMutex;
@@ -127,7 +127,7 @@ class IndependentTestCore{
    *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
    *  an endless loop.
    */
-  IndependentTestCore(boost::shared_ptr<mtca4u::DevicePVManager> const & processVariableManager_)
+  IndependentTestCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
       //initialise all process variables, using the factory
       : processVariableManager( processVariableManager_ ),
     holderMap(

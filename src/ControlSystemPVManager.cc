@@ -1,6 +1,6 @@
 #include "ControlSystemPVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   ControlSystemPVManager::ControlSystemPVManager(
       boost::shared_ptr<PVManager> pvManager) :

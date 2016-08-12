@@ -10,7 +10,7 @@
 
 using namespace boost::unit_test_framework;
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * The test class for the ProcessArray.
@@ -429,25 +429,25 @@ namespace mtca4u {
     BOOST_CHECK(!receiver->receive());
   }
 
-}  //namespace mtca4u
+}  //namespace ChimeraTK
 
 test_suite*
 init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
   framework::master_test_suite().p_name.value = "ProcessArray test suite";
 
   framework::master_test_suite().add(
-      new mtca4u::ProcessArrayTestSuite<int32_t>);
+      new ChimeraTK::ProcessArrayTestSuite<int32_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessArrayTestSuite<uint32_t>);
+      new ChimeraTK::ProcessArrayTestSuite<uint32_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessArrayTestSuite<int16_t>);
+      new ChimeraTK::ProcessArrayTestSuite<int16_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessArrayTestSuite<uint16_t>);
-  framework::master_test_suite().add(new mtca4u::ProcessArrayTestSuite<int8_t>);
+      new ChimeraTK::ProcessArrayTestSuite<uint16_t>);
+  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<int8_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessArrayTestSuite<uint8_t>);
-  framework::master_test_suite().add(new mtca4u::ProcessArrayTestSuite<double>);
-  framework::master_test_suite().add(new mtca4u::ProcessArrayTestSuite<float>);
+      new ChimeraTK::ProcessArrayTestSuite<uint8_t>);
+  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<double>);
+  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<float>);
 
   return NULL;
 }

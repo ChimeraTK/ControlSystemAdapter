@@ -1,6 +1,6 @@
 #include <DeviceSynchronizationUtility.h>
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   DeviceSynchronizationUtility::DeviceSynchronizationUtility(
       DevicePVManager::SharedPtr pvManager) :
@@ -74,4 +74,4 @@ namespace mtca4u {
     } while (boost::chrono::high_resolution_clock::now() < limit);
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK

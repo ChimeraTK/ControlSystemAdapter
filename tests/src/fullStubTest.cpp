@@ -6,7 +6,7 @@
 #include "IndependentTestCore.h"
 
 using namespace boost::unit_test_framework;
-using namespace mtca4u;
+using namespace ChimeraTK;
 
 struct TestCoreFixture{
   std::pair<boost::shared_ptr<ControlSystemPVManager>,

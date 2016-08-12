@@ -8,7 +8,7 @@ using namespace boost::unit_test_framework;
 #include <CountingProcessVariableListener.h>
 #include <CountingTimeStampSource.h>
 
-namespace mtca4u {
+namespace ChimeraTK {
   /**
    * The test class for the ProcessScalar.
    * It is templated to be tested with all data types.
@@ -221,27 +221,27 @@ namespace mtca4u {
     BOOST_CHECK(*receiver == 46);
   }
 
-}  //namespace mtca4u
+}  //namespace ChimeraTK
 
 test_suite*
 init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
   framework::master_test_suite().p_name.value = "ProcessScalar test suite";
 
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<int32_t>);
+      new ChimeraTK::ProcessScalarTestSuite<int32_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<uint32_t>);
+      new ChimeraTK::ProcessScalarTestSuite<uint32_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<int16_t>);
+      new ChimeraTK::ProcessScalarTestSuite<int16_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<uint16_t>);
+      new ChimeraTK::ProcessScalarTestSuite<uint16_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<int8_t>);
+      new ChimeraTK::ProcessScalarTestSuite<int8_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<uint8_t>);
+      new ChimeraTK::ProcessScalarTestSuite<uint8_t>);
   framework::master_test_suite().add(
-      new mtca4u::ProcessScalarTestSuite<double>);
-  framework::master_test_suite().add(new mtca4u::ProcessScalarTestSuite<float>);
+      new ChimeraTK::ProcessScalarTestSuite<double>);
+  framework::master_test_suite().add(new ChimeraTK::ProcessScalarTestSuite<float>);
 
   return NULL;
 }

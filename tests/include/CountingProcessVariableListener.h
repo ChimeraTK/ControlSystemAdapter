@@ -3,7 +3,7 @@
 
 #include <ProcessVariableListener.h>
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Simple implementation of a process-variable listener that simply counts
@@ -26,6 +26,6 @@ namespace mtca4u {
 
   };
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_COUNTING_PROCESS_VARIABLE_LISTENER_H

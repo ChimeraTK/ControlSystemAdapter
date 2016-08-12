@@ -4,7 +4,7 @@
 #include "ProcessScalar.h"
 #include "ProcessVariableAccessor.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   template<class T>
     class ProcessScalarAccessor: public ProcessVariableAccessor{

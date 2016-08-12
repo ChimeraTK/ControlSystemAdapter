@@ -6,7 +6,7 @@
 #include "IndependentTestCore.h"
 
 using namespace boost::unit_test_framework;
-using namespace mtca4u;
+using namespace ChimeraTK;
 
 // We are testing the reference core when executed with it's own thread running.
 // Synchronisation is done through the atomic mainBodyCompletelyExecuted variable.

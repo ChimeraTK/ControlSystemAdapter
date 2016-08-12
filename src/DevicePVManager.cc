@@ -2,7 +2,7 @@
 
 #include "DevicePVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   DevicePVManager::DevicePVManager(boost::shared_ptr<PVManager> pvManager) :
       _pvManager(pvManager) {

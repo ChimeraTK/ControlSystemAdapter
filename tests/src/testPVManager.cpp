@@ -13,7 +13,7 @@
 #include <SynchronizationDirection.h>
 
 using namespace boost::unit_test_framework;
-using namespace mtca4u;
+using namespace ChimeraTK;
 
 using boost::shared_ptr;
 using std::list;

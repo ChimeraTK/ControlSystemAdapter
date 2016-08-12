@@ -1,7 +1,7 @@
 #ifndef MTCA4U_SYNCHRONIZATION_DIRECTION_H
 #define MTCA4U_SYNCHRONIZATION_DIRECTION_H
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Direction when synchronizing process variables. A process variable may be

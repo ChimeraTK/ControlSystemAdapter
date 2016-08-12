@@ -1,7 +1,7 @@
 #ifndef MTCA4U_DEVICE_PV_MANAGER_H
 #define MTCA4U_DEVICE_PV_MANAGER_H
 
-namespace mtca4u {
+namespace ChimeraTK {
   class DevicePVManager;
 }
 
@@ -13,7 +13,7 @@ namespace mtca4u {
 #include "PVManager.h"
 #include "SynchronizationDirection.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Manager for process variables on the device side. Provides methods for

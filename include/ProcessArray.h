@@ -18,7 +18,7 @@
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
   /**
    * Array implementation of the ProcessVariable. This implementation is used for all
    * three use cases (sender, receiver, and stand-alone).
@@ -743,6 +743,6 @@ namespace mtca4u {
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_PROCESS_ARRAY_H

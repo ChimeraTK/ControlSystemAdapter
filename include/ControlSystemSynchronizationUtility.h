@@ -5,7 +5,7 @@
 
 #include "ControlSystemPVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Utility class for synchronizing process variables on the control-system
@@ -174,6 +174,6 @@ namespace mtca4u {
     }
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_CONTROL_SYSTEM_SYNCHRONIZATION_UTILITY

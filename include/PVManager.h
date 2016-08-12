@@ -15,7 +15,7 @@
 
 #include "PVManagerDecl.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   // These declarations should actually be in the respective header files,
   // however this would cause problems with incomplete definitions due to

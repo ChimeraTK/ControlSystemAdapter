@@ -5,7 +5,7 @@
 
 #include "DevicePVManager.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Utility class for synchronizing process variables on the device side. This
@@ -173,6 +173,6 @@ namespace mtca4u {
     }
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_DEVICE_SYNCHRONIZATION_UTILITY

@@ -1,6 +1,6 @@
 #include "ProcessVariable.h"
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   ProcessVariable::ProcessVariable(const std::string& name) :
       _name(name) {

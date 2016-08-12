@@ -2,7 +2,7 @@
 
 #include <ControlSystemSynchronizationUtility.h>
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   ControlSystemSynchronizationUtility::ControlSystemSynchronizationUtility(
       ControlSystemPVManager::SharedPtr pvManager) :
@@ -76,4 +76,4 @@ namespace mtca4u {
     } while (boost::chrono::high_resolution_clock::now() < limit);
   }
 
-} // namespace mtca4u
+} // namespace ChimeraTK

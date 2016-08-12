@@ -3,7 +3,7 @@
 
 #include <TimeStampSource.h>
 
-namespace mtca4u {
+namespace ChimeraTK {
 
   /**
    * Simple time-stamp source that returns a time stamp that has all fields
@@ -24,6 +24,6 @@ namespace mtca4u {
 
   };
 
-} // namespace mtca4u
+} // namespace ChimeraTK
 
 #endif // MTCA4U_COUNTING_TIME_STAMP_SOURCE_H

@@ -4,7 +4,7 @@
 #include "ProcessArray.h"
 #include "ProcessVariableAccessor.h"
 
-namespace mtca4u{
+namespace ChimeraTK{
   template<class UserType>
     class ProcessArrayAccessor: public ProcessVariableAccessor{
 
@@ -65,6 +65,6 @@ namespace mtca4u{
   
   };
 
-} //namespace mtca4u
+} //namespace ChimeraTK
 
 #endif // MTCA4U_PROCESS_ARRAY_ACCESSOR_H
