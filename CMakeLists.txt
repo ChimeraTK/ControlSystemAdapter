@@ -39,6 +39,10 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
   message("Boost unit_test_framework not found, disabling testing")
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
+FIND_PACKAGE(mtca4u-deviceaccess 00.17 REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
+include_directories(${mtca4u-deviceaccess_INCLUDE_DIRS})
+
 include_directories(${CMAKE_SOURCE_DIR}/include)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
@@ -58,7 +62,7 @@ if(TESTING_IS_ENABLED)
     # Linking the boost libraries and using their included counterparts at the
     # same time causes problems.
     #target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_LIBRARIES})
-    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY})
+    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 

@@ -17,6 +17,7 @@
 
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
+#include "TimeStampSource.h"
 
 namespace ChimeraTK {
   /**
