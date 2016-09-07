@@ -5,8 +5,8 @@ using namespace boost::unit_test_framework;
 
 #include "ProcessScalar.h"
 
-#include "Testing/CountingProcessVariableListener.h"
-#include "Testing/CountingTimeStampSource.h"
+#include "CountingProcessVariableListener.h"
+#include "CountingTimeStampSource.h"
 
 namespace ChimeraTK {
   /**

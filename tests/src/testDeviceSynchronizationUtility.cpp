@@ -13,7 +13,7 @@
 #include "DevicePVManager.h"
 #include "DeviceSynchronizationUtility.h"
 
-#include "Testing/CountingProcessVariableListener.h"
+#include "CountingProcessVariableListener.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

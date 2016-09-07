@@ -5,8 +5,8 @@
 
 #include "ProcessArray.h"
 
-#include "Testing/CountingProcessVariableListener.h"
-#include "Testing/CountingTimeStampSource.h"
+#include "CountingProcessVariableListener.h"
+#include "CountingTimeStampSource.h"
 
 using namespace boost::unit_test_framework;
 

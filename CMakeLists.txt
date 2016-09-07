@@ -43,6 +43,7 @@ FIND_PACKAGE(mtca4u-deviceaccess 00.17 REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
 include_directories(SYSTEM ${mtca4u-deviceaccess_INCLUDE_DIRS})
 
+#Includes inside the library are local includes, so we give the full path to the include directory
 include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
@@ -57,7 +58,9 @@ if(TESTING_IS_ENABLED)
     #NAME_WE means the base name without path and (longest) extension
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
-    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter)
+    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
+    #The IndependentTestCore is written to work with the control system adapter as installed, so 
+    #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
     #no target library yet
     # Linking the boost libraries and using their included counterparts at the
