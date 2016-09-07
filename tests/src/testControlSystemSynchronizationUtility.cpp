@@ -9,11 +9,11 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "ControlSystemSynchronizationUtility.h"
 
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
+#include "Testing/CountingProcessVariableListener.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -67,36 +67,36 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     ProcessVariable::SharedPtr singletonRawArray[1];
     singletonRawArray[0] = csIntIn;
     *devIntIn = 42;
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receive(singletonRawArray, singletonRawArray + 1);
     BOOST_CHECK(*csIntIn == 42);
     singletonRawArray[0] = csIntOut;
     *csIntOut = 43;
     syncUtil.send(singletonRawArray, singletonRawArray + 1);
-    devIntOut->receive();
+    devIntOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 43);
     std::vector<ProcessVariable::SharedPtr> singletonVector(1);
     singletonVector[0] = csIntIn;
     *devIntIn = 44;
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receive(singletonVector);
     BOOST_CHECK(*csIntIn == 44);
     singletonVector[0] = csIntOut;
     *csIntOut = 45;
     syncUtil.send(singletonVector);
-    devIntOut->receive();
+    devIntOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 45);
     std::list<ProcessVariable::SharedPtr> singletonList;
     singletonList.push_back(csIntIn);
     *devIntIn = 46;
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receive(singletonList);
     BOOST_CHECK(*csIntIn == 46);
     singletonList.clear();
     singletonList.push_back(csIntOut);
     *csIntOut = 47;
     syncUtil.send(singletonList);
-    devIntOut->receive();
+    devIntOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 47);
 
     // Finally, we test with two elements.
@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     doubleRawArray[1] = csFloatIn;
     *devIntIn = 48;
     *devFloatIn = 49.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleRawArray, doubleRawArray + 2);
     BOOST_CHECK(*csIntIn == 48);
     BOOST_CHECK(*csFloatIn == 49.0f);
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     *csIntOut = 49;
     *csFloatOut = 50.0f;
     syncUtil.send(doubleRawArray, doubleRawArray + 2);
-    devIntOut->receive();
-    devFloatOut->receive();
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 49);
     BOOST_CHECK(*devFloatOut == 50.0f);
     std::vector<ProcessVariable::SharedPtr> doubleVector(2);
@@ -124,8 +124,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     doubleVector[1] = csFloatIn;
     *devIntIn = 51;
     *devFloatIn = 52.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleVector);
     BOOST_CHECK(*csIntIn == 51);
     BOOST_CHECK(*csFloatIn == 52.0f);
@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     *csIntOut = 53;
     *csFloatOut = 54.0f;
     syncUtil.send(doubleVector);
-    devIntOut->receive();
-    devFloatOut->receive();
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 53);
     BOOST_CHECK(*devFloatOut == 54.0f);
     std::list<ProcessVariable::SharedPtr> doubleList;
@@ -143,8 +143,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     doubleList.push_back(csFloatIn);
     *devIntIn = 55;
     *devFloatIn = 56.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleList);
     BOOST_CHECK(*csIntIn == 55);
     BOOST_CHECK(*csFloatIn == 56.0f);
@@ -154,8 +154,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     *csIntOut = 57;
     *csFloatOut = 58.0f;
     syncUtil.send(doubleList);
-    devIntOut->receive();
-    devFloatOut->receive();
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 57);
     BOOST_CHECK(*devFloatOut == 58.0f);
   }
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     ControlSystemSynchronizationUtility syncUtil(csManager);
 
     *devIntIn = 5;
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(*csIntIn == 5);
   }
@@ -207,8 +207,8 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     *csIntOut = 15;
     *csFloatOut = 16.0f;
     syncUtil.sendAll();
-    devIntOut->receive();
-    devFloatOut->receive();
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
     BOOST_CHECK(*devIntOut == 15);
     BOOST_CHECK(*devFloatOut == 16.0f);
   }
@@ -237,14 +237,14 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
 
     syncUtil.addReceiveNotificationListener("intIn",
         receiveNotificationListener);
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 1);
     BOOST_CHECK(
         receiveNotificationListener->lastProcessVariable->getName() == "intIn");
 
-    devIntIn->send();
+    devIntIn->write();
     std::vector<ProcessVariable::SharedPtr> pvList(1);
     pvList[0] = csIntIn;
     syncUtil.receive(pvList);
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
         receiveNotificationListener->lastProcessVariable->getName() == "intIn");
 
     syncUtil.removeReceiveNotificationListener("intIn");
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 2);
   }

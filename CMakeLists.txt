@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.0)
 project(ChimeraTK-ControlSystemAdapter)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
-set(${PROJECT_NAME}_MINOR_VERSION 00)
+set(${PROJECT_NAME}_MINOR_VERSION 02)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 set(${PROJECT_NAME}_VERSION
   ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
@@ -41,9 +41,9 @@ ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
 FIND_PACKAGE(mtca4u-deviceaccess 00.17 REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
-include_directories(${mtca4u-deviceaccess_INCLUDE_DIRS})
+include_directories(SYSTEM ${mtca4u-deviceaccess_INCLUDE_DIRS})
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 #Create the executables for automated unit testing.
@@ -57,7 +57,8 @@ if(TESTING_IS_ENABLED)
     #NAME_WE means the base name without path and (longest) extension
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
-    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter)
+    target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
     #no target library yet
     # Linking the boost libraries and using their included counterparts at the
     # same time causes problems.

@@ -17,6 +17,7 @@
 
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
+#include "TimeStampSource.h"
 
 namespace ChimeraTK {
 
@@ -217,20 +218,24 @@ namespace ChimeraTK {
     // -----------------------------------------------
     // Implementations of the derrived functions. They are documented in ProcessVariable
 
-    bool isReceiver() const {
+    virtual bool isReadable() const {
       return _instanceType == RECEIVER;
     }
 
-    bool isSender() const {
+    virtual bool isWriteable() const {
       return _instanceType == SENDER;
     }
 
+    virtual bool isReadOnly() const {
+      return !isWriteable();
+    }
+    
     // deprecated
     TimeStamp getTimeStamp() const {
       return _timeStamp;
     }
 
-    bool receive() {
+    virtual bool readNonBlocking() {
       if (_instanceType != RECEIVER) {
         throw std::logic_error(
             "Receive operation is only allowed for a receiver process variable.");
@@ -245,7 +250,12 @@ namespace ChimeraTK {
       }
     }
 
-    bool send() {
+    virtual void read(){
+      throw std::logic_error("Blocking read is not supported by process scalar.");
+
+    }
+    
+    virtual void write() {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -258,24 +268,32 @@ namespace ChimeraTK {
       Buffer nextBuffer;
       nextBuffer.timeStamp = _timeStamp;
       nextBuffer.value = _value;
-      bool foundEmptyBuffer;
-      if (_bufferQueue->bounded_push(nextBuffer)) {
-        foundEmptyBuffer = true;
-      } else {
-        // We are not interested in the old value, but we have to provided
+      if (!_bufferQueue->bounded_push(nextBuffer)) {
+	// sending failed because the queue is full. We have to pop a buffer to make space.
+	
+        // We are not interested in the old value, but we have to provide
         // a reference.
         Buffer oldBuffer;
-        // If we remove an element, pop returns true, otherwise the receiving
-        // thread just took the last element and we can continue without
-        // losing data.
-        foundEmptyBuffer = !_bufferQueue->pop(oldBuffer);
+        _bufferQueue->pop(oldBuffer);
         // Now we can be sure that the push is successful.
         _bufferQueue->bounded_push(nextBuffer);
       }
       if (_sendNotificationListener) {
         _sendNotificationListener->notify(_receiver);
       }
-      return foundEmptyBuffer;
+    }
+
+    virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const{
+      // only true if the very instance of the transfer element is the same
+      return e.get() == this;
+    }
+
+    virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements(){
+      return { boost::enable_shared_from_this<TransferElement>::shared_from_this() };
+    }
+    
+    virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
+      // You can't replace anything here. Just do nothing.
     }
 
   private:

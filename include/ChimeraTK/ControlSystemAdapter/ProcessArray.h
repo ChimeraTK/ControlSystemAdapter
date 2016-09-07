@@ -347,16 +347,24 @@ namespace ChimeraTK {
       return *(((*_buffers)[_lastSentIndex]).value);
     }
 
-    bool isReceiver() const {
+    virtual bool isReadable() const {
       return _instanceType == RECEIVER;
     }
 
-    bool isSender() const {
+    virtual bool isWriteable() const {
       return _instanceType == SENDER;
     }
 
+    virtual bool isReadOnly() const {
+      return !isWriteable();
+    }
+  
     TimeStamp getTimeStamp() const {
       return ((*_buffers)[_currentIndex]).timeStamp;
+    }
+
+    virtual void read(){
+      throw std::logic_error("Blocking read is not supported by process array.");
     }
 
     /**
@@ -377,7 +385,7 @@ namespace ChimeraTK {
       }
     }
 
-    bool receive() {
+    bool readNonBlocking() {
       if (_instanceType != RECEIVER) {
         throw std::logic_error(
             "Receive operation is only allowed for a receiver process variable.");
@@ -399,7 +407,7 @@ namespace ChimeraTK {
       }
     }
 
-    bool send() {
+    void write() {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -418,14 +426,11 @@ namespace ChimeraTK {
               _timeStampSource->getCurrentTimeStamp() :
               TimeStamp::currentTime();
       std::size_t nextIndex;
-      bool foundEmptyBuffer;
       if (_emptyBufferQueue->pop(nextIndex)) {
-        foundEmptyBuffer = true;
         _fullBufferQueue->push(_currentIndex);
       } else {
         // We can still send, but we will lose older data.
         if (_fullBufferQueue->pop(nextIndex)) {
-          foundEmptyBuffer = false;
           _fullBufferQueue->push(_currentIndex);
         } else {
           // It is possible, that we did not find an empty buffer but before
@@ -438,7 +443,6 @@ namespace ChimeraTK {
             throw std::runtime_error(
                 "Assertion that empty-buffer queue has at least one element failed.");
           }
-          foundEmptyBuffer = true;
           _fullBufferQueue->push(_currentIndex);
         }
       }
@@ -447,7 +451,6 @@ namespace ChimeraTK {
       if (_sendNotificationListener) {
         _sendNotificationListener->notify(_receiver);
       }
-      return foundEmptyBuffer;
     }
     
     const std::type_info& getValueType() const {
@@ -458,6 +461,18 @@ namespace ChimeraTK {
 	return true;
     }
    
+    virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const{
+      // only true if the very instance of the transfer element is the same
+      return e.get() == this;
+    }
+
+    virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements(){
+      return { boost::enable_shared_from_this<TransferElement>::shared_from_this() };
+    }
+    
+    virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
+      // You can't replace anything here. Just do nothing.
+    }
 
   private:
 

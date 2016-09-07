@@ -36,16 +36,16 @@ namespace ChimeraTK {
      * Returns <code>true</code> if this object represents the receiver in a
      * sender / receiver pair, <code>false</code> otherwise.
      */
-    virtual bool isReceiver() const{
-      return _impl->isReceiver();
+    virtual bool isReadable() const{
+      return _impl->isReadable();
     }
 
     /**
      * Returns <code>true</code> if this object represents the sender in a
      * sender / receiver pair, <code>false</code> otherwise.
      */
-    bool isSender() const{
-      return _impl->isSender();
+    bool isWriteable() const{
+      return _impl->isWriteable();
     }
 
     /**
@@ -63,8 +63,8 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a receiver.
      */
-    bool receive(){
-      return _impl->receive();
+    bool readNonBlocking(){
+      return _impl->readNonBlocking();
     }
 
     /**
@@ -75,8 +75,8 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a sender.
      */
-    bool send(){
-      return _impl->send();
+    void write(){
+      _impl->write();
     }
 
     /**

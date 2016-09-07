@@ -3,10 +3,10 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
+#include "ProcessArray.h"
 
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingTimeStampSource.h>
+#include "Testing/CountingProcessVariableListener.h"
+#include "Testing/CountingTimeStampSource.h"
 
 using namespace boost::unit_test_framework;
 
@@ -77,8 +77,8 @@ namespace ChimeraTK {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     BOOST_CHECK(simpleArray->get().size() == N_ELEMENTS);
-    BOOST_CHECK(!simpleArray->isReceiver());
-    BOOST_CHECK(!simpleArray->isSender());
+    BOOST_CHECK(!simpleArray->isReadable());
+    BOOST_CHECK(!simpleArray->isWriteable());
     // Now we test the constructor that takes a whole reference vector.
     std::vector<T> referenceVector;
     referenceVector.push_back(0);
@@ -91,8 +91,8 @@ namespace ChimeraTK {
     BOOST_CHECK(
         std::equal(simpleArray->get().begin(), simpleArray->get().end(),
             referenceVector.begin()));
-    BOOST_CHECK(!simpleArray->isReceiver());
-    BOOST_CHECK(!simpleArray->isSender());
+    BOOST_CHECK(!simpleArray->isReadable());
+    BOOST_CHECK(!simpleArray->isWriteable());
 
     // Now we repeat the tests but for a sender / receiver pair. We do not test
     // the notification listener and time-stamp source because there is no
@@ -114,10 +114,10 @@ namespace ChimeraTK {
       BOOST_CHECK(*i == 0);
     }
     BOOST_CHECK(receiver->get().size() == N_ELEMENTS);
-    BOOST_CHECK(!sender->isReceiver());
-    BOOST_CHECK(sender->isSender());
-    BOOST_CHECK(receiver->isReceiver());
-    BOOST_CHECK(!receiver->isSender());
+    BOOST_CHECK(!sender->isReadable());
+    BOOST_CHECK(sender->isWriteable());
+    BOOST_CHECK(receiver->isReadable());
+    BOOST_CHECK(!receiver->isWriteable());
     senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test",
         SOME_NUMBER, false, 5);
     sender = senderReceiver.first;
@@ -250,7 +250,7 @@ namespace ChimeraTK {
     BOOST_CHECK_THROW(receiver->getLastSent(), std::logic_error);
     // Now we send and then modify the array. The getLastSent() method should
     // still return the old values, while get() should return the new ones.
-    sender->send();
+    sender->write();
     sender->set(std::vector<T>(N_ELEMENTS, SOME_NUMBER + 1));
     typename std::vector<T> & v2 = sender->get();
     for (typename std::vector<T>::iterator i = v2.begin(); i != v2.end(); ++i) {
@@ -353,10 +353,10 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
-    sender->send();
+    sender->write();
     BOOST_CHECK(sendNotificationListener->count == 1);
     BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-    sender->send();
+    sender->write();
     BOOST_CHECK(sendNotificationListener->count == 2);
     BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
   }
@@ -371,14 +371,14 @@ namespace ChimeraTK {
             timeStampSource);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 0);
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 1);
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 2);
   }
 
@@ -392,41 +392,41 @@ namespace ChimeraTK {
     // If we send two values consecutively, they both should be received because
     // the number of buffers is two.
     sender->get().assign(N_ELEMENTS, SOME_NUMBER);
-    BOOST_CHECK(sender->send());
+    sender->write();
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 1);
-    BOOST_CHECK(sender->send());
-    BOOST_CHECK(receiver->receive());
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
     // We have received all values, so no more values should be available.
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
     // Now we try to send three values consecutively. This should result in the
     // first value being dropped.
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 2);
-    BOOST_CHECK(sender->send());
+    sender->write();
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 3);
-    BOOST_CHECK(sender->send());
+    sender->write();
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 4);
-    BOOST_CHECK(!sender->send());
-    BOOST_CHECK(receiver->receive());
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 3);
     }
-    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 4);
     }
     // We have received all values, so no more values should be available.
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
   }
 
 }  //namespace ChimeraTK

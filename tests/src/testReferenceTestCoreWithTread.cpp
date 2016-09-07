@@ -2,8 +2,8 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
-#include <ChimeraTK/ControlSystemAdapter/Testing/IndependentTestCore.h>
+#include "ControlSystemSynchronizationUtility.h"
+#include "Testing/IndependentTestCore.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

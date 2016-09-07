@@ -9,11 +9,11 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "DeviceSynchronizationUtility.h"
 
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
+#include "Testing/CountingProcessVariableListener.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -67,36 +67,36 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     ProcessVariable::SharedPtr singletonRawArray[1];
     singletonRawArray[0] = devIntOut;
     *csIntOut = 42;
-    csIntOut->send();
+    csIntOut->write();
     syncUtil.receive(singletonRawArray, singletonRawArray + 1);
     BOOST_CHECK(*devIntOut == 42);
     singletonRawArray[0] = devIntIn;
     *devIntIn = 43;
     syncUtil.send(singletonRawArray, singletonRawArray + 1);
-    csIntIn->receive();
+    csIntIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 43);
     std::vector<ProcessVariable::SharedPtr> singletonVector(1);
     singletonVector[0] = devIntOut;
     *csIntOut = 44;
-    csIntOut->send();
+    csIntOut->write();
     syncUtil.receive(singletonVector);
     BOOST_CHECK(*devIntOut == 44);
     singletonVector[0] = devIntIn;
     *devIntIn = 45;
     syncUtil.send(singletonVector);
-    csIntIn->receive();
+    csIntIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 45);
     std::list<ProcessVariable::SharedPtr> singletonList;
     singletonList.push_back(devIntOut);
     *csIntOut = 46;
-    csIntOut->send();
+    csIntOut->write();
     syncUtil.receive(singletonList);
     BOOST_CHECK(*devIntOut == 46);
     singletonList.clear();
     singletonList.push_back(devIntIn);
     *devIntIn = 47;
     syncUtil.send(singletonList);
-    csIntIn->receive();
+    csIntIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 47);
 
     // Finally, we test with two elements.
@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     doubleRawArray[1] = devFloatOut;
     *csIntOut = 48;
     *csFloatOut = 49.0f;
-    csIntOut->send();
-    csFloatOut->send();
+    csIntOut->write();
+    csFloatOut->write();
     syncUtil.receive(doubleRawArray, doubleRawArray + 2);
     BOOST_CHECK(*devIntOut == 48);
     BOOST_CHECK(*devFloatOut == 49.0f);
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     *devIntIn = 49;
     *devFloatIn = 50.0f;
     syncUtil.send(doubleRawArray, doubleRawArray + 2);
-    csIntIn->receive();
-    csFloatIn->receive();
+    csIntIn->readNonBlocking();
+    csFloatIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 49);
     BOOST_CHECK(*csFloatIn == 50.0f);
     std::vector<ProcessVariable::SharedPtr> doubleVector(2);
@@ -124,8 +124,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     doubleVector[1] = devFloatOut;
     *csIntOut = 51;
     *csFloatOut = 52.0f;
-    csIntOut->send();
-    csFloatOut->send();
+    csIntOut->write();
+    csFloatOut->write();
     syncUtil.receive(doubleVector);
     BOOST_CHECK(*devIntOut == 51);
     BOOST_CHECK(*devFloatOut == 52.0f);
@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     *devIntIn = 53;
     *devFloatIn = 54.0f;
     syncUtil.send(doubleVector);
-    csIntIn->receive();
-    csFloatIn->receive();
+    csIntIn->readNonBlocking();
+    csFloatIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 53);
     BOOST_CHECK(*csFloatIn == 54.0f);
     std::list<ProcessVariable::SharedPtr> doubleList;
@@ -143,8 +143,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     doubleList.push_back(devFloatOut);
     *csIntOut = 55;
     *csFloatOut = 56.0f;
-    csIntOut->send();
-    csFloatOut->send();
+    csIntOut->write();
+    csFloatOut->write();
     syncUtil.receive(doubleList);
     BOOST_CHECK(*devIntOut == 55);
     BOOST_CHECK(*devFloatOut == 56.0f);
@@ -154,8 +154,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     *devIntIn = 57;
     *devFloatIn = 58.0f;
     syncUtil.send(doubleList);
-    csIntIn->receive();
-    csFloatIn->receive();
+    csIntIn->readNonBlocking();
+    csFloatIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 57);
     BOOST_CHECK(*csFloatIn == 58.0f);
   }
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     DeviceSynchronizationUtility syncUtil(devManager);
 
     *csIntOut = 5;
-    csIntOut->send();
+    csIntOut->write();
     syncUtil.receiveAll();
     BOOST_CHECK(*devIntOut == 5);
   }
@@ -207,8 +207,8 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     *devIntIn = 15;
     *devFloatIn = 16.0f;
     syncUtil.sendAll();
-    csIntIn->receive();
-    csFloatIn->receive();
+    csIntIn->readNonBlocking();
+    csFloatIn->readNonBlocking();
     BOOST_CHECK(*csIntIn == 15);
     BOOST_CHECK(*csFloatIn == 16.0f);
   }
@@ -237,15 +237,15 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
 
     syncUtil.addReceiveNotificationListener("intOut",
         receiveNotificationListener);
-    csIntOut->send();
-    csFloatOut->send();
+    csIntOut->write();
+    csFloatOut->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 1);
     BOOST_CHECK(
         receiveNotificationListener->lastProcessVariable->getName()
             == "intOut");
 
-    csIntOut->send();
+    csIntOut->write();
     std::vector<ProcessVariable::SharedPtr> pvList(1);
     pvList[0] = devIntOut;
     syncUtil.receive(pvList);
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
             == "intOut");
 
     syncUtil.removeReceiveNotificationListener("intOut");
-    csIntOut->send();
+    csIntOut->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 2);
   }

@@ -2,9 +2,9 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ProcessScalarAccessor.h>
-#include <ChimeraTK/ControlSystemAdapter/ProcessArrayAccessor.h>
-#include <ChimeraTK/ControlSystemAdapter/ManualTimeStampSource.h>
+#include "ProcessScalarAccessor.h"
+#include "ProcessArrayAccessor.h"
+#include "ManualTimeStampSource.h"
 
 using namespace ChimeraTK;
 
@@ -66,17 +66,17 @@ BOOST_AUTO_TEST_CASE( testPVAccessor ){
   BOOST_CHECK( sender.getValueType() == typeid(int) );
   BOOST_CHECK( sender.isArray() == false );
 
-  BOOST_CHECK( sender.isReceiver() == false );
-  BOOST_CHECK( sender.isSender() == true );
-  BOOST_CHECK( receiver.isReceiver() == true );
-  BOOST_CHECK( receiver.isSender() == false );
+  BOOST_CHECK( sender.isReadable() == false );
+  BOOST_CHECK( sender.isWriteable() == true );
+  BOOST_CHECK( receiver.isReadable() == true );
+  BOOST_CHECK( receiver.isWriteable() == false );
 
   BOOST_CHECK( !(sender.getTimeStamp() == testTimeStamp) );
   BOOST_CHECK( scalarReceiver != 2 );
   scalarSender.set(2); 
-  sender.send();
+  sender.write();
   BOOST_CHECK( sender.getTimeStamp() == testTimeStamp );
-  receiver.receive();
+  receiver.readNonBlocking();
   BOOST_CHECK( receiver.getTimeStamp() == testTimeStamp );
   BOOST_CHECK( scalarReceiver == 2 );
 

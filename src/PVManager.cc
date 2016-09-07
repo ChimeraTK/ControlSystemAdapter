@@ -1,8 +1,8 @@
 #include <list>
 
-#include <ChimeraTK/ControlSystemAdapter/PVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
+#include "PVManager.h"
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
 
 namespace ChimeraTK {
 

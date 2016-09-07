@@ -8,9 +8,9 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "SynchronizationDirection.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -31,7 +31,7 @@ static void receiveAll(
       processVariables.begin(); i != processVariables.end(); ++i) {
     // Receive all pending values so that we can be sure that we have the most
     // up-to-date value.
-    while ((*i)->receive()) {
+    while ((*i)->readNonBlocking()) {
       continue;
     }
   }
@@ -43,7 +43,7 @@ static void receiveAll(
 static void sendAll(list<ProcessVariable::SharedPtr> const & processVariables) {
   for (list<ProcessVariable::SharedPtr>::const_iterator i =
       processVariables.begin(); i != processVariables.end(); ++i) {
-    (*i)->send();
+    (*i)->write();
   }
 }
 
@@ -291,12 +291,12 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       while (stopDeviceThread->get() == 0) {
         *int32In = *int32Out;
         *floatArrayIn = *floatArrayOut;
-        int32In->send();
-        floatArrayIn->send();
+        int32In->write();
+        floatArrayIn->write();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
-        int32Out->receive();
-        floatArrayOut->receive();
+        stopDeviceThread->readNonBlocking();
+        int32Out->readNonBlocking();
+        floatArrayOut->readNonBlocking();
       }
     }
   };
@@ -382,7 +382,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     BOOST_CHECK(floatArrayIn->get().at(9) == 120.0f);
 
     *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->write();
   }
 
   struct TestDeviceCallable2 {
@@ -406,19 +406,19 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
           while (i < 50000) {
             int32In->set(i);
             ++i;
-            int32In->send();
+            int32In->write();
           }
           doubleIn->set(2.0);
-          doubleIn->send();
+          doubleIn->write();
         } else {
           // After the flood test, we send notifications in regular intervals
           // to ensure that the reset mechanism works (multiple notifications
           // can be sent if they are collected).
           int32In->set(55);
-          int32In->send();
+          int32In->write();
         }
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
+        stopDeviceThread->readNonBlocking();
       }
     }
   };
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     BOOST_CHECK(doubleNotificationCount >= 1);
 
     *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->write();
   }
 
   struct TestDeviceCallable3 {
@@ -518,7 +518,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       BOOST_CHECK(doubleNotificationCount >= 1);
 
       *stopControlSystemThread = 1;
-      stopControlSystemThread->send();
+      stopControlSystemThread->write();
     }
   };
 
@@ -563,19 +563,19 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         while (i < 50000) {
           int32Out->set(i);
           ++i;
-          int32Out->send();
+          int32Out->write();
         }
         doubleOut->set(2.0);
-        doubleOut->send();
+        doubleOut->write();
       } else {
         // After the flood test, we send notifications in regular intervals
         // to ensure that the reset mechanism works (multiple notifications
         // can be sent if they are collected).
         int32Out->set(55);
-        int32Out->send();
+        int32Out->write();
       }
       boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-      stopControlSystemThread->receive();
+      stopControlSystemThread->readNonBlocking();
     }
   }
 
@@ -619,11 +619,11 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         intA->set(intA->get() + 2);
         intB->set(intB->get() + 2);
 
-        index0->send();
-        intA->send();
-        intB->send();
+        index0->write();
+        intA->write();
+        intB->write();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
+        stopDeviceThread->readNonBlocking();
       }
     }
   };
@@ -697,7 +697,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     }
 
     *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->write();
   }
 
   BOOST_AUTO_TEST_CASE( automaticTimeStampMode ) {
@@ -719,18 +719,18 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     // By default, the PV manager should be in automatic time-stamp mode.
     BOOST_CHECK(devManager->isAutomaticReferenceTimeStampMode());
 
-    intAdev->send();
+    intAdev->write();
 
     // We sleep slightly more than a second, this should ensure that the time
     // changes even on systems that do not have a high precision timer.
     boost::this_thread::sleep_for(boost::chrono::milliseconds(1100));
 
-    intBdev->send();
+    intBdev->write();
 
     // intB should have a time stamp that is greater than the time stamp of
     // intA.
-    intAcs->receive();
-    intBcs->receive();
+    intAcs->readNonBlocking();
+    intBcs->readNonBlocking();
     BOOST_CHECK(
         intAcs->getTimeStamp().seconds < intBcs->getTimeStamp().seconds);
   }

@@ -142,18 +142,18 @@ namespace ChimeraTK {
   void ControlSystemSynchronizationUtility::receive(T processVariablesBegin,
       T processVariablesEnd) {
     for (T i = processVariablesBegin; i != processVariablesEnd; ++i) {
-      if ((*i)->receive()) {
+      if ((*i)->readNonBlocking()) {
         boost::unordered_map<std::string, ProcessVariableListener::SharedPtr>::iterator listenerIterator =
             _receiveNotificationListeners.find((*i)->getName());
         if (listenerIterator != _receiveNotificationListeners.end()) {
           ProcessVariableListener::SharedPtr receiveListener(
               listenerIterator->second);
           receiveListener->notify((*i));
-          while ((*i)->receive()) {
+          while ((*i)->readNonBlocking()) {
             receiveListener->notify((*i));
           }
         } else {
-          while ((*i)->receive()) {
+          while ((*i)->readNonBlocking()) {
             continue;
           }
         }
@@ -170,7 +170,7 @@ namespace ChimeraTK {
   void ControlSystemSynchronizationUtility::send(T processVariablesBegin,
       T processVariablesEnd) {
     for (T i = processVariablesBegin; i != processVariablesEnd; ++i) {
-      (*i)->send();
+      (*i)->write();
     }
   }
 

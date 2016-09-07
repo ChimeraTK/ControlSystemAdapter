@@ -59,11 +59,11 @@ struct TypedPVHolder{
 
   void inputToOutput(){
     fromDeviceScalar->set(*toDeviceScalar);
-    fromDeviceScalar->send();
+    fromDeviceScalar->write();
     for (size_t i = 0; i < fromDeviceArray->get().size() &&  i < toDeviceArray->get().size() ; ++i){
       fromDeviceArray->get()[i] = toDeviceArray->get()[i];
     }
-    fromDeviceArray->send();
+    fromDeviceArray->write();
   }
 };
 

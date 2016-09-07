@@ -3,10 +3,10 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
+#include "ProcessScalar.h"
 
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingTimeStampSource.h>
+#include "Testing/CountingProcessVariableListener.h"
+#include "Testing/CountingTimeStampSource.h"
 
 namespace ChimeraTK {
   /**
@@ -51,8 +51,8 @@ namespace ChimeraTK {
     // zero.
     BOOST_CHECK(simpleScalar->getName() == "");
     BOOST_CHECK(simpleScalar->get() == 0);
-    BOOST_CHECK(!simpleScalar->isReceiver());
-    BOOST_CHECK(!simpleScalar->isSender());
+    BOOST_CHECK(!simpleScalar->isReadable());
+    BOOST_CHECK(!simpleScalar->isWriteable());
     // Now we test the constructor with non-default parameters.
     simpleScalar = createSimpleProcessScalar<T>("test", 42);
     BOOST_CHECK(simpleScalar->getName() == "test");
@@ -70,10 +70,10 @@ namespace ChimeraTK {
     BOOST_CHECK(sender->get() == 0);
     BOOST_CHECK(receiver->getName() == "");
     BOOST_CHECK(receiver->get() == 0);
-    BOOST_CHECK(!sender->isReceiver());
-    BOOST_CHECK(sender->isSender());
-    BOOST_CHECK(receiver->isReceiver());
-    BOOST_CHECK(!receiver->isSender());
+    BOOST_CHECK(!sender->isReadable());
+    BOOST_CHECK(sender->isWriteable());
+    BOOST_CHECK(receiver->isReadable());
+    BOOST_CHECK(!receiver->isWriteable());
     senderReceiver = createSynchronizedProcessScalar<T>("test", 42);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
@@ -139,10 +139,10 @@ namespace ChimeraTK {
     typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
-    sender->send();
+    sender->write();
     BOOST_CHECK(sendNotificationListener->count == 1);
     BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-    sender->send();
+    sender->write();
     BOOST_CHECK(sendNotificationListener->count == 2);
     BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
   }
@@ -156,14 +156,14 @@ namespace ChimeraTK {
         createSynchronizedProcessScalar<T>("", 0, 1, timeStampSource);
     typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 0);
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 1);
-    sender->send();
-    receiver->receive();
+    sender->write();
+    receiver->readNonBlocking();
     BOOST_CHECK(receiver->getTimeStamp().index0 == 2);
   }
 
@@ -175,19 +175,19 @@ namespace ChimeraTK {
     typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
     *sender = 42;
-    BOOST_CHECK(sender->send());
-    BOOST_CHECK(receiver->receive());
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 42);
     // No more values should be available.
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
     *sender = 43;
-    BOOST_CHECK(sender->send());
+    sender->write();
     *sender = 44;
-    // When sending this value, we should lose the previous value.
-    BOOST_CHECK(!sender->send());
-    BOOST_CHECK(receiver->receive());
+    // We send again, and the queue will overflow, so when reading we will lose the 43 and just see 44
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 44);
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
     // Now we create a sender/receiver pair with a slight larger queue and run
     // the test again to check that we can transfer more data without losing
     // values.
@@ -195,29 +195,29 @@ namespace ChimeraTK {
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     *sender = 42;
-    BOOST_CHECK(sender->send());
+    sender->write();
     *sender = 43;
-    BOOST_CHECK(sender->send());
-    BOOST_CHECK(receiver->receive());
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 42);
-    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 43);
     // No more values should be available.
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 43);
     *sender = 44;
-    BOOST_CHECK(sender->send());
+    sender->write();
     *sender = 45;
-    BOOST_CHECK(sender->send());
+    sender->write();
     *sender = 46;
-    // When sending this value, we should lose the value we sent first.
-    BOOST_CHECK(!sender->send());
-    BOOST_CHECK(receiver->receive());
+    // When sending this value, we should lose the value we sent first (44).
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 45);
-    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 46);
     // No more values should be available.
-    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(!receiver->readNonBlocking());
     BOOST_CHECK(*receiver == 46);
   }
 
