@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.0)
 project(ChimeraTK-ControlSystemAdapter)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
-set(${PROJECT_NAME}_MINOR_VERSION 00)
+set(${PROJECT_NAME}_MINOR_VERSION 02)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 set(${PROJECT_NAME}_VERSION
   ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
@@ -39,7 +39,8 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
   message("Boost unit_test_framework not found, disabling testing")
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+#Includes inside the library are local includes, so we give the full path to the include directory
+include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 #Create the executables for automated unit testing.
@@ -53,7 +54,10 @@ if(TESTING_IS_ENABLED)
     #NAME_WE means the base name without path and (longest) extension
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
-    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
+    #The IndependentTestCore is written to work with the control system adapter as installed, so 
+    #we add that path as system just for the tests.
+    target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
     #no target library yet
     # Linking the boost libraries and using their included counterparts at the
     # same time causes problems.

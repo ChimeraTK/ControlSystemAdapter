@@ -1,4 +1,4 @@
-#include <ChimeraTK/ControlSystemAdapter/ProcessVariable.h>
+#include "ProcessVariable.h"
 
 namespace ChimeraTK {
 

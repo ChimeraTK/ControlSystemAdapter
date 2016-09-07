@@ -5,8 +5,8 @@
 
 #include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
 
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingProcessVariableListener.h>
-#include <ChimeraTK/ControlSystemAdapter/Testing/CountingTimeStampSource.h>
+#include "CountingProcessVariableListener.h"
+#include "CountingTimeStampSource.h"
 
 using namespace boost::unit_test_framework;
 

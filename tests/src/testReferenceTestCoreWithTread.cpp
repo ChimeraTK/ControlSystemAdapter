@@ -3,7 +3,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
-#include <ChimeraTK/ControlSystemAdapter/Testing/IndependentTestCore.h>
+#include "IndependentTestCore.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
