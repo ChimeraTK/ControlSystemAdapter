@@ -10,6 +10,8 @@ namespace ChimeraTK {
   using boost::shared_ptr;
   using std::list;
 
+  VersionNumberSource::SharedPtr PVManager::_versionNumberSource = boost::make_shared<VersionNumberSource>();
+
   PVManager::PVManager() :
       _controlSystemNotificationQueue(0), _deviceNotificationQueue(0), _automaticReferenceTimeStampMode(
           true), _referenceTimeStamp(0) {

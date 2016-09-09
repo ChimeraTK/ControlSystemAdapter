@@ -135,7 +135,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessScalar<T>("", 0, 1,
-            TimeStampSource::SharedPtr(), sendNotificationListener);
+            TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
+            sendNotificationListener);
     typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
@@ -241,7 +242,8 @@ init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
       new ChimeraTK::ProcessScalarTestSuite<uint8_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessScalarTestSuite<double>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessScalarTestSuite<float>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessScalarTestSuite<float>);
 
   return NULL;
 }

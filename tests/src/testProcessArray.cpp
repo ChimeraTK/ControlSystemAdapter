@@ -349,7 +349,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
-            TimeStampSource::SharedPtr(), sendNotificationListener);
+            TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
+            sendNotificationListener);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
@@ -443,11 +444,14 @@ init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
       new ChimeraTK::ProcessArrayTestSuite<int16_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessArrayTestSuite<uint16_t>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<int8_t>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<int8_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessArrayTestSuite<uint8_t>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<double>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<float>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<double>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<float>);
 
   return NULL;
 }

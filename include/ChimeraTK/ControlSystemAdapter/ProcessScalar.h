@@ -17,6 +17,8 @@
 
 #include "ProcessVariable.h"
 #include "ProcessVariableListener.h"
+#include "TimeStampSource.h"
+#include "VersionNumberSource.h"
 
 namespace ChimeraTK {
 
@@ -68,7 +70,7 @@ namespace ChimeraTK {
     ProcessScalar(InstanceType instanceType, const std::string& name,
         T initialValue) :
         ProcessVariable(name), _instanceType(instanceType), _value(
-            initialValue) {
+            initialValue), _versionNumber(0) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != STAND_ALONE) {
@@ -86,11 +88,12 @@ namespace ChimeraTK {
      * send/receive process and are shared with the sender.
      */
     ProcessScalar(InstanceType instanceType, const std::string& name,
-        T initialValue, std::size_t numberOfBuffers) :
+        T initialValue, std::size_t numberOfBuffers,
+        VersionNumberSource::SharedPtr versionNumberSource) :
         ProcessVariable(name), _instanceType(instanceType), _value(
-            initialValue), _bufferQueue(
+            initialValue), _versionNumber(0), _bufferQueue(
             boost::make_shared<boost::lockfree::queue<Buffer> >(
-                numberOfBuffers)) {
+                numberOfBuffers)), _versionNumberSource(versionNumberSource) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != RECEIVER) {
@@ -121,13 +124,14 @@ namespace ChimeraTK {
      * variable passed to the listener is the receiver and not the sender.
      */
     ProcessScalar(InstanceType instanceType,
-        boost::shared_ptr<TimeStampSource> timeStampSource,
-        boost::shared_ptr<ProcessVariableListener> sendNotificationListener,
-        boost::shared_ptr<ProcessScalar> receiver) :
+        TimeStampSource::SharedPtr timeStampSource,
+        VersionNumberSource::SharedPtr versionNumberSource,
+        ProcessVariableListener::SharedPtr sendNotificationListener,
+        ProcessScalar::SharedPtr receiver) :
         ProcessVariable(receiver->getName()), _instanceType(instanceType), _timeStamp(
-            receiver->_timeStamp), _value(receiver->_value), _bufferQueue(
+            receiver->_timeStamp), _value(receiver->_value), _versionNumber(0), _bufferQueue(
             receiver->_bufferQueue), _receiver(receiver), _timeStampSource(
-            timeStampSource), _sendNotificationListener(
+            timeStampSource), _versionNumberSource(versionNumberSource), _sendNotificationListener(
             sendNotificationListener) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
@@ -154,7 +158,7 @@ namespace ChimeraTK {
      * expected, and the base class is intentionally non-copyable.
      */
     ProcessScalar<T> & operator=(ProcessScalar<T> const & other) {
-      set(other.get());
+      set(other);
       return (*this);
     }
 
@@ -167,13 +171,12 @@ namespace ChimeraTK {
       return *this;
     }
 
-
     /**
      * Automatic conversion operator which returns a \b copy of this process
      * variable's value. As no reference is returned, this cannot be used for
      * assignment.
      */
-     operator T() const {
+    operator T() const {
       return get();
     }
 
@@ -185,15 +188,43 @@ namespace ChimeraTK {
     void set(T const & t) {
       _value = t;
     }
-    
+
+    /**
+     * Sets and sends the value of this process variable only if the version
+     * number of the new value is greater than the version number of the current
+     * value.
+     *
+     * This is a convenience method that is provided for when the value of a
+     * process variable is updated with a value calculated from the value of a
+     * different process variable. Calling this method is equivalent to the
+     * following code:
+     *
+     * <pre>
+     * if (newVersionNumber > getVersionNumber()) {
+     *   set(t);
+     *   send(newVersionNumber);
+     * }
+     * </pre>
+     *
+     * By using this method, one can easily avoid overwriting a more recent
+     * value with an older value, which could otherwise happen due to updates
+     * being handled asynchronously.
+     */
+    void setAndSendIfNewVersionGreater(T const & t, VersionNumber newVersionNumber) {
+      if (newVersionNumber > getVersionNumber()) {
+        set(t);
+        send(newVersionNumber);
+      }
+    }
+
     // FIXME: this belongs to ProcessScalar, not the Impl. Moved here to remove the impl
     // inheritence for creating the pimpl pattern, where impl and not are typedefed.
     const std::type_info& getValueType() const {
-	return typeid(T);
+      return typeid(T);
     }
 
     bool isArray() const {
-	return false;
+      return false;
     }
 
     /**
@@ -230,6 +261,26 @@ namespace ChimeraTK {
       return _timeStamp;
     }
 
+    /**
+     * Returns the version number that is associated with the current value.
+     * This is the version number that was received with the last
+     * {@link receive()} operation or sent with the last {@link send()}
+     * operation (whichever happened later).
+     *
+     * The version number is used to resolve conflicting updates. When an update
+     * is received using the {@link receive()} method, it is only used if its
+     * value has a version number that is greater than the version number of the
+     * current value. Initially, each process variable has a version number of
+     * zero.
+     *
+     * When this process variable has not been initialized with a version number
+     * source, its version number always stays at zero and the version-number
+     * logic is disabled.
+     */
+    VersionNumber getVersionNumber() const {
+      return _versionNumber;
+    }
+
     bool receive() {
       if (_instanceType != RECEIVER) {
         throw std::logic_error(
@@ -237,15 +288,55 @@ namespace ChimeraTK {
       }
       Buffer nextBuffer;
       if (_bufferQueue->pop(nextBuffer)) {
-        _timeStamp = nextBuffer.timeStamp;
-        _value = nextBuffer.value;
-        return true;
+        if (!_versionNumberSource
+            || nextBuffer.versionNumber > getVersionNumber()) {
+          _timeStamp = nextBuffer.timeStamp;
+          _value = nextBuffer.value;
+          _versionNumber = nextBuffer.versionNumber;
+          return true;
+        } else {
+          return false;
+        }
       } else {
         return false;
       }
     }
 
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * If this process variable has a version-number source, a new version
+     * number is retrieved from this source and used for the value being sent to
+     * the receiver. Otherwise, a version number of zero is used.
+     *
+     * Throws an exception if this process variable is not a sender.
+     */
     bool send() {
+      VersionNumber newVersionNumber;
+      if (_versionNumberSource) {
+        newVersionNumber = _versionNumberSource->nextVersionNumber();
+      } else {
+        newVersionNumber = 0;
+      }
+      return send(newVersionNumber);
+    }
+
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * The specified version number is passed to the receiver. If the receiver
+     * has a value with a version number greater than or equal to the specified
+     * version number, it silently discards this update.
+     *
+     * Throws an exception if this process variable is not a sender.
+     */
+    bool send(VersionNumber newVersionNumber) {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -258,6 +349,8 @@ namespace ChimeraTK {
       Buffer nextBuffer;
       nextBuffer.timeStamp = _timeStamp;
       nextBuffer.value = _value;
+      nextBuffer.versionNumber = newVersionNumber;
+      _versionNumber = newVersionNumber;
       bool foundEmptyBuffer;
       if (_bufferQueue->bounded_push(nextBuffer)) {
         foundEmptyBuffer = true;
@@ -286,6 +379,7 @@ namespace ChimeraTK {
     struct Buffer {
       TimeStamp timeStamp;
       T value;
+      VersionNumber versionNumber;
     };
 
     /**
@@ -302,6 +396,11 @@ namespace ChimeraTK {
      * Current value.
      */
     T _value;
+
+    /**
+     * Version number associated with the value.
+     */
+    VersionNumber _versionNumber;
 
     /**
      * Queue holding the values that have been sent but not received yet.
@@ -323,12 +422,17 @@ namespace ChimeraTK {
     boost::shared_ptr<TimeStampSource> _timeStampSource;
 
     /**
+     * Version number source used to update the version number when setting a
+     * new value.
+     */
+    boost::shared_ptr<VersionNumberSource> _versionNumberSource;
+
+    /**
      * Listener that is notified when the process variable is sent.
      */
     boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
 
   };
-
 
   /**
    * Creates a simple process scalar. A simple process scalar just works on its
@@ -377,10 +481,11 @@ namespace ChimeraTK {
       typename ProcessScalar<T>::SharedPtr> createSynchronizedProcessScalar(
       const std::string & name = "", T initialValue = 0,
       std::size_t numberOfBuffers = 1,
-      boost::shared_ptr<TimeStampSource> timeStampSource = boost::shared_ptr<
-          TimeStampSource>(),
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-          boost::shared_ptr<ProcessVariableListener>());
+      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
+      VersionNumberSource::SharedPtr versionNumberSource =
+          VersionNumberSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener =
+          ProcessVariableListener::SharedPtr());
 
   /**
    * A process variable which is not a sender/receiver pair but a single instance.
@@ -390,24 +495,23 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessScalar<T>::SharedPtr createSimpleProcessScalar(
       const std::string & name, T initialValue) {
-    return boost::make_shared<ProcessScalar<T> >(
-        ProcessScalar<T>::STAND_ALONE, name, initialValue);
+    return boost::make_shared<ProcessScalar<T> >(ProcessScalar<T>::STAND_ALONE,
+        name, initialValue);
   }
 
   template<class T>
   typename std::pair<typename ProcessScalar<T>::SharedPtr,
       typename ProcessScalar<T>::SharedPtr> createSynchronizedProcessScalar(
       const std::string & name, T initialValue, std::size_t numberOfBuffers,
-      boost::shared_ptr<TimeStampSource> timeStampSource,
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener) {
-    boost::shared_ptr<ProcessScalar<T> > receiver =
-        boost::make_shared<ProcessScalar<T> >(
-            ProcessScalar<T>::RECEIVER, name, initialValue,
-            numberOfBuffers);
+      TimeStampSource::SharedPtr timeStampSource,
+      VersionNumberSource::SharedPtr versionNumberSource,
+      ProcessVariableListener::SharedPtr sendNotificationListener) {
+    boost::shared_ptr<ProcessScalar<T> > receiver = boost::make_shared<
+        ProcessScalar<T> >(ProcessScalar<T>::RECEIVER, name, initialValue,
+        numberOfBuffers, versionNumberSource);
     typename ProcessScalar<T>::SharedPtr sender = boost::make_shared<
-        ProcessScalar<T> >(
-        ProcessScalar<T>::SENDER, timeStampSource,
-        sendNotificationListener, receiver);
+        ProcessScalar<T> >(ProcessScalar<T>::SENDER, timeStampSource,
+        versionNumberSource, sendNotificationListener, receiver);
     return std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr>(sender, receiver);
   }
