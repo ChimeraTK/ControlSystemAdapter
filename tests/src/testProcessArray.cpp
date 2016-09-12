@@ -27,6 +27,7 @@ namespace ChimeraTK {
     static void testSendNotification();
     static void testTimeStampSource();
     static void testSynchronization();
+    static void testVersionNumbers();
 
   private:
     static size_t const N_ELEMENTS = 12;
@@ -54,6 +55,7 @@ namespace ChimeraTK {
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSendNotification));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testTimeStampSource));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSynchronization));
+      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testVersionNumbers));
     }
   };
 
@@ -428,6 +430,44 @@ namespace ChimeraTK {
     }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->receive());
+  }
+
+  template<class T>
+  void ProcessArrayTest<T>::testVersionNumbers() {
+    VersionNumberSource::SharedPtr versionNumberSource = boost::make_shared<
+        VersionNumberSource>();
+    typename std::pair<typename ProcessArray<T>::SharedPtr,
+        typename ProcessArray<T>::SharedPtr> senderReceiver =
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
+            TimeStampSource::SharedPtr(), versionNumberSource);
+    typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
+    typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
+    // Initially, the version number should be zero.
+    BOOST_CHECK(sender->getVersionNumber() == 0);
+    BOOST_CHECK(receiver->getVersionNumber() == 0);
+    // After sending and receiving a value, the version number on the receiver
+    // should be greater.
+    VersionNumber initialVersionNumber = receiver->getVersionNumber();
+    sender->get()[0] = 1;
+    BOOST_CHECK(sender->send());
+    BOOST_CHECK(receiver->receive());
+    VersionNumber versionNumber = receiver->getVersionNumber();
+    BOOST_CHECK(versionNumber > initialVersionNumber);
+    BOOST_CHECK(receiver->get()[0] == 1);
+    // When we send again specifying the same version number, there should be no
+    // update of the receiver.
+    sender->get()[0] = 2;
+    BOOST_CHECK(sender->send(versionNumber));
+    BOOST_CHECK(!receiver->receive());
+    BOOST_CHECK(versionNumber == receiver->getVersionNumber());
+    BOOST_CHECK(receiver->get()[0] == 1);
+    // When we explicitly use a greater version number, the receiver should be
+    // updated again.
+    sender->get()[0] = 3;
+    BOOST_CHECK(sender->send(versionNumberSource->nextVersionNumber()));
+    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
+    BOOST_CHECK(receiver->get()[0] == 3);
   }
 
 }  //namespace ChimeraTK
