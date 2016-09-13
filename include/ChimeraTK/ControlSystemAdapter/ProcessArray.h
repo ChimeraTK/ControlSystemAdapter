@@ -651,18 +651,6 @@ namespace ChimeraTK {
     std::size_t _lastSentIndex;
 
     /**
-     * Flag indicating whether the {@link originalVersionNumber} field stores
-     * a version number that should be used for the next send operation.
-     */
-    bool _haveOriginalVersionNumber;
-
-    /**
-     * Version number that shall be used for the next send operation if
-     * {@link haveOriginalVersionNumber} is set.
-     */
-    VersionNumber _originalVersionNumber;
-
-    /**
      * Pointer to the receiver associated with this sender. This field is only
      * used if this process variable represents a sender.
      */
