@@ -121,7 +121,7 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->isReceiver());
     BOOST_CHECK(!receiver->isSender());
     senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test",
-        SOME_NUMBER, false, 5);
+        SOME_NUMBER, 5);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     BOOST_CHECK(sender->getName() == "test");
@@ -131,13 +131,13 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(sender->get().size() == N_ELEMENTS);
     BOOST_CHECK(receiver->getName() == "test");
-    for (typename std::vector<T>::const_iterator i =
-        receiver->getConst().begin(); i != receiver->getConst().end(); ++i) {
+    for (typename std::vector<T>::const_iterator i = receiver->get().begin();
+        i != receiver->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    BOOST_CHECK(receiver->getConst().size() == N_ELEMENTS);
+    BOOST_CHECK(receiver->get().size() == N_ELEMENTS);
     senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test",
-        false, 5);
+        5, false);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     BOOST_CHECK(sender->getName() == "test");
@@ -146,9 +146,9 @@ namespace ChimeraTK {
         std::equal(sender->get().begin(), sender->get().end(),
             referenceVector.begin()));
     BOOST_CHECK(receiver->getName() == "test");
-    BOOST_CHECK(receiver->getConst().size() == 4);
+    BOOST_CHECK(receiver->get().size() == 4);
     BOOST_CHECK(
-        std::equal(receiver->getConst().begin(), receiver->getConst().end(),
+        std::equal(receiver->get().begin(), receiver->get().end(),
             referenceVector.begin()));
   }
 
@@ -183,17 +183,6 @@ namespace ChimeraTK {
     (*receiver) = (*array1);
     (*sender) = v;
     (*receiver) = v;
-    // If the synchronized array is configured to not allow swapping on the
-    // receiver, trying to assign a value on the receiver should result in an
-    // exception, but it should still work for the sender.
-    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0,
-        false);
-    sender = senderReceiver.first;
-    receiver = senderReceiver.second;
-    (*sender) = (*array1);
-    BOOST_CHECK_THROW((*receiver) = (*array1), std::logic_error);
-    (*sender) = v;
-    BOOST_CHECK_THROW((*receiver) = v, std::logic_error);
   }
 
   template<class T>
@@ -201,7 +190,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr simpleArray =
         createSimpleProcessArray<T>(N_ELEMENTS, "", SOME_NUMBER);
     typename std::vector<T> & v = simpleArray->get();
-    typename std::vector<T> const & cv = simpleArray->getConst();
+    typename std::vector<T> const & cv = simpleArray->get();
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
@@ -218,9 +207,6 @@ namespace ChimeraTK {
         i != cv2.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    // For a simple array, getLastSent() is not supported, so it should throw
-    // an exception.
-    BOOST_CHECK_THROW(simpleArray->getLastSent(), std::logic_error);
     // Next we run the tests for a synchronized array that supports swapping. We
     // only test that the getter methods do not throw an exception, as we can
     // assume that the returned reference is correct if it was correct for the
@@ -231,38 +217,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     sender->get();
-    sender->getConst();
     receiver->get();
-    receiver->getConst();
-    // If swapping is allowed, getLastSent() should throw an exception for both
-    // the sender and the receiver.
-    BOOST_CHECK_THROW(sender->getLastSent(), std::logic_error);
-    BOOST_CHECK_THROW(receiver->getLastSent(), std::logic_error);
-    // Finally, we run the tests for a synchronized array that does not allow
-    // swapping.
-    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "",
-        SOME_NUMBER, false);
-    sender = senderReceiver.first;
-    receiver = senderReceiver.second;
-    sender->get();
-    sender->getConst();
-    BOOST_CHECK_THROW(receiver->get(), std::logic_error);
-    receiver->getConst();
-    sender->getLastSent();
-    BOOST_CHECK_THROW(receiver->getLastSent(), std::logic_error);
-    // Now we send and then modify the array. The getLastSent() method should
-    // still return the old values, while get() should return the new ones.
-    sender->send();
-    sender->set(std::vector<T>(N_ELEMENTS, SOME_NUMBER + 1));
-    typename std::vector<T> & v2 = sender->get();
-    for (typename std::vector<T>::iterator i = v2.begin(); i != v2.end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER + 1);
-    }
-    typename std::vector<T> const & cv3 = sender->getLastSent();
-    for (typename std::vector<T>::const_iterator i = cv3.begin();
-        i != cv3.end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER);
-    }
   }
 
   template<class T>
@@ -296,17 +251,6 @@ namespace ChimeraTK {
     receiver->set(*array1);
     sender->set(v);
     receiver->set(v);
-    // If the synchronized array is configured to not allow swapping on the
-    // receiver, trying to assign a value on the receiver should result in an
-    // exception, but it should still work for the sender.
-    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0,
-        false);
-    sender = senderReceiver.first;
-    receiver = senderReceiver.second;
-    sender->set(*array1);
-    BOOST_CHECK_THROW(receiver->set(*array1), std::logic_error);
-    sender->set(v);
-    BOOST_CHECK_THROW(receiver->set(v), std::logic_error);
   }
 
   template<class T>
@@ -333,15 +277,6 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     sender->swap(v);
     receiver->swap(v);
-    // If the synchronized array is configured to not allow swapping on the
-    // receiver, trying to swap a value on the receiver should result in an
-    // exception, but it should still work for the sender.
-    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0,
-        false);
-    sender = senderReceiver.first;
-    receiver = senderReceiver.second;
-    sender->swap(v);
-    BOOST_CHECK_THROW(receiver->swap(v), std::logic_error);
   }
 
   template<class T>
@@ -350,7 +285,7 @@ namespace ChimeraTK {
         boost::make_shared<CountingProcessVariableListener>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false,
             TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
             sendNotificationListener);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
@@ -370,7 +305,7 @@ namespace ChimeraTK {
         boost::make_shared<CountingTimeStampSource>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false,
             timeStampSource);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
@@ -389,15 +324,15 @@ namespace ChimeraTK {
   void ProcessArrayTest<T>::testSynchronization() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS);
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, true);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // If we send two values consecutively, they both should be received because
     // the number of buffers is two.
     sender->get().assign(N_ELEMENTS, SOME_NUMBER);
-    BOOST_CHECK(sender->send());
+    BOOST_CHECK(sender->sendDestructively());
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 1);
-    BOOST_CHECK(sender->send());
+    BOOST_CHECK(sender->sendDestructively());
     BOOST_CHECK(receiver->receive());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
@@ -413,11 +348,11 @@ namespace ChimeraTK {
     // Now we try to send three values consecutively. This should result in the
     // first value being dropped.
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 2);
-    BOOST_CHECK(sender->send());
+    BOOST_CHECK(sender->sendDestructively());
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 3);
-    BOOST_CHECK(sender->send());
+    BOOST_CHECK(sender->sendDestructively());
     sender->get().assign(N_ELEMENTS, SOME_NUMBER + 4);
-    BOOST_CHECK(!sender->send());
+    BOOST_CHECK(!sender->sendDestructively());
     BOOST_CHECK(receiver->receive());
     for (typename std::vector<T>::iterator i = receiver->get().begin();
         i != receiver->get().end(); ++i) {
@@ -430,6 +365,26 @@ namespace ChimeraTK {
     }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->receive());
+    // When we send non-destructively, the value should also be preserved on the
+    // sender side.
+    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 5);
+    BOOST_CHECK(sender->send());
+    BOOST_CHECK(receiver->receive());
+    for (typename std::vector<T>::iterator i = receiver->get().begin();
+        i != receiver->get().end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 5);
+    }
+    for (typename std::vector<T>::iterator i = sender->get().begin();
+        i != sender->get().end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 5);
+    }
+    // Calling sendDestructively() on a sender that has not the corresponding
+    // flag set should result in an exception.
+    senderReceiver =
+            createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false);
+    sender = senderReceiver.first;
+    receiver = senderReceiver.second;
+    BOOST_CHECK_THROW(sender->sendDestructively(), std::runtime_error);
   }
 
   template<class T>
@@ -438,18 +393,18 @@ namespace ChimeraTK {
         VersionNumberSource>();
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, true,
             TimeStampSource::SharedPtr(), versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // Initially, the version number should be zero.
     BOOST_CHECK(sender->getVersionNumber() == 0);
     BOOST_CHECK(receiver->getVersionNumber() == 0);
-    // After sending and receiving a value, the version number on the receiver
-    // should be greater.
+    // After sending destructively and receiving a value, the version number on
+    // the receiver should be greater.
     VersionNumber initialVersionNumber = receiver->getVersionNumber();
     sender->get()[0] = 1;
-    BOOST_CHECK(sender->send());
+    BOOST_CHECK(sender->sendDestructively());
     BOOST_CHECK(receiver->receive());
     VersionNumber versionNumber = receiver->getVersionNumber();
     BOOST_CHECK(versionNumber > initialVersionNumber);
@@ -457,17 +412,26 @@ namespace ChimeraTK {
     // When we send again specifying the same version number, there should be no
     // update of the receiver.
     sender->get()[0] = 2;
-    BOOST_CHECK(sender->send(versionNumber));
+    BOOST_CHECK(sender->sendDestructively(versionNumber));
     BOOST_CHECK(!receiver->receive());
     BOOST_CHECK(versionNumber == receiver->getVersionNumber());
     BOOST_CHECK(receiver->get()[0] == 1);
     // When we explicitly use a greater version number, the receiver should be
     // updated again.
     sender->get()[0] = 3;
-    BOOST_CHECK(sender->send(versionNumberSource->nextVersionNumber()));
+    BOOST_CHECK(sender->sendDestructively(versionNumberSource->nextVersionNumber()));
     BOOST_CHECK(receiver->receive());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->get()[0] == 3);
+    // When we send non-destructively, the version number on the sender and the
+    // receiver should match after sending and receiving.
+    versionNumber = receiver->getVersionNumber();
+    sender->get()[0] = 4;
+    BOOST_CHECK(sender->send());
+    BOOST_CHECK(receiver->receive());
+    BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
+    BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
+    BOOST_CHECK(receiver->get()[0] == 4);
   }
 
 }  //namespace ChimeraTK

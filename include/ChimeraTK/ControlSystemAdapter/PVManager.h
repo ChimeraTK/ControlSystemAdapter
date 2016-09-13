@@ -117,11 +117,10 @@ namespace ChimeraTK {
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
      *
-     * If the <code>swappable</code> flag is <code>true</code> (the default),
-     * the control-system PV is marked as swappable and thus the control system
-     * can retrieve data by swapping instead of copying. This means that the
-     * device library cannot access the data (not even for reading) after
-     * sending it.
+     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+     * <code>false</code> by default), the <code>sendDestructively()</code>
+     * method may be used to transfer values without copying but losing them on
+     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -137,7 +136,7 @@ namespace ChimeraTK {
     std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> createProcessArrayDeviceToControlSystem(
         const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool swappable = true,
+        const std::vector<T>& initialValue, bool maySendDestructively = false,
         std::size_t numberOfBuffers = 2);
 
     /**
@@ -151,11 +150,10 @@ namespace ChimeraTK {
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
      *
-     * If the <code>swappable</code> flag is <code>true</code> (the default),
-     * the device-library PV is marked as swappable and thus the device library
-     * can retrieve data by swapping instead of copying. This means that the
-     * control system cannot access the data (not even for reading) after
-     * sending it.
+     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+     * <code>false</code> by default), the <code>sendDestructively()</code>
+     * method may be used to transfer values without copying but losing them on
+     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -171,7 +169,7 @@ namespace ChimeraTK {
     std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> createProcessArrayControlSystemToDevice(
         const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool swappable = true,
+        const std::vector<T>& initialValue, bool maySendDestructively = false,
         std::size_t numberOfBuffers = 2);
 
     /**
@@ -573,7 +571,7 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
       const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool swappable,
+      const std::vector<T>& initialValue, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
@@ -591,8 +589,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName,
-            swappable, numberOfBuffers, timeStampSource, _versionNumberSource,
-            sendNotificationListener);
+            numberOfBuffers, maySendDestructively, timeStampSource,
+            _versionNumberSource, sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -610,7 +608,7 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayControlSystemToDevice(
       const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool swappable,
+      const std::vector<T>& initialValue, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
@@ -629,8 +627,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName,
-            swappable, numberOfBuffers, timeStampSource, _versionNumberSource,
-            sendNotificationListener);
+            numberOfBuffers, maySendDestructively, timeStampSource,
+            _versionNumberSource, sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,

@@ -76,7 +76,7 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue) :
         ProcessVariable(name), _instanceType(instanceType), _vectorSize(
-            initialValue.size()), _swappable(true), _buffers(
+            initialValue.size()), _maySendDestructively(false), _buffers(
             boost::make_shared<std::vector<Buffer> >(1)), _currentIndex(0), _lastSentIndex(
             0) {
       // It would be better to do the validation before initializing, but this
@@ -100,16 +100,12 @@ namespace ChimeraTK {
      *
      * This constructor creates the buffers and queues that are needed for the
      * send/receive process and are shared with the sender.
-     *
-     * If the <code>swappable</code> option is true, the swap operation is
-     * allowed. The <code>swappable</code> flag must be the same for the
-     * sender and receiver.
      */
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue, std::size_t numberOfBuffers,
-        bool swappable, VersionNumberSource::SharedPtr versionNumberSource) :
+        VersionNumberSource::SharedPtr versionNumberSource) :
         ProcessVariable(name), _instanceType(instanceType), _vectorSize(
-            initialValue.size()), _swappable(swappable), _buffers(
+            initialValue.size()), _maySendDestructively(false), _buffers(
             boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
             boost::make_shared<boost::lockfree::queue<std::size_t> >(
                 numberOfBuffers)), _emptyBufferQueue(
@@ -161,10 +157,9 @@ namespace ChimeraTK {
      * it. It uses the buffers and queues that have been created by the
      * receiver.
      *
-     * If the <code>swappable</code> option is true, the swap operation is
-     * allowed on the receiver. The <code>swappable</code> flag must be the
-     * same for the sender and receiver. Allowing swapping has the side effect
-     * that a value cannot be read after having been sent.
+     * If the <code>maySendDestructively</code> flag is <code>true</code>, the
+     * {@link sendDestructively()} method may be used to transfer values without
+     * copying but losing them on the sender side.
      *
      * The optional send-notification listener is notified every time the
      * sender's {@link ProcessArray::send()} method is called. It can be
@@ -172,13 +167,13 @@ namespace ChimeraTK {
      * {@link ProcessArray::receive()} method to be called. The process
      * variable passed to the listener is the receiver and not the sender.
      */
-    ProcessArray(InstanceType instanceType, bool swappable,
+    ProcessArray(InstanceType instanceType, bool maySendDestructively,
         TimeStampSource::SharedPtr timeStampSource,
         VersionNumberSource::SharedPtr versionNumberSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
         ProcessArray::SharedPtr receiver) :
         ProcessVariable(receiver->getName()), _instanceType(instanceType), _vectorSize(
-            receiver->_vectorSize), _swappable(swappable), _buffers(
+            receiver->_vectorSize), _maySendDestructively(maySendDestructively), _buffers(
             receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
             receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
             receiver), _timeStampSource(timeStampSource), _versionNumberSource(
@@ -225,20 +220,13 @@ namespace ChimeraTK {
     }
 
     operator std::vector<T>() const {
-      return getConst();
+      return get();
     }
 
     /**
      * Updates this process variable's value with the elements from the
      * specified vector. The vector's number of elements must match this process
      * variable's number of elements.
-     *
-     * If this instance of the process array must not be modified (because it is
-     * a receiver and does not allow swapping), this method throws an exception.
-     *
-     * FIXME: The description says it is throwing, but the implementation does not
-     * do it. Throwing will be obsolete in future because it is planned to have
-     * receivers always swappable.
      */
     void set(std::vector<T> const & v) {
       get() = v;
@@ -248,33 +236,19 @@ namespace ChimeraTK {
      * Updates this process variable's value with the other process variable's
      * value. The other process variable's number of elements must match this
      * process variable's number of elements.
-     *
-     * If this instance of the process array must not be modified (because it is
-     * a receiver and does not allow swapping), this method throws an exception.
-     *
-     * FIXME: The description says it is throwing, but the implementation does not
-     * do it. Throwing will be obsolete in future because it is planned to have
-     * receivers always swappable.
      */
     void set(ProcessArray<T> const & other) {
-      set(other.getConst());
+      set(other.get());
     }
 
     /**
      * Swaps the vector backing this process array with a different vector.
-     * This method may only be called by the peer control-system process array
-     * when synchronizing with this process array and only if
-     * <code>isSwappable()</code> returns <code>true</code>. Otherwise, this
-     * method throws an <code>std::logic_error</code>.
      *
      * The <code>boost::scoped_ptr</code> passed must not be <code>null</code>
      * and must point to a vector that has the same size as the vector it is
      * swapped with.
      */
     void swap(boost::scoped_ptr<std::vector<T> > & otherVector) {
-      if (!isSwappable()) {
-        throw std::logic_error("Swap is not supported by this process array.");
-      }
       if (otherVector->size() != get().size()) {
         throw std::runtime_error("Vector sizes do not match");
       }
@@ -285,20 +259,11 @@ namespace ChimeraTK {
      * Returns a reference to the vector that represents the current value of
      * this process array.
      *
-     * If this instance of the process array must not be modified
-     * (because it is a receiver and does not allow swapping), this
-     * method throws an exception. In this case, you should use the
-     * {@link #getConst()} method instead.
-     *
      * The reference returned by this method becomes invalid when a receive,
      * send, or swap operation is performed on this process variable. Use of an
      * invalid reference results in undefined behavior.
      */
     std::vector<T> & get() {
-      if (_instanceType == RECEIVER && !_swappable) {
-        throw std::logic_error(
-            "Attempt to modify a read-only process variable.");
-      }
       return *(((*_buffers)[_currentIndex]).value);
     }
 
@@ -312,46 +277,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> const & get() const {
-      return getConst();
-    }
-
-    /**
-     * Returns a constant reference to the the vector that represents the
-     * current value of this process array. This method should be preferred for
-     * receiver process variables because it works even if the process array
-     * does not allow swapping and thus the {@link #get()} method cannot be
-     * used.
-     *
-     * The reference returned by this method becomes invalid when a receive,
-     * send, or swap operation is performed on this process variable. Use of an
-     * invalid reference results in undefined behavior.
-     */
-    std::vector<T> const & getConst() const {
       return *(((*_buffers)[_currentIndex]).value);
-    }
-
-    /**
-     * @deprecated
-     * It is planned that receivers are always swappable.
-     *
-     * Returns a constant reference to the vector that represents the value that
-     * has been sent with the last sent operation.
-     *
-     * This method may only be used on a process variable that is a sender and
-     * if swapping is not allowed for the respective receiver. In all other
-     * cases, calling this method results in an exception.
-     *
-     * While the reference returned by this method stays valid even after a
-     * receive, send, or swap operation is performed on this process variable,
-     * it is recommended to not retain this reference because it might point
-     * to a different vector than expected.
-     */
-    std::vector<T> const & getLastSent() const {
-      if (_instanceType != SENDER || _swappable) {
-        throw std::logic_error(
-            "The last sent value is only available for a sender that is associated with a receiver that does not allow swapping.");
-      }
-      return *(((*_buffers)[_lastSentIndex]).value);
     }
 
     bool isReceiver() const {
@@ -369,11 +295,9 @@ namespace ChimeraTK {
     /**
      * Returns the version number that is associated with the current value.
      * This is the version number that was received with the {@link receive()}
-     * operation that received the respective value. Typically, this will be the
-     * last receive operation. If this process variable has just been sent, the
-     * value and thus the version number is undefined (it can be any value /
-     * version-number combination that has been sent at an earlier point in
-     * time).
+     * operation that received the respective value or the last {@link send()}
+     * operation. If the last send operation was destructive, the version number
+     * (like the current value) is undefined.
      *
      * The version number is used to resolve conflicting updates. When an update
      * is received using the {@link receive()} method, it is only used if its
@@ -389,49 +313,6 @@ namespace ChimeraTK {
       // On the other hand, this should not matter too much because the current
       // value will be in an undefined state anyway and thus we might not care.
       return ((*_buffers)[_currentIndex]).versionNumber;
-    }
-
-    /**
-     * Returns the version number associated with the value that has been sent
-     * with the last sent operation.
-     *
-     * This method may only be used on a process variable that is a sender and
-     * if swapping is not allowed for the respective receiver. In all other
-     * cases, calling this method results in an exception.
-     *
-     * @deprecated
-     * This method is going to be removed together with the
-     * {@link getLastSent()} and {@link isSwappable()} methods.
-     */
-    VersionNumber getLastSentVersionNumber() const {
-      // TODO Typically, there should be no reason to check the version number
-      // of the last sent value, but we still have this method for symmetry
-      // reasons (because we also have a getLastSent() method).
-      // We should really consider getting rid of both methods and allow for an
-      // (optional) copy when sending instead of disabling swapping.
-      if (_instanceType != SENDER || _swappable) {
-        throw std::logic_error(
-            "The last sent version number is only available for a sender that is associated with a receiver that does not allow swapping.");
-      }
-      return ((*_buffers)[_lastSentIndex]).versionNumber;
-    }
-
-    /**
-     * Tells whether this array supports swapping. If <code>true</code>, the
-     * <code>swap</code> method can be used to swap the vector backing this
-     * array with a different one, thus avoiding copying during synchronization.
-     * If <code>false</code>, calling <code>swap</code> results in an exception.
-     * Swapping (and other modifications) are always supported on the sender
-     * side but might not be supported on the receiver side.
-     */
-    bool isSwappable() const {
-      // Senders and stand-alone instances are always swappable. For
-      // receivers, it depends on the swappable flag.
-      if (_instanceType == RECEIVER) {
-        return _swappable;
-      } else {
-        return true;
-      }
     }
 
     bool receive() {
@@ -500,55 +381,63 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender.
      */
     bool send(VersionNumber newVersionNumber) {
-      if (_instanceType != SENDER) {
-        throw std::logic_error(
-            "Send operation is only allowed for a sender process variable.");
-      }
-      // We have to check that the vector that we currently own still has the
-      // right size. Otherwise, the code using the receiver might get into
-      // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value->size() != _vectorSize) {
-        throw std::runtime_error(
-            "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
-      }
-      // Before sending the value, we have to update the associated
-      // time-stamp.
-      ((*_buffers)[_currentIndex]).timeStamp =
-          _timeStampSource ?
-              _timeStampSource->getCurrentTimeStamp() :
-              TimeStamp::currentTime();
-      ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
-      std::size_t nextIndex;
-      bool foundEmptyBuffer;
-      if (_emptyBufferQueue->pop(nextIndex)) {
-        foundEmptyBuffer = true;
-        _fullBufferQueue->push(_currentIndex);
+      return sendInternal(newVersionNumber, true);
+    }
+
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * If this process variable has a version-number source, a new version
+     * number is retrieved from this source and used for the value being sent to
+     * the receiver. Otherwise, a version number of zero is used.
+     *
+     * This version of the send operation moves the current value from the
+     * sender to the receiver without copying it. This means that after calling
+     * this method, the sender's value, time stamp, and version number are
+     * undefined. Therefore, this method must only be used if this process
+     * variable is not read (on the sender side) after sending it.
+     *
+     * Throws an exception if this process variable is not a sender or if this
+     * process variable does not allow destructive sending.
+     */
+    bool sendDestructively() {
+      VersionNumber newVersionNumber;
+      if (_versionNumberSource) {
+        newVersionNumber = _versionNumberSource->nextVersionNumber();
       } else {
-        // We can still send, but we will lose older data.
-        if (_fullBufferQueue->pop(nextIndex)) {
-          foundEmptyBuffer = false;
-          _fullBufferQueue->push(_currentIndex);
-        } else {
-          // It is possible, that we did not find an empty buffer but before
-          // we could get a full buffer, the receiver processed all full
-          // buffers. In this case, the queue of empty buffers cannot be empty
-          // any longer because we have at least four buffers.
-          if (!_emptyBufferQueue->pop(nextIndex)) {
-            // This should never happen and is just an assertion for extra
-            // safety.
-            throw std::runtime_error(
-                "Assertion that empty-buffer queue has at least one element failed.");
-          }
-          foundEmptyBuffer = true;
-          _fullBufferQueue->push(_currentIndex);
-        }
+        newVersionNumber = 0;
       }
-      _lastSentIndex = _currentIndex;
-      _currentIndex = nextIndex;
-      if (_sendNotificationListener) {
-        _sendNotificationListener->notify(_receiver);
+      return sendDestructively(newVersionNumber);
+    }
+
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * The specified version number is passed to the receiver. If the receiver
+     * has a value with a version number greater than or equal to the specified
+     * version number, it silently discards this update.
+     *
+     * This version of the send operation moves the current value from the
+     * sender to the receiver without copying it. This means that after calling
+     * this method, the sender's value, time stamp, and version number are
+     * undefined. Therefore, this method must only be used if this process
+     * variable is not read (on the sender side) after sending it.
+     *
+     * Throws an exception if this process variable is not a sender or if this
+     * process variable does not allow destructive sending.
+     */
+    bool sendDestructively(VersionNumber newVersionNumber) {
+      if (!_maySendDestructively) {
+        throw std::runtime_error(
+            "This process variable must not be sent destructively because the corresponding flag has not been set.");
       }
-      return foundEmptyBuffer;
+      return sendInternal(newVersionNumber, false);
     }
 
     const std::type_info& getValueType() const {
@@ -610,12 +499,10 @@ namespace ChimeraTK {
     std::size_t _vectorSize;
 
     /**
-     * Flag indicating the swapping behavior. For a receiver, it indicates
-     * whether swapping is allowed. For a sender, it indicates whether
-     * swapping is allowed on the corresponding receiver. For a stand-alone
-     * instance, it does not have any meaning.
+     * Flag indicating whether the {@code sendDestructively} methods may be used
+     * on this process array.
      */
-    bool _swappable;
+    bool _maySendDestructively;
 
     /**
      * Buffers that hold the actual values.
@@ -672,6 +559,68 @@ namespace ChimeraTK {
      */
     boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
 
+    /**
+     * Internal implementation of the various {@code send} methods. All these
+     * methods basically do the same and only differ in whether the data in the
+     * sent array is copied to the buffer used as the new current buffer and
+     * which version number is used.
+     */
+    bool sendInternal(VersionNumber newVersionNumber, bool shouldCopy) {
+      if (_instanceType != SENDER) {
+        throw std::logic_error(
+            "Send operation is only allowed for a sender process variable.");
+      }
+      // We have to check that the vector that we currently own still has the
+      // right size. Otherwise, the code using the receiver might get into
+      // trouble when it suddenly experiences a vector of the wrong size.
+      if ((*_buffers)[_currentIndex].value->size() != _vectorSize) {
+        throw std::runtime_error(
+            "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
+      }
+      // Before sending the value, we have to update the associated
+      // time-stamp.
+      TimeStamp newTimeStamp =
+          _timeStampSource ?
+              _timeStampSource->getCurrentTimeStamp() :
+              TimeStamp::currentTime();
+      ((*_buffers)[_currentIndex]).timeStamp = newTimeStamp;
+      ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
+      std::size_t nextIndex;
+      bool foundEmptyBuffer;
+      if (_emptyBufferQueue->pop(nextIndex)) {
+        foundEmptyBuffer = true;
+      } else {
+        // We can still send, but we will lose older data.
+        if (_fullBufferQueue->pop(nextIndex)) {
+          foundEmptyBuffer = false;
+        } else {
+          // It is possible, that we did not find an empty buffer but before
+          // we could get a full buffer, the receiver processed all full
+          // buffers. In this case, the queue of empty buffers cannot be empty
+          // any longer because we have at least four buffers.
+          if (!_emptyBufferQueue->pop(nextIndex)) {
+            // This should never happen and is just an assertion for extra
+            // safety.
+            throw std::runtime_error(
+                "Assertion that empty-buffer queue has at least one element failed.");
+          }
+          foundEmptyBuffer = true;
+        }
+      }
+      if (shouldCopy) {
+        *((*_buffers)[nextIndex].value) = *((*_buffers)[_currentIndex].value);
+        (*_buffers)[nextIndex].timeStamp = newTimeStamp;
+        (*_buffers)[nextIndex].versionNumber = newVersionNumber;
+      }
+      _fullBufferQueue->push(_currentIndex);
+      _lastSentIndex = _currentIndex;
+      _currentIndex = nextIndex;
+      if (_sendNotificationListener) {
+        _sendNotificationListener->notify(_receiver);
+      }
+      return foundEmptyBuffer;
+    }
+
   };
 
   /**
@@ -714,17 +663,16 @@ namespace ChimeraTK {
    * thread. This means that the sender or the receiver have to be protected
    * with a mutex if more than one thread wants to access either of them.
    *
-   * If the <code>swappable</code> flag is <code>true</code> (the default), the
-   * receiver supports full read-write access (including swapping). If it is
-   * <code>false</code>, only read-only access is supported. On the other hand,
-   * setting this flag to <code>false</code> has the advantage that the sender's
-   * {@link ProcessArray::getLastSent()} method can be used.
-   *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
    * number specifies, how many times {@link ProcessArray::send()} can be called
    * in a row without losing data when {@link ProcessArray::receive()} is not
    * called in between.
+   *
+   * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+   * <code>false</code> by default), the {@link sendDestructively()} method may
+   * be used to transfer values without copying but losing them on the sender
+   * side.
    *
    * The specified time-stamp source is used for determining the current time
    * when sending a value. The receiver will be updated with this time stamp
@@ -743,7 +691,7 @@ namespace ChimeraTK {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const std::string & name = "", T initialValue = 0,
-      bool swappable = true, std::size_t numberOfBuffers = 2,
+      std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       VersionNumberSource::SharedPtr versionNumberSource =
           VersionNumberSource::SharedPtr(),
@@ -766,17 +714,16 @@ namespace ChimeraTK {
    * thread. This means that the sender or the receiver have to be protected
    * with a mutex if more than one thread wants to access either of them.
    *
-   * If the <code>swappable</code> flag is <code>true</code> (the default), the
-   * receiver supports full read-write access (including swapping). If it is
-   * <code>false</code>, only read-only access is supported. On the other hand,
-   * setting this flag to <code>false</code> has the advantage that the sender's
-   * {@link ProcessArray::getLastSent()} method can be used.
-   *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
    * number specifies, how many times {@link ProcessArray::send()} can be called
    * in a row without losing data when {@link ProcessArray::receive()} is not
    * called in between.
+   *
+   * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+   * <code>false</code> by default), the {@link sendDestructively()} method may
+   * be used to transfer values without copying but losing them on the sender
+   * side.
    *
    * The specified time-stamp source is used for determining the current time
    * when sending a value. The receiver will be updated with this time stamp
@@ -797,7 +744,7 @@ namespace ChimeraTK {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const std::string & name = "",
-      bool swappable = true, std::size_t numberOfBuffers = 2,
+      std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       VersionNumberSource::SharedPtr versionNumberSource =
           VersionNumberSource::SharedPtr(),
@@ -822,17 +769,18 @@ namespace ChimeraTK {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const std::string & name, T initialValue,
-      bool swappable, std::size_t numberOfBuffers,
+      std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::RECEIVER, name,
-        std::vector<T>(size, initialValue), numberOfBuffers, swappable,
+        std::vector<T>(size, initialValue), numberOfBuffers,
         versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::SENDER, swappable, timeStampSource,
-        versionNumberSource, sendNotificationListener, receiver);
+        ProcessArray<T> >(ProcessArray<T>::SENDER, maySendDestructively,
+        timeStampSource, versionNumberSource, sendNotificationListener,
+        receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
@@ -841,16 +789,17 @@ namespace ChimeraTK {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const std::string & name,
-      bool swappable, std::size_t numberOfBuffers,
+      std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, initialValue,
-        numberOfBuffers, swappable, versionNumberSource);
+        numberOfBuffers, versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::SENDER, swappable, timeStampSource,
-        versionNumberSource, sendNotificationListener, receiver);
+        ProcessArray<T> >(ProcessArray<T>::SENDER, maySendDestructively,
+        timeStampSource, versionNumberSource, sendNotificationListener,
+        receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }

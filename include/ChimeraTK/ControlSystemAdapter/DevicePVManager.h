@@ -84,11 +84,10 @@ namespace ChimeraTK {
      * process scalar or array is an error and causes an
      * \c std::invalid_argument exception to be thrown.
      *
-     * If the <code>swappable</code> flag is <code>true</code> (the default),
-     * the control-system PV is marked as swappable and thus the control system
-     * can retrieve data by swapping instead of copying. This means that the
-     * device library cannot access the data (not even for reading) after
-     * sending it.
+     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+     * <code>false</code> by default), the <code>sendDestructively()</code>
+     * method may be used to transfer values without copying but losing them on
+     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -103,8 +102,8 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
         const std::string& processVariableName, std::size_t size,
-        T initialValue = 0, bool swappable = true, std::size_t numberOfBuffers =
-            2);
+        T initialValue = 0, bool maySendDestructively = false,
+        std::size_t numberOfBuffers = 2);
 
     /**
      * Creates a new process array and registers it with the PV manager.
@@ -116,11 +115,10 @@ namespace ChimeraTK {
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
      *
-     * If the <code>swappable</code> flag is <code>true</code> (the default),
-     * the control-system PV is marked as swappable and thus the control system
-     * can retrieve data by swapping instead of copying. This means that the
-     * device library cannot access the data (not even for reading) after
-     * sending it.
+     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
+     * <code>false</code> by default), the <code>sendDestructively()</code>
+     * method may be used to transfer values without copying but losing them on
+     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -135,7 +133,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
         const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool swappable = true,
+        const std::vector<T>& initialValue, bool maySendDestructively = false,
         std::size_t numberOfBuffers = 2);
 
     /**
@@ -278,16 +276,16 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
       const std::string& processVariableName, std::size_t size, T initialValue,
-      bool swappable, std::size_t numberOfBuffers) {
+      bool maySendDestructively, std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
     case controlSystemToDevice:
       return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, std::vector<T>(size, initialValue), swappable,
-          numberOfBuffers).second;
+          processVariableName, std::vector<T>(size, initialValue),
+          maySendDestructively, numberOfBuffers).second;
     case deviceToControlSystem:
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, std::vector<T>(size, initialValue), swappable,
-          numberOfBuffers).second;
+          processVariableName, std::vector<T>(size, initialValue),
+          maySendDestructively, numberOfBuffers).second;
     default:
       throw std::invalid_argument("invalid SynchronizationDirection");
     }
@@ -297,15 +295,17 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
       const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool swappable,
+      const std::vector<T>& initialValue, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
     case controlSystemToDevice:
       return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, initialValue, swappable, numberOfBuffers).second;
+          processVariableName, initialValue, maySendDestructively,
+          numberOfBuffers).second;
     case deviceToControlSystem:
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, initialValue, swappable, numberOfBuffers).second;
+          processVariableName, initialValue, maySendDestructively,
+          numberOfBuffers).second;
     default:
       throw std::invalid_argument("invalid SynchronizationDirection");
     }
