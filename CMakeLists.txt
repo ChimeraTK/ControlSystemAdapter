@@ -39,7 +39,7 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
   message("Boost unit_test_framework not found, disabling testing")
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
-FIND_PACKAGE(mtca4u-deviceaccess 00.17 REQUIRED)
+FIND_PACKAGE(mtca4u-deviceaccess 00.18 REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
 include_directories(SYSTEM ${mtca4u-deviceaccess_INCLUDE_DIRS})
 

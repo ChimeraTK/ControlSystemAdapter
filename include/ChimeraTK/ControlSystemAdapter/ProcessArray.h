@@ -15,7 +15,8 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 
-#include "ProcessVariable.h"
+//#include "ProcessVariable.h"
+#include <mtca4u/NDRegisterAccessor.h>
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
 
@@ -28,7 +29,7 @@ namespace ChimeraTK {
    * should only be used from a single thread.
    */
   template<class T>
-    class ProcessArray: public ProcessVariable {
+    class ProcessArray: public mtca4u::NDRegisterAccessor<T> {
     
   public:
     
@@ -69,10 +70,11 @@ namespace ChimeraTK {
      */
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue) :
-        ProcessVariable(name), _instanceType(instanceType), _vectorSize(
-            initialValue.size()), _swappable(true), _buffers(
-            boost::make_shared<std::vector<Buffer> >(1)), _currentIndex(0), _lastSentIndex(
-            0) {
+            mtca4u::NDRegisterAccessor<T>(name),
+	    _instanceType(instanceType), _vectorSize(initialValue.size()),
+	    _swappable(true),
+	    _buffers(boost::make_shared<std::vector<Buffer> >(1)),
+	    _currentIndex(0), _lastSentIndex(0) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != STAND_ALONE) {
@@ -102,7 +104,7 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue, std::size_t numberOfBuffers,
         bool swappable) :
-        ProcessVariable(name), _instanceType(instanceType), _vectorSize(
+	mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
             initialValue.size()), _swappable(swappable), _buffers(
             boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
             boost::make_shared<boost::lockfree::queue<std::size_t> >(
@@ -170,8 +172,9 @@ namespace ChimeraTK {
         boost::shared_ptr<TimeStampSource> timeStampSource,
         boost::shared_ptr<ProcessVariableListener> sendNotificationListener,
         boost::shared_ptr<ProcessArray> receiver) :
-        ProcessVariable(receiver->getName()), _instanceType(instanceType), _vectorSize(
-            receiver->_vectorSize), _swappable(swappable), _buffers(
+	    mtca4u::NDRegisterAccessor<T>(receiver->getName()),
+	    _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
+	    _swappable(swappable), _buffers(
             receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
             receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
             receiver), _timeStampSource(timeStampSource), _sendNotificationListener(
@@ -467,7 +470,7 @@ namespace ChimeraTK {
     }
 
     virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements(){
-      return { boost::enable_shared_from_this<TransferElement>::shared_from_this() };
+      return { boost::enable_shared_from_this<mtca4u::TransferElement>::shared_from_this() };
     }
     
     virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){

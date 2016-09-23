@@ -2,7 +2,6 @@
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_VARIABLE_H
 
 #include <mtca4u/TransferElement.h>
-#include "TimeStamp.h"
 
 namespace ChimeraTK{
   typedef mtca4u::TransferElement ProcessVariable;
