@@ -19,25 +19,31 @@
 #include <mtca4u/NDRegisterAccessor.h>
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
+#include "VersionNumberSource.h"
 
 namespace ChimeraTK {
   /**
-   * Array implementation of the ProcessVariable. This implementation is used for all
-   * three use cases (sender, receiver, and stand-alone).
+   * Array implementation of the ProcessVariable. This implementation is used
+   * for all three use cases (sender, receiver, and stand-alone).
    *
-   * This class is not thread-safe and
-   * should only be used from a single thread.
+   * This class is not thread-safe and should only be used from a single thread.
+   *
+   * If no version number source is specified when creating an instance of this
+   * class, version number checks are disabled. This means that a receive
+   * operation will always proceed, regardless of the version number of the new
+   * value. The version number of the process array without a version number
+   * source will always stay at zero.
    */
   template<class T>
     class ProcessArray: public mtca4u::NDRegisterAccessor<T> {
-    
+
   public:
-    
+
     /**
      * Type alias for a shared pointer to this type.
      */
     typedef boost::shared_ptr<ProcessArray> SharedPtr;
-    
+
     /**
      * Type of the instance. This defines the behavior (send or receive
      * possible, modifications allowed, etc.). This enum type is private so
@@ -50,18 +56,18 @@ namespace ChimeraTK {
        * Instance acts on is own.
        */
       STAND_ALONE,
-      
+
       /**
        * Instance acts as the sender in a sender / receiver pair.
        */
       SENDER,
-      
+
       /**
        * Instance acts as the receiver in a sender / receiver pair.
        */
       RECEIVER
     };
-    
+
     /**
      * Creates a process array that works independently. This means that the
      * instance is not synchronized with any other instance and thus the send
@@ -103,14 +109,15 @@ namespace ChimeraTK {
      */
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue, std::size_t numberOfBuffers,
-        bool swappable) :
+        bool swappable, VersionNumberSource::SharedPtr versionNumberSource) :
 	mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
             initialValue.size()), _swappable(swappable), _buffers(
             boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
             boost::make_shared<boost::lockfree::queue<std::size_t> >(
                 numberOfBuffers)), _emptyBufferQueue(
             boost::make_shared<boost::lockfree::spsc_queue<std::size_t> >(
-                numberOfBuffers)), _currentIndex(0), _lastSentIndex(0) {
+                numberOfBuffers)), _currentIndex(0), _lastSentIndex(0), _versionNumberSource(
+            versionNumberSource) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != RECEIVER) {
@@ -139,8 +146,7 @@ namespace ChimeraTK {
       // move semantics).
       for (typename std::vector<Buffer>::iterator i = _buffers->begin();
           i != _buffers->end(); ++i) {
-        boost::scoped_ptr<std::vector<T> > v(
-            new std::vector<T>(initialValue));
+        boost::scoped_ptr<std::vector<T> > v(new std::vector<T>(initialValue));
         i->value.swap(v);
       }
       // The buffer with the index 0 is assigned to the receiver and the
@@ -169,15 +175,17 @@ namespace ChimeraTK {
      * variable passed to the listener is the receiver and not the sender.
      */
     ProcessArray(InstanceType instanceType, bool swappable,
-        boost::shared_ptr<TimeStampSource> timeStampSource,
-        boost::shared_ptr<ProcessVariableListener> sendNotificationListener,
-        boost::shared_ptr<ProcessArray> receiver) :
+        TimeStampSource::SharedPtr timeStampSource,
+        VersionNumberSource::SharedPtr versionNumberSource,
+        ProcessVariableListener::SharedPtr sendNotificationListener,
+        ProcessArray::SharedPtr receiver) :
 	    mtca4u::NDRegisterAccessor<T>(receiver->getName()),
 	    _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
 	    _swappable(swappable), _buffers(
             receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
             receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
-            receiver), _timeStampSource(timeStampSource), _sendNotificationListener(
+            receiver), _timeStampSource(timeStampSource), _versionNumberSource(
+            versionNumberSource), _sendNotificationListener(
             sendNotificationListener) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
@@ -204,7 +212,7 @@ namespace ChimeraTK {
      * This behaves excactly like the set(...) method.
      */
     ProcessArray<T> & operator=(ProcessArray<T> const & other) {
-      set(other.getConst());
+      set(other);
       return (*this);
     }
 
@@ -268,8 +276,7 @@ namespace ChimeraTK {
      */
     void swap(boost::scoped_ptr<std::vector<T> > & otherVector) {
       if (!isSwappable()) {
-        throw std::logic_error(
-            "Swap is not supported by this process array.");
+        throw std::logic_error("Swap is not supported by this process array.");
       }
       if (otherVector->size() != get().size()) {
         throw std::runtime_error("Vector sizes do not match");
@@ -371,6 +378,56 @@ namespace ChimeraTK {
     }
 
     /**
+     * Returns the version number that is associated with the current value.
+     * This is the version number that was received with the {@link receive()}
+     * operation that received the respective value. Typically, this will be the
+     * last receive operation. If this process variable has just been sent, the
+     * value and thus the version number is undefined (it can be any value /
+     * version-number combination that has been sent at an earlier point in
+     * time).
+     *
+     * The version number is used to resolve conflicting updates. When an update
+     * is received using the {@link receive()} method, it is only used if its
+     * value has a version number that is greater than the version number of the
+     * current value. Initially, each process variable has a version number of
+     * zero.
+     *
+     * When this process variable has not been initialized with a version number
+     * source, its version number always stays at zero and the version-number
+     * logic is disabled.
+     */
+    VersionNumber getVersionNumber() const {
+      // On the other hand, this should not matter too much because the current
+      // value will be in an undefined state anyway and thus we might not care.
+      return ((*_buffers)[_currentIndex]).versionNumber;
+    }
+
+    /**
+     * Returns the version number associated with the value that has been sent
+     * with the last sent operation.
+     *
+     * This method may only be used on a process variable that is a sender and
+     * if swapping is not allowed for the respective receiver. In all other
+     * cases, calling this method results in an exception.
+     *
+     * @deprecated
+     * This method is going to be removed together with the
+     * {@link getLastSent()} and {@link isSwappable()} methods.
+     */
+    VersionNumber getLastSentVersionNumber() const {
+      // TODO Typically, there should be no reason to check the version number
+      // of the last sent value, but we still have this method for symmetry
+      // reasons (because we also have a getLastSent() method).
+      // We should really consider getting rid of both methods and allow for an
+      // (optional) copy when sending instead of disabling swapping.
+      if (_instanceType != SENDER || _swappable) {
+        throw std::logic_error(
+            "The last sent version number is only available for a sender that is associated with a receiver that does not allow swapping.");
+      }
+      return ((*_buffers)[_lastSentIndex]).versionNumber;
+    }
+
+    /**
      * Tells whether this array supports swapping. If <code>true</code>, the
      * <code>swap</code> method can be used to swap the vector backing this
      * array with a different one, thus avoiding copying during synchronization.
@@ -402,15 +459,58 @@ namespace ChimeraTK {
       }
       std::size_t nextIndex;
       if (_fullBufferQueue->pop(nextIndex)) {
-        _emptyBufferQueue->push(_currentIndex);
-        _currentIndex = nextIndex;
-        return true;
+        // We only use the incoming update if it has a higher version number
+        // than the current value. This check is disabled when there is no
+        // version number source.
+        if (!_versionNumberSource
+            || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
+          _emptyBufferQueue->push(_currentIndex);
+          _currentIndex = nextIndex;
+          return true;
+        } else {
+          _emptyBufferQueue->push(nextIndex);
+          return false;
+        }
       } else {
         return false;
       }
     }
 
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * If this process variable has a version-number source, a new version
+     * number is retrieved from this source and used for the value being sent to
+     * the receiver. Otherwise, a version number of zero is used.
+     *
+     * Throws an exception if this process variable is not a sender.
+     */
     void write() {
+      VersionNumber newVersionNumber;
+      if (_versionNumberSource) {
+        newVersionNumber = _versionNumberSource->nextVersionNumber();
+      } else {
+        newVersionNumber = 0;
+      }
+      write(newVersionNumber);
+    }
+
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * The specified version number is passed to the receiver. If the receiver
+     * has a value with a version number greater than or equal to the specified
+     * version number, it silently discards this update.
+     *
+     * Throws an exception if this process variable is not a sender.
+     */
+    void write(VersionNumber newVersionNumber) {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -428,6 +528,7 @@ namespace ChimeraTK {
           _timeStampSource ?
               _timeStampSource->getCurrentTimeStamp() :
               TimeStamp::currentTime();
+      ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
       std::size_t nextIndex;
       if (_emptyBufferQueue->pop(nextIndex)) {
         _fullBufferQueue->push(_currentIndex);
@@ -455,15 +556,15 @@ namespace ChimeraTK {
         _sendNotificationListener->notify(_receiver);
       }
     }
-    
+
     const std::type_info& getValueType() const {
-	return typeid(T);
+      return typeid(T);
     }
-    
+
     bool isArray() const {
-	return true;
+      return true;
     }
-   
+
     virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const{
       // only true if the very instance of the transfer element is the same
       return e.get() == this;
@@ -476,7 +577,6 @@ namespace ChimeraTK {
     virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
       // You can't replace anything here. Just do nothing.
     }
-
   private:
 
     /**
@@ -487,12 +587,14 @@ namespace ChimeraTK {
 
       TimeStamp timeStamp;
       boost::scoped_ptr<std::vector<T> > value;
+      VersionNumber versionNumber;
 
       /**
        * Default constructor. Has to be defined explicitly because we have an
        * non-default copy constructor.
        */
-      Buffer() {
+      Buffer() :
+          versionNumber(0) {
       }
 
       /**
@@ -508,7 +610,8 @@ namespace ChimeraTK {
        */
       Buffer(Buffer const & other) :
           timeStamp(other.timeStamp), value(
-              other.value ? new std::vector<T>(*(other.value)) : 0) {
+              other.value ? new std::vector<T>(*(other.value)) : 0), versionNumber(
+              other.versionNumber) {
         assert(!(other.value));
       }
 
@@ -575,6 +678,12 @@ namespace ChimeraTK {
      * Time-stamp source used to update the time-stamp when sending a value.
      */
     boost::shared_ptr<TimeStampSource> _timeStampSource;
+
+    /**
+     * Version number source used for getting the next version number when one
+     * of the {@code set} methods is called without specifying a version number.
+     */
+    boost::shared_ptr<VersionNumberSource> _versionNumberSource;
 
     /**
      * Listener that is notified when the process variable is sent.
@@ -653,10 +762,11 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const std::string & name = "", T initialValue = 0,
       bool swappable = true, std::size_t numberOfBuffers = 2,
-      boost::shared_ptr<TimeStampSource> timeStampSource = boost::shared_ptr<
-          TimeStampSource>(),
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-          boost::shared_ptr<ProcessVariableListener>());
+      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
+      VersionNumberSource::SharedPtr versionNumberSource =
+          VersionNumberSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener =
+          ProcessVariableListener::SharedPtr());
 
   /**
    * Creates a synchronized process array. A synchronized process array works
@@ -706,24 +816,24 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const std::string & name = "",
       bool swappable = true, std::size_t numberOfBuffers = 2,
-      boost::shared_ptr<TimeStampSource> timeStampSource = boost::shared_ptr<
-          TimeStampSource>(),
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-          boost::shared_ptr<ProcessVariableListener>());
+      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
+      VersionNumberSource::SharedPtr versionNumberSource =
+          VersionNumberSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener =
+          ProcessVariableListener::SharedPtr());
 
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size,
       const std::string & name, T initialValue) {
-    return boost::make_shared< ProcessArray<T> >(
-        ProcessArray<T>::STAND_ALONE, name,
-        std::vector<T>(size, initialValue));
+    return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
+        name, std::vector<T>(size, initialValue));
   }
 
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(
       const std::vector<T>& initialValue, const std::string & name) {
-    return boost::make_shared< ProcessArray<T> >(
-        ProcessArray<T>::STAND_ALONE, name, initialValue);
+    return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
+        name, initialValue);
   }
 
   template<class T>
@@ -731,15 +841,16 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const std::string & name, T initialValue,
       bool swappable, std::size_t numberOfBuffers,
-      boost::shared_ptr<TimeStampSource> timeStampSource,
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener) {
-    typename boost::shared_ptr< ProcessArray<T> > receiver =
-        boost::make_shared< ProcessArray<T> >(
-            ProcessArray<T>::RECEIVER, name,
-            std::vector<T>(size, initialValue), numberOfBuffers, swappable);
+      TimeStampSource::SharedPtr timeStampSource,
+      VersionNumberSource::SharedPtr versionNumberSource,
+      ProcessVariableListener::SharedPtr sendNotificationListener) {
+    typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
+        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name,
+        std::vector<T>(size, initialValue), numberOfBuffers, swappable,
+        versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::SENDER,
-        swappable, timeStampSource, sendNotificationListener, receiver);
+        ProcessArray<T> >(ProcessArray<T>::SENDER, swappable, timeStampSource,
+        versionNumberSource, sendNotificationListener, receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
@@ -749,15 +860,15 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const std::string & name,
       bool swappable, std::size_t numberOfBuffers,
-      boost::shared_ptr<TimeStampSource> timeStampSource,
-      boost::shared_ptr<ProcessVariableListener> sendNotificationListener) {
-    typename boost::shared_ptr< ProcessArray<T> > receiver =
-        boost::make_shared< ProcessArray<T> >(
-            ProcessArray<T>::RECEIVER, name, initialValue,
-            numberOfBuffers, swappable);
+      TimeStampSource::SharedPtr timeStampSource,
+      VersionNumberSource::SharedPtr versionNumberSource,
+      ProcessVariableListener::SharedPtr sendNotificationListener) {
+    typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
+        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, initialValue,
+        numberOfBuffers, swappable, versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::SENDER,
-        swappable, timeStampSource, sendNotificationListener, receiver);
+        ProcessArray<T> >(ProcessArray<T>::SENDER, swappable, timeStampSource,
+        versionNumberSource, sendNotificationListener, receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }

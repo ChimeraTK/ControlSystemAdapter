@@ -23,6 +23,7 @@ namespace ChimeraTK {
     static void testSendNotification();
     static void testTimeStampSource();
     static void testSynchronization();
+    static void testVersionNumbers();
   };
 
   /**
@@ -40,6 +41,7 @@ namespace ChimeraTK {
       add(BOOST_TEST_CASE(&ProcessScalarTest<T>::testSendNotification));
       add(BOOST_TEST_CASE(&ProcessScalarTest<T>::testTimeStampSource));
       add(BOOST_TEST_CASE(&ProcessScalarTest<T>::testSynchronization));
+      add(BOOST_TEST_CASE(&ProcessScalarTest<T>::testVersionNumbers));
     }
   };
 
@@ -135,7 +137,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessScalar<T>("", 0, 1,
-            TimeStampSource::SharedPtr(), sendNotificationListener);
+            TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
+            sendNotificationListener);
     typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
@@ -221,6 +224,56 @@ namespace ChimeraTK {
     BOOST_CHECK(*receiver == 46);
   }
 
+  template<class T>
+  void ProcessScalarTest<T>::testVersionNumbers() {
+    VersionNumberSource::SharedPtr versionNumberSource = boost::make_shared<
+        VersionNumberSource>();
+    typename std::pair<typename ProcessScalar<T>::SharedPtr,
+        typename ProcessScalar<T>::SharedPtr> senderReceiver =
+        createSynchronizedProcessScalar<T>("", 0, 1,
+            TimeStampSource::SharedPtr(), versionNumberSource);
+    typename ProcessScalar<T>::SharedPtr sender = senderReceiver.first;
+    typename ProcessScalar<T>::SharedPtr receiver = senderReceiver.second;
+    // Initially, the version number should be zero.
+    BOOST_CHECK(sender->getVersionNumber() == 0);
+    BOOST_CHECK(receiver->getVersionNumber() == 0);
+    // After sending a value, the version number of the sender should be greater
+    // than the version number of the receiver. After receiving that value, the
+    // version numbers should match.
+    *sender = 1;
+    sender->write();
+    BOOST_CHECK(sender->getVersionNumber() > receiver->getVersionNumber());
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(sender->getVersionNumber() == receiver->getVersionNumber());
+    BOOST_CHECK(*receiver ==  1);
+    // Sending another value should have the same effect.
+    *sender = 2;
+    sender->write();
+    BOOST_CHECK(sender->getVersionNumber() > receiver->getVersionNumber());
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(sender->getVersionNumber() == receiver->getVersionNumber());
+    BOOST_CHECK(*receiver ==  2);
+    // Sending a value with the same version number should not result in an
+    // update on the receiver side.
+    *sender = 3;
+    sender->write(sender->getVersionNumber());
+    BOOST_CHECK(sender->getVersionNumber() == receiver->getVersionNumber());
+    BOOST_CHECK(!receiver->readNonBlocking());
+    BOOST_CHECK(sender->getVersionNumber() == receiver->getVersionNumber());
+    BOOST_CHECK(*receiver ==  2);
+    // Finally we send an update with a version number that we explicitly get
+    // from the version number source.
+    VersionNumber newVersionNumber = versionNumberSource->nextVersionNumber();
+    *sender = 4;
+    sender->write(newVersionNumber);
+    BOOST_CHECK(sender->getVersionNumber() == newVersionNumber);
+    BOOST_CHECK(sender->getVersionNumber() > receiver->getVersionNumber());
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(receiver->getVersionNumber() == newVersionNumber);
+    BOOST_CHECK(sender->getVersionNumber() == newVersionNumber);
+    BOOST_CHECK(*receiver ==  4);
+  }
+
 }  //namespace ChimeraTK
 
 test_suite*
@@ -241,7 +294,8 @@ init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
       new ChimeraTK::ProcessScalarTestSuite<uint8_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessScalarTestSuite<double>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessScalarTestSuite<float>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessScalarTestSuite<float>);
 
   return NULL;
 }

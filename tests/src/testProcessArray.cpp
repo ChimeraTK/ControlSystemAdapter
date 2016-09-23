@@ -27,6 +27,7 @@ namespace ChimeraTK {
     static void testSendNotification();
     static void testTimeStampSource();
     static void testSynchronization();
+    static void testVersionNumbers();
 
   private:
     static size_t const N_ELEMENTS = 12;
@@ -54,6 +55,7 @@ namespace ChimeraTK {
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSendNotification));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testTimeStampSource));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSynchronization));
+      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testVersionNumbers));
     }
   };
 
@@ -349,7 +351,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
-            TimeStampSource::SharedPtr(), sendNotificationListener);
+            TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
+            sendNotificationListener);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
@@ -429,6 +432,44 @@ namespace ChimeraTK {
     BOOST_CHECK(!receiver->readNonBlocking());
   }
 
+  template<class T>
+  void ProcessArrayTest<T>::testVersionNumbers() {
+    VersionNumberSource::SharedPtr versionNumberSource = boost::make_shared<
+        VersionNumberSource>();
+    typename std::pair<typename ProcessArray<T>::SharedPtr,
+        typename ProcessArray<T>::SharedPtr> senderReceiver =
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, true, 2,
+            TimeStampSource::SharedPtr(), versionNumberSource);
+    typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
+    typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
+    // Initially, the version number should be zero.
+    BOOST_CHECK(sender->getVersionNumber() == 0);
+    BOOST_CHECK(receiver->getVersionNumber() == 0);
+    // After sending and receiving a value, the version number on the receiver
+    // should be greater.
+    VersionNumber initialVersionNumber = receiver->getVersionNumber();
+    sender->get()[0] = 1;
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
+    VersionNumber versionNumber = receiver->getVersionNumber();
+    BOOST_CHECK(versionNumber > initialVersionNumber);
+    BOOST_CHECK(receiver->get()[0] == 1);
+    // When we send again specifying the same version number, there should be no
+    // update of the receiver.
+    sender->get()[0] = 2;
+    sender->write(versionNumber);
+    BOOST_CHECK(!receiver->readNonBlocking());
+    BOOST_CHECK(versionNumber == receiver->getVersionNumber());
+    BOOST_CHECK(receiver->get()[0] == 1);
+    // When we explicitly use a greater version number, the receiver should be
+    // updated again.
+    sender->get()[0] = 3;
+    sender->write(versionNumberSource->nextVersionNumber());
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
+    BOOST_CHECK(receiver->get()[0] == 3);
+  }
+
 }  //namespace ChimeraTK
 
 test_suite*
@@ -443,11 +484,14 @@ init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
       new ChimeraTK::ProcessArrayTestSuite<int16_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessArrayTestSuite<uint16_t>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<int8_t>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<int8_t>);
   framework::master_test_suite().add(
       new ChimeraTK::ProcessArrayTestSuite<uint8_t>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<double>);
-  framework::master_test_suite().add(new ChimeraTK::ProcessArrayTestSuite<float>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<double>);
+  framework::master_test_suite().add(
+      new ChimeraTK::ProcessArrayTestSuite<float>);
 
   return NULL;
 }

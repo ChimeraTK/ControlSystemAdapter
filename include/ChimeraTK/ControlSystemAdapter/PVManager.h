@@ -430,6 +430,14 @@ namespace ChimeraTK {
     };
 
     /**
+     * Version number source used for all process variables that are created by
+     * all process-variable managers. The source is shared by all PV managers so
+     * that version numbers work as expected even when data is passed between
+     * process variables handled by different PV managers.
+     */
+    static VersionNumberSource::SharedPtr _versionNumberSource;
+
+    /**
      * Map storing the process variables.
      */
     ProcessVariableMap _processVariables;
@@ -509,7 +517,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr> processVariables =
         createSynchronizedProcessScalar<T>(processVariableName, initialValue,
-            numberOfBuffers, timeStampSource, sendNotificationListener);
+            numberOfBuffers, timeStampSource, _versionNumberSource,
+            sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -545,7 +554,8 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessScalar<T>::SharedPtr,
         typename ProcessScalar<T>::SharedPtr> processVariables =
         createSynchronizedProcessScalar<T>(processVariableName, initialValue,
-            numberOfBuffers, timeStampSource, sendNotificationListener);
+            numberOfBuffers, timeStampSource, _versionNumberSource,
+            sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -581,7 +591,7 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName,
-            swappable, numberOfBuffers, timeStampSource,
+            swappable, numberOfBuffers, timeStampSource, _versionNumberSource,
             sendNotificationListener);
 
     _processVariables.insert(
@@ -619,7 +629,7 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName,
-            swappable, numberOfBuffers, timeStampSource,
+            swappable, numberOfBuffers, timeStampSource, _versionNumberSource,
             sendNotificationListener);
 
     _processVariables.insert(
