@@ -19,10 +19,10 @@ namespace ChimeraTK{
       return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->get();
     }
     std::vector<UserType> const & get() const{
-      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->getConst();
+      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->get();
     }
     std::vector<UserType> const & getConst() const{
-      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->getConst();
+      return boost::static_pointer_cast< ProcessArray<UserType> >(_impl)->get();
     }
     
     UserType& operator[](unsigned int element) {
