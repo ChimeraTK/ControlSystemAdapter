@@ -86,11 +86,8 @@ namespace ChimeraTK {
             "This constructor may only be used for a stand-alone process scalar.");
       }
       // We have to initialize the buffer by creating a vector of the
-      // appropriate size. We have to use swap because scoped_ptr does not
-      // allow assignment (it is compatible with C++ 98 which does not have
-      // move semantics).
-      boost::scoped_ptr<std::vector<T> > v(new std::vector<T>(initialValue));
-      (*_buffers)[0].value.swap(v);
+      // appropriate size.
+      (*_buffers)[0].value=initialValue;
     }
 
     /**
@@ -134,14 +131,10 @@ namespace ChimeraTK {
       if (numberOfBuffers > (std::numeric_limits<std::size_t>::max() - 2)) {
         throw std::invalid_argument("The number of buffers is too large.");
       }
-      // We have to initialize the buffers by creating vectors of the
-      // appropriate size. We have to use swap because scoped_ptr does not
-      // allow assignment (it is compatible with C++ 98 which does not have
-      // move semantics).
+      // We have to initialize the buffers by copying in the initial vectors.
       for (typename std::vector<Buffer>::iterator i = _buffers->begin();
           i != _buffers->end(); ++i) {
-        boost::scoped_ptr<std::vector<T> > v(new std::vector<T>(initialValue));
-        i->value.swap(v);
+        i->value=initialValue;
       }
       // The buffer with the index 0 is assigned to the receiver and the
       // buffer with the index 1 is assigned to the sender. All buffers have
@@ -248,8 +241,8 @@ namespace ChimeraTK {
      * and must point to a vector that has the same size as the vector it is
      * swapped with.
      */
-    void swap(boost::scoped_ptr<std::vector<T> > & otherVector) {
-      if (otherVector->size() != get().size()) {
+    void swap(std::vector<T> & otherVector) {
+      if (otherVector.size() != get().size()) {
         throw std::runtime_error("Vector sizes do not match");
       }
       (*_buffers)[_currentIndex].value.swap(otherVector);
@@ -264,7 +257,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> & get() {
-      return *(((*_buffers)[_currentIndex]).value);
+      return ((*_buffers)[_currentIndex]).value;
     }
 
     /**
@@ -277,7 +270,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> const & get() const {
-      return *(((*_buffers)[_currentIndex]).value);
+      return ((*_buffers)[_currentIndex]).value;
     }
 
     bool isReceiver() const {
@@ -323,7 +316,7 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value->size() != _vectorSize) {
+      if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
         throw std::runtime_error(
             "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
       }
@@ -457,7 +450,7 @@ namespace ChimeraTK {
     struct Buffer {
 
       TimeStamp timeStamp;
-      boost::scoped_ptr<std::vector<T> > value;
+      std::vector<T> value;
       VersionNumber versionNumber;
 
       /**
@@ -573,7 +566,7 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the receiver might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value->size() != _vectorSize) {
+      if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
         throw std::runtime_error(
             "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
       }
@@ -608,7 +601,7 @@ namespace ChimeraTK {
         }
       }
       if (shouldCopy) {
-        *((*_buffers)[nextIndex].value) = *((*_buffers)[_currentIndex].value);
+        (*_buffers)[nextIndex].value = (*_buffers)[_currentIndex].value;
         (*_buffers)[nextIndex].timeStamp = newTimeStamp;
         (*_buffers)[nextIndex].versionNumber = newVersionNumber;
       }

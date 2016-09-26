@@ -257,14 +257,13 @@ namespace ChimeraTK {
   void ProcessArrayTest<T>::testSwap() {
     typename ProcessArray<T>::SharedPtr simpleArray =
         createSimpleProcessArray<T>(N_ELEMENTS);
-    typename boost::scoped_ptr<std::vector<T> > v(
-        new std::vector<T>(N_ELEMENTS, SOME_NUMBER));
+    typename std::vector<T> v(N_ELEMENTS, SOME_NUMBER);
     simpleArray->swap(v);
     for (typename std::vector<T>::iterator i = simpleArray->get().begin();
         i != simpleArray->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    for (typename std::vector<T>::iterator i = v->begin(); i != v->end(); ++i) {
+    for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
     // For the synchronized variant we only test that the swap method does not
