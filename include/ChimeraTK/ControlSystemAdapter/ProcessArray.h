@@ -86,9 +86,9 @@ namespace ChimeraTK {
         throw std::invalid_argument(
             "This constructor may only be used for a stand-alone process scalar.");
       }
-      // We have to initialize the buffer by creating a vector of the
-      // appropriate size.
-      (*_buffers)[0].value=initialValue;
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
     }
 
     /**
@@ -110,6 +110,9 @@ namespace ChimeraTK {
             boost::make_shared<boost::lockfree::spsc_queue<std::size_t> >(
                 numberOfBuffers)), _currentIndex(0), _lastSentIndex(0), _versionNumberSource(
             versionNumberSource) {
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != RECEIVER) {
@@ -174,6 +177,9 @@ namespace ChimeraTK {
             receiver), _timeStampSource(timeStampSource), _versionNumberSource(
             versionNumberSource), _sendNotificationListener(
             sendNotificationListener) {
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != SENDER) {
@@ -247,7 +253,7 @@ namespace ChimeraTK {
       if (otherVector.size() != get().size()) {
         throw std::runtime_error("Vector sizes do not match");
       }
-      (*_buffers)[_currentIndex].value.swap(otherVector);
+      get().swap(otherVector);
     }
 
     /**
@@ -259,7 +265,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> & get() {
-      return ((*_buffers)[_currentIndex]).value;
+      return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
 
     /**
@@ -272,7 +278,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> const & get() const {
-      return ((*_buffers)[_currentIndex]).value;
+      return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
 
     virtual bool isReadable() const {
@@ -339,6 +345,7 @@ namespace ChimeraTK {
             || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
           _emptyBufferQueue->push(_currentIndex);
           _currentIndex = nextIndex;
+          mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
           return true;
         } else {
           _emptyBufferQueue->push(nextIndex);
@@ -588,7 +595,7 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the receiver might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
+      if (mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
         throw std::runtime_error(
             "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
       }
@@ -622,9 +629,12 @@ namespace ChimeraTK {
         }
       }
       if (shouldCopy) {
-        (*_buffers)[nextIndex].value = (*_buffers)[_currentIndex].value;
+        (*_buffers)[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
         (*_buffers)[nextIndex].timeStamp = newTimeStamp;
         (*_buffers)[nextIndex].versionNumber = newVersionNumber;
+      }
+      else {
+        (*_buffers)[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
       }
       _lastSentIndex = _currentIndex;
       _currentIndex = nextIndex;
