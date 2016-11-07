@@ -607,6 +607,12 @@ namespace ChimeraTK {
               TimeStamp::currentTime();
       ((*_buffers)[_currentIndex]).timeStamp = newTimeStamp;
       ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
+      if (shouldCopy) {
+        (*_buffers)[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
+      }
+      else {
+        (*_buffers)[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
+      }
       std::size_t nextIndex;
       if (_emptyBufferQueue->pop(nextIndex)) {
         _fullBufferQueue->push(_currentIndex);
@@ -629,12 +635,8 @@ namespace ChimeraTK {
         }
       }
       if (shouldCopy) {
-        (*_buffers)[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
         (*_buffers)[nextIndex].timeStamp = newTimeStamp;
         (*_buffers)[nextIndex].versionNumber = newVersionNumber;
-      }
-      else {
-        (*_buffers)[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
       }
       _lastSentIndex = _currentIndex;
       _currentIndex = nextIndex;
