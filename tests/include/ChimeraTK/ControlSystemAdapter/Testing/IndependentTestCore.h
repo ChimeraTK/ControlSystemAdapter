@@ -18,8 +18,8 @@
 
 template<class DataType>
 struct TypedPVHolder{
-  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr toDeviceScalar;
-  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr fromDeviceScalar;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceScalar;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceScalar;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceArray;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceArray;
   /** The "data type constant" is a value that depends on the data type. It is intended as
@@ -30,30 +30,30 @@ struct TypedPVHolder{
    *  \li -sizeof(type) for signed integer types
    *  \li 1./sizeof(type) for floating point types
    */
-  typename ChimeraTK::ProcessScalar<DataType>::SharedPtr dataTypeConstant;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr dataTypeConstant;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
  
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager, std::string typeNamePrefix):
-    toDeviceScalar( processVariableManager->createProcessScalar<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR") ),
-    fromDeviceScalar( processVariableManager->createProcessScalar<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR") ),
+  toDeviceScalar( processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR",1) ),
+  fromDeviceScalar( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR",1) ),
     toDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
     fromDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
-    dataTypeConstant( processVariableManager->createProcessScalar<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT") ),
+    dataTypeConstant( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT",1) ),
     constantArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) ){
       if (std::numeric_limits<DataType>::is_integer){
 	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int
-	  (*dataTypeConstant) = static_cast<DataType>(-sizeof(DataType));
+          dataTypeConstant->accessData(0) = static_cast<DataType>(-sizeof(DataType));
 	}else{
 	  // unsigned int
-	  (*dataTypeConstant) = sizeof(DataType);
+          dataTypeConstant->accessData(0) = sizeof(DataType);
 	}
       }else{
 	// floating point
-	(*dataTypeConstant) = 1./sizeof(DataType);	  
+        dataTypeConstant->accessData(0) = 1./sizeof(DataType);	  
       }
       for (size_t i = 0; i < constantArray->get().size(); ++i){
-	constantArray->get()[i] = (*dataTypeConstant)*i*i;
+        constantArray->get()[i] = dataTypeConstant->accessData(0)*i*i;
       }
     }
 

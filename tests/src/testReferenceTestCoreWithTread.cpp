@@ -26,12 +26,12 @@ BOOST_AUTO_TEST_CASE( testInt32_t ){
 
   ControlSystemSynchronizationUtility csSyncUtil(csManager);
 
-  auto toDeviceScalar = csManager->getProcessScalar<int32_t>("INT/TO_DEVICE_SCALAR");
-  auto fromDeviceScalar = csManager->getProcessScalar<int32_t>("INT/FROM_DEVICE_SCALAR");
+  auto toDeviceScalar = csManager->getProcessArray<int32_t>("INT/TO_DEVICE_SCALAR");
+  auto fromDeviceScalar = csManager->getProcessArray<int32_t>("INT/FROM_DEVICE_SCALAR");
     
-  int32_t previousReadValue =  *fromDeviceScalar;
+  int32_t previousReadValue = fromDeviceScalar->accessData(0);
 
-  *toDeviceScalar = previousReadValue+13;
+  toDeviceScalar->accessData(0) = previousReadValue+13;
 
   csSyncUtil.sendAll();
   
@@ -40,13 +40,13 @@ BOOST_AUTO_TEST_CASE( testInt32_t ){
   int i = 0;
   for ( ; i < 1000 ; ++i){
     csSyncUtil.receiveAll();
-    if ( *fromDeviceScalar == previousReadValue+13){
+    if ( fromDeviceScalar->accessData(0) == previousReadValue+13){
       break;
     }
     boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
   }
 
-  BOOST_CHECK_MESSAGE( i< 1000, "Reading the correct value timed out." );
+  BOOST_CHECK_MESSAGE( i < 1000, "Reading the correct value timed out." );
 
 }
 
