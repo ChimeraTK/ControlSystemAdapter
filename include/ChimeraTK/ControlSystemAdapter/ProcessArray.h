@@ -15,7 +15,7 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 
-#include "ProcessVariable.h"
+#include <mtca4u/NDRegisterAccessor.h>
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
 #include "VersionNumberSource.h"
@@ -34,7 +34,7 @@ namespace ChimeraTK {
    * source will always stay at zero.
    */
   template<class T>
-  class ProcessArray: public ProcessVariable {
+    class ProcessArray: public mtca4u::NDRegisterAccessor<T> {
 
   public:
 
@@ -75,19 +75,20 @@ namespace ChimeraTK {
      */
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue) :
-        ProcessVariable(name), _instanceType(instanceType), _vectorSize(
-            initialValue.size()), _maySendDestructively(false), _buffers(
-            boost::make_shared<std::vector<Buffer> >(1)), _currentIndex(0), _lastSentIndex(
-            0) {
+            mtca4u::NDRegisterAccessor<T>(name),
+	    _instanceType(instanceType), _vectorSize(initialValue.size()),
+	    _maySendDestructively(true),
+	    _buffers(boost::make_shared<std::vector<Buffer> >(1)),
+	    _currentIndex(0), _lastSentIndex(0) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != STAND_ALONE) {
         throw std::invalid_argument(
             "This constructor may only be used for a stand-alone process scalar.");
       }
-      // We have to initialize the buffer by creating a vector of the
-      // appropriate size.
-      (*_buffers)[0].value=initialValue;
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
     }
 
     /**
@@ -101,7 +102,7 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue, std::size_t numberOfBuffers,
         VersionNumberSource::SharedPtr versionNumberSource) :
-        ProcessVariable(name), _instanceType(instanceType), _vectorSize(
+	mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
             initialValue.size()), _maySendDestructively(false), _buffers(
             boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
             boost::make_shared<boost::lockfree::queue<std::size_t> >(
@@ -109,6 +110,9 @@ namespace ChimeraTK {
             boost::make_shared<boost::lockfree::spsc_queue<std::size_t> >(
                 numberOfBuffers)), _currentIndex(0), _lastSentIndex(0), _versionNumberSource(
             versionNumberSource) {
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != RECEIVER) {
@@ -165,13 +169,17 @@ namespace ChimeraTK {
         VersionNumberSource::SharedPtr versionNumberSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
         ProcessArray::SharedPtr receiver) :
-        ProcessVariable(receiver->getName()), _instanceType(instanceType), _vectorSize(
-            receiver->_vectorSize), _maySendDestructively(maySendDestructively), _buffers(
+	    mtca4u::NDRegisterAccessor<T>(receiver->getName()),
+	    _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
+	    _maySendDestructively(maySendDestructively), _buffers(
             receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
             receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
             receiver), _timeStampSource(timeStampSource), _versionNumberSource(
             versionNumberSource), _sendNotificationListener(
             sendNotificationListener) {
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != SENDER) {
@@ -245,7 +253,7 @@ namespace ChimeraTK {
       if (otherVector.size() != get().size()) {
         throw std::runtime_error("Vector sizes do not match");
       }
-      (*_buffers)[_currentIndex].value.swap(otherVector);
+      get().swap(otherVector);
     }
 
     /**
@@ -257,7 +265,7 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> & get() {
-      return ((*_buffers)[_currentIndex]).value;
+      return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
 
     /**
@@ -270,19 +278,27 @@ namespace ChimeraTK {
      * invalid reference results in undefined behavior.
      */
     std::vector<T> const & get() const {
-      return ((*_buffers)[_currentIndex]).value;
+      return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
 
-    bool isReceiver() const {
+    virtual bool isReadable() const {
       return _instanceType == RECEIVER;
     }
 
-    bool isSender() const {
+    virtual bool isWriteable() const {
       return _instanceType == SENDER;
     }
 
+    virtual bool isReadOnly() const {
+      return !isWriteable();
+    }
+  
     TimeStamp getTimeStamp() const {
       return ((*_buffers)[_currentIndex]).timeStamp;
+    }
+
+    virtual void read(){
+      throw std::logic_error("Blocking read is not supported by process array.");
     }
 
     /**
@@ -308,7 +324,7 @@ namespace ChimeraTK {
       return ((*_buffers)[_currentIndex]).versionNumber;
     }
 
-    bool receive() {
+    bool readNonBlocking() {
       if (_instanceType != RECEIVER) {
         throw std::logic_error(
             "Receive operation is only allowed for a receiver process variable.");
@@ -329,6 +345,7 @@ namespace ChimeraTK {
             || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
           _emptyBufferQueue->push(_currentIndex);
           _currentIndex = nextIndex;
+          mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
           return true;
         } else {
           _emptyBufferQueue->push(nextIndex);
@@ -351,14 +368,14 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a sender.
      */
-    bool send() {
+    void write() {
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
       } else {
         newVersionNumber = 0;
       }
-      return send(newVersionNumber);
+      write(newVersionNumber);
     }
 
     /**
@@ -373,8 +390,8 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a sender.
      */
-    bool send(VersionNumber newVersionNumber) {
-      return sendInternal(newVersionNumber, true);
+    void write(VersionNumber newVersionNumber) {
+      writeInternal(newVersionNumber, true);
     }
 
     /**
@@ -396,14 +413,14 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool sendDestructively() {
+    void writeDestructively() {
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
       } else {
         newVersionNumber = 0;
       }
-      return sendDestructively(newVersionNumber);
+      writeDestructively(newVersionNumber);
     }
 
     /**
@@ -425,12 +442,12 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool sendDestructively(VersionNumber newVersionNumber) {
+    void writeDestructively(VersionNumber newVersionNumber) {
       if (!_maySendDestructively) {
         throw std::runtime_error(
             "This process variable must not be sent destructively because the corresponding flag has not been set.");
       }
-      return sendInternal(newVersionNumber, false);
+      writeInternal(newVersionNumber, false);
     }
 
     const std::type_info& getValueType() const {
@@ -441,6 +458,18 @@ namespace ChimeraTK {
       return true;
     }
 
+    virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const{
+      // only true if the very instance of the transfer element is the same
+      return e.get() == this;
+    }
+
+    virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements(){
+      return { boost::enable_shared_from_this<mtca4u::TransferElement>::shared_from_this() };
+    }
+    
+    virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
+      // You can't replace anything here. Just do nothing.
+    }
   private:
 
     /**
@@ -558,7 +587,7 @@ namespace ChimeraTK {
      * sent array is copied to the buffer used as the new current buffer and
      * which version number is used.
      */
-    bool sendInternal(VersionNumber newVersionNumber, bool shouldCopy) {
+    void writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -566,7 +595,7 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the receiver might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
+      if (mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
         throw std::runtime_error(
             "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
       }
@@ -578,14 +607,19 @@ namespace ChimeraTK {
               TimeStamp::currentTime();
       ((*_buffers)[_currentIndex]).timeStamp = newTimeStamp;
       ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
+      if (shouldCopy) {
+        (*_buffers)[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
+      }
+      else {
+        (*_buffers)[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
+      }
       std::size_t nextIndex;
-      bool foundEmptyBuffer;
       if (_emptyBufferQueue->pop(nextIndex)) {
-        foundEmptyBuffer = true;
+        _fullBufferQueue->push(_currentIndex);
       } else {
         // We can still send, but we will lose older data.
         if (_fullBufferQueue->pop(nextIndex)) {
-          foundEmptyBuffer = false;
+          _fullBufferQueue->push(_currentIndex);
         } else {
           // It is possible, that we did not find an empty buffer but before
           // we could get a full buffer, the receiver processed all full
@@ -597,21 +631,18 @@ namespace ChimeraTK {
             throw std::runtime_error(
                 "Assertion that empty-buffer queue has at least one element failed.");
           }
-          foundEmptyBuffer = true;
+	  _fullBufferQueue->push(_currentIndex);
         }
       }
       if (shouldCopy) {
-        (*_buffers)[nextIndex].value = (*_buffers)[_currentIndex].value;
         (*_buffers)[nextIndex].timeStamp = newTimeStamp;
         (*_buffers)[nextIndex].versionNumber = newVersionNumber;
       }
-      _fullBufferQueue->push(_currentIndex);
       _lastSentIndex = _currentIndex;
       _currentIndex = nextIndex;
       if (_sendNotificationListener) {
         _sendNotificationListener->notify(_receiver);
       }
-      return foundEmptyBuffer;
     }
 
   };

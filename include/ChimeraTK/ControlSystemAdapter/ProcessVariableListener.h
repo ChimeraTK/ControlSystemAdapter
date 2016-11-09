@@ -3,7 +3,7 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "ProcessVariableDecl.h"
+#include "ProcessVariable.h"
 
 namespace ChimeraTK {
 

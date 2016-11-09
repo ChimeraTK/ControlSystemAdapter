@@ -11,7 +11,6 @@
 #include <boost/unordered_map.hpp>
 
 #include "ProcessArray.h"
-#include "ProcessScalar.h"
 
 #include "PVManagerDecl.h"
 
@@ -59,52 +58,6 @@ namespace ChimeraTK {
      * (e.g. an iterator).
      */
     typedef boost::unordered_map<std::string, ProcessVariableSharedPtrPair> ProcessVariableMap;
-
-    /**
-     * Creates a new process scalar for transferring data from the device
-     * library to the control system and registers it with the PV manager.
-     * Creating a process scalar with a name that is already used for a
-     * different process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
-     *
-     * The number of buffers (the minimum and default value is one) is the max.
-     * number of values that can be queued in the transfer queue. Specifying a
-     * larger number make loss of data less likely but increases the memory
-     * footprint.
-     *
-     * Two process variables are created: one for the control system and one for
-     * the device library. The pair that is returned has a reference to the
-     * instance intended for the control system as its first and a reference to
-     * the instance intended for the device library as its second member.
-     */
-    template<class T>
-    std::pair<typename ProcessScalar<T>::SharedPtr,
-        typename ProcessScalar<T>::SharedPtr> createProcessScalarDeviceToControlSystem(
-        const std::string& processVariableName, T initialValue = 0,
-        std::size_t numberOfBuffers = 1);
-
-    /**
-     * Creates a new process scalar for transferring data from the control
-     * system to the device library and registers it with the PV manager.
-     * Creating a process scalar with a name that is already used for a
-     * different process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
-     *
-     * The number of buffers (the minimum and default value is one) is the max.
-     * number of values that can be queued in the transfer queue. Specifying a
-     * larger number make loss of data less likely but increases the memory
-     * footprint.
-     *
-     * Two process variables are created: one for the control system and one for
-     * the device library. The pair that is returned has a reference to the
-     * instance intended for the control system as its first and a reference to
-     * the instance intended for the device library as its second member.
-     */
-    template<class T>
-    std::pair<typename ProcessScalar<T>::SharedPtr,
-        typename ProcessScalar<T>::SharedPtr> createProcessScalarControlSystemToDevice(
-        const std::string& processVariableName, T initialValue = 0,
-        std::size_t numberOfBuffers = 1);
 
     /**
      * Creates a new process array for transferring data from the device library
@@ -171,24 +124,6 @@ namespace ChimeraTK {
         const std::string& processVariableName,
         const std::vector<T>& initialValue, bool maySendDestructively = false,
         std::size_t numberOfBuffers = 2);
-
-    /**
-     * Returns a reference to a process scalar that has been created earlier
-     * using one of the <code>createProcessScalar...</code> methods.
-     * Returns a pointer to <code>null</code> if there is no process scalar or
-     * array with the specified name. Throws a bad_cast exception if there is a
-     * process scalar or array with the specified name but its type does not
-     * match.
-     *
-     * A pair of two process variables is returned: The first member of the pair
-     * is a reference to the instance intended for the control system and the
-     * second member of the pair is a reference to the instance intended for the
-     * device library.
-     */
-    template<class T>
-    std::pair<typename ProcessScalar<T>::SharedPtr,
-        typename ProcessScalar<T>::SharedPtr> getProcessScalar(
-        const std::string& processVariableName) const;
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -495,79 +430,6 @@ namespace ChimeraTK {
       boost::shared_ptr<DevicePVManager> > createPVManager();
 
   template<class T>
-  std::pair<typename ProcessScalar<T>::SharedPtr,
-      typename ProcessScalar<T>::SharedPtr> PVManager::createProcessScalarDeviceToControlSystem(
-      const std::string& processVariableName, T initialValue,
-      std::size_t numberOfBuffers) {
-    if (_processVariables.find(processVariableName)
-        != _processVariables.end()) {
-      throw std::invalid_argument(
-          "Process variable with name " + processVariableName
-              + " already exists.");
-    }
-
-    boost::shared_ptr<TimeStampSource> timeStampSource = boost::make_shared<
-        TimeStampSourceImpl>(shared_from_this());
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-        boost::make_shared<DeviceSendNotificationListenerImpl>(
-            shared_from_this());
-
-    typename std::pair<typename ProcessScalar<T>::SharedPtr,
-        typename ProcessScalar<T>::SharedPtr> processVariables =
-        createSynchronizedProcessScalar<T>(processVariableName, initialValue,
-            numberOfBuffers, timeStampSource, _versionNumberSource,
-            sendNotificationListener);
-
-    _processVariables.insert(
-        std::make_pair(processVariableName,
-            std::make_pair(processVariables.second, processVariables.first)));
-
-    // Increase notification queue size by one to make space for this process
-    // variable. We can use the unsafe variant because calls to this method have
-    // to be synchronized anyway.
-    _controlSystemNotificationQueue.reserve_unsafe(1);
-
-    return std::make_pair(processVariables.second, processVariables.first);
-  }
-
-  template<class T>
-  std::pair<typename ProcessScalar<T>::SharedPtr,
-      typename ProcessScalar<T>::SharedPtr> PVManager::createProcessScalarControlSystemToDevice(
-      const std::string& processVariableName, T initialValue,
-      std::size_t numberOfBuffers) {
-    if (_processVariables.find(processVariableName)
-        != _processVariables.end()) {
-      throw std::invalid_argument(
-          "Process variable with name " + processVariableName
-              + " already exists.");
-    }
-
-    // We do not use a time-stamp source for process variables that are
-    // synchronized from the control system to the device.
-    boost::shared_ptr<TimeStampSource> timeStampSource;
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-        boost::make_shared<ControlSystemSendNotificationListenerImpl>(
-            shared_from_this());
-
-    typename std::pair<typename ProcessScalar<T>::SharedPtr,
-        typename ProcessScalar<T>::SharedPtr> processVariables =
-        createSynchronizedProcessScalar<T>(processVariableName, initialValue,
-            numberOfBuffers, timeStampSource, _versionNumberSource,
-            sendNotificationListener);
-
-    _processVariables.insert(
-        std::make_pair(processVariableName,
-            std::make_pair(processVariables.first, processVariables.second)));
-
-    // Increase notification queue size by one to make space for this process
-    // variable. We can use the unsafe variant because calls to this method have
-    // to be synchronized anyway.
-    _deviceNotificationQueue.reserve_unsafe(1);
-
-    return std::make_pair(processVariables.first, processVariables.second);
-  }
-
-  template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
       const std::string& processVariableName,
@@ -640,27 +502,6 @@ namespace ChimeraTK {
     _deviceNotificationQueue.reserve_unsafe(1);
 
     return std::make_pair(processVariables.first, processVariables.second);
-  }
-
-  template<class T>
-  std::pair<typename ProcessScalar<T>::SharedPtr,
-      typename ProcessScalar<T>::SharedPtr> PVManager::getProcessScalar(
-      const std::string& processVariableName) const {
-    ProcessVariableSharedPtrPair processVariable = getProcessVariable(
-        processVariableName);
-    if (processVariable.first && processVariable.second) {
-      typename ProcessScalar<T>::SharedPtr csPV = boost::dynamic_pointer_cast<
-          ProcessScalar<T>, ProcessVariable>(processVariable.first);
-      typename ProcessScalar<T>::SharedPtr devPV = boost::dynamic_pointer_cast<
-          ProcessScalar<T>, ProcessVariable>(processVariable.second);
-      if (!csPV || !devPV) {
-        throw std::bad_cast();
-      }
-      return std::make_pair(csPV, devPV);
-    } else {
-      return std::make_pair(typename ProcessScalar<T>::SharedPtr(),
-          typename ProcessScalar<T>::SharedPtr());
-    }
   }
 
   template<class T>

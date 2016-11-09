@@ -27,18 +27,18 @@ namespace ChimeraTK {
   void DeviceSynchronizationUtility::receiveAll() {
     ProcessVariable::SharedPtr pv;
     while ((pv = _pvManager->nextNotification())) {
-      if (pv->receive()) {
+      if (pv->readNonBlocking()) {
         boost::unordered_map<std::string, ProcessVariableListener::SharedPtr>::iterator listenerIterator =
             _receiveNotificationListeners.find(pv->getName());
         if (listenerIterator != _receiveNotificationListeners.end()) {
           ProcessVariableListener::SharedPtr receiveListener(
               listenerIterator->second);
           receiveListener->notify(pv);
-          while (pv->receive()) {
+          while (pv->readNonBlocking()) {
             receiveListener->notify(pv);
           }
         } else {
-          while (pv->receive()) {
+          while (pv->readNonBlocking()) {
             continue;
           }
         }
@@ -51,8 +51,8 @@ namespace ChimeraTK {
         _pvManager->getAllProcessVariables());
     for (std::vector<ProcessVariable::SharedPtr>::iterator i =
         processVariables.begin(); i != processVariables.end(); ++i) {
-      if ((*i)->isSender()) {
-        (*i)->send();
+      if ((*i)->isWriteable()) {
+        (*i)->write();
       }
     }
   }

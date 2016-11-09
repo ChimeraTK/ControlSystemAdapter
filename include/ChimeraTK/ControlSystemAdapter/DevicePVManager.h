@@ -58,27 +58,6 @@ namespace ChimeraTK {
     typedef boost::shared_ptr<DevicePVManager> SharedPtr;
 
     /**
-     * Creates a new process scalar and registers it with the PV manager.
-     * Creating a process scalar with a name that is already used for a
-     * different process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
-     *
-     * The number of buffers (the minimum and default value is one) is the max.
-     * number of values that can be queued in the transfer queue. Specifying a
-     * larger number make loss of data less likely but increases the memory
-     * footprint.
-     *
-     * Two process variables are created: one for the control system and one for
-     * the device library. The one that is returned is the one that should be
-     * used by the device library.
-     */
-    template<class T>
-    typename ProcessScalar<T>::SharedPtr createProcessScalar(
-        SynchronizationDirection synchronizationDirection,
-        const std::string& processVariableName, T initialValue = 0,
-        std::size_t numberOfBuffers = 1);
-
-    /**
      * Creates a new process array and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
@@ -135,18 +114,6 @@ namespace ChimeraTK {
         const std::string& processVariableName,
         const std::vector<T>& initialValue, bool maySendDestructively = false,
         std::size_t numberOfBuffers = 2);
-
-    /**
-     * Returns a reference to a process scalar that has been created earlier
-     * using the
-     * {@link createProcessScalar(SynchronizationDirection, const std::string&, T, std::size_t)}
-     * method. Returns a pointer to <code>null</code> if there is no process
-     * scalar or array with the specified name. Throws a bad_cast exception if
-     * there is a process scalar or array with the specified name but its type
-     * does not match.
-     */
-    template<class T> typename ProcessScalar<T>::SharedPtr getProcessScalar(
-        const std::string& processVariableName) const;
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -256,23 +223,6 @@ namespace ChimeraTK {
   };
 
   template<class T>
-  typename ProcessScalar<T>::SharedPtr DevicePVManager::createProcessScalar(
-      SynchronizationDirection synchronizationDirection,
-      const std::string& processVariableName, T initialValue,
-      std::size_t numberOfBuffers) {
-    switch (synchronizationDirection) {
-    case controlSystemToDevice:
-      return _pvManager->createProcessScalarControlSystemToDevice<T>(
-          processVariableName, initialValue, numberOfBuffers).second;
-    case deviceToControlSystem:
-      return _pvManager->createProcessScalarDeviceToControlSystem<T>(
-          processVariableName, initialValue, numberOfBuffers).second;
-    default:
-      throw std::invalid_argument("invalid SynchronizationDirection");
-    }
-  }
-
-  template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
       const std::string& processVariableName, std::size_t size, T initialValue,
@@ -309,12 +259,6 @@ namespace ChimeraTK {
     default:
       throw std::invalid_argument("invalid SynchronizationDirection");
     }
-  }
-
-  template<class T>
-  typename ProcessScalar<T>::SharedPtr DevicePVManager::getProcessScalar(
-      const std::string& processVariableName) const {
-    return _pvManager->getProcessScalar<T>(processVariableName).second;
   }
 
   template<class T>

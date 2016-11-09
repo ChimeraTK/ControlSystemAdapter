@@ -2,7 +2,7 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
+#include "ControlSystemSynchronizationUtility.h"
 #include "IndependentTestCore.h"
 
 using namespace boost::unit_test_framework;
@@ -35,23 +35,23 @@ struct TestCoreFixture{
 
   template<class UserType>
   void typedWriteScalarTest(std::string typeNamePrefix){
-    auto toDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/TO_DEVICE_SCALAR");
-    auto fromDeviceScalar = csManager->getProcessScalar<UserType>(typeNamePrefix+"/FROM_DEVICE_SCALAR");
+    auto toDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix+"/TO_DEVICE_SCALAR");
+    auto fromDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix+"/FROM_DEVICE_SCALAR");
 
-    UserType previousReadValue =  *fromDeviceScalar;
+    UserType previousReadValue =  fromDeviceScalar->accessData(0);
 
-    *toDeviceScalar = previousReadValue+13;
+    toDeviceScalar->accessData(0) = previousReadValue+13;
 
     csSyncUtil.sendAll();
     IndependentTestCore::runMainLoopOnce();
     csSyncUtil.receiveAll();
   
-    BOOST_CHECK( *fromDeviceScalar == previousReadValue+13 );
+    BOOST_CHECK( fromDeviceScalar->accessData(0) == previousReadValue+13 );
   }
 
   template<class UserType>
   void typedReadArrayTest(std::string typeNamePrefix){
-    UserType typeConstant = csManager->getProcessScalar<UserType>(typeNamePrefix+"/DATA_TYPE_CONSTANT")->get();
+    UserType typeConstant = csManager->getProcessArray<UserType>(typeNamePrefix+"/DATA_TYPE_CONSTANT")->accessData(0);
 
     auto inputArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/CONSTANT_ARRAY");
     BOOST_REQUIRE(inputArray);
@@ -96,14 +96,14 @@ BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
 
 BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
   // just after creation of the fixture the constants should be available to the control system
-  BOOST_CHECK( csManager->getProcessScalar<int8_t>("CHAR/DATA_TYPE_CONSTANT")->get() == -1 );
-  BOOST_CHECK( csManager->getProcessScalar<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->get() == 1 );
-  BOOST_CHECK( csManager->getProcessScalar<int16_t>("SHORT/DATA_TYPE_CONSTANT")->get() == -2 );
-  BOOST_CHECK( csManager->getProcessScalar<uint16_t>("USHORT/DATA_TYPE_CONSTANT")->get() == 2 );
-  BOOST_CHECK( csManager->getProcessScalar<int32_t>("INT/DATA_TYPE_CONSTANT")->get() == -4 );
-  BOOST_CHECK( csManager->getProcessScalar<uint32_t>("UINT/DATA_TYPE_CONSTANT")->get() == 4 );
-  BOOST_CHECK( csManager->getProcessScalar<float>("FLOAT/DATA_TYPE_CONSTANT")->get() == 1./4 );
-  BOOST_CHECK( csManager->getProcessScalar<double>("DOUBLE/DATA_TYPE_CONSTANT")->get() == 1./8 );
+  BOOST_CHECK( csManager->getProcessArray<int8_t>("CHAR/DATA_TYPE_CONSTANT")->get()[0] == -1 );
+  BOOST_CHECK( csManager->getProcessArray<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->get()[0] == 1 );
+  BOOST_CHECK( csManager->getProcessArray<int16_t>("SHORT/DATA_TYPE_CONSTANT")->get()[0] == -2 );
+  BOOST_CHECK( csManager->getProcessArray<uint16_t>("USHORT/DATA_TYPE_CONSTANT")->get()[0] == 2 );
+  BOOST_CHECK( csManager->getProcessArray<int32_t>("INT/DATA_TYPE_CONSTANT")->get()[0] == -4 );
+  BOOST_CHECK( csManager->getProcessArray<uint32_t>("UINT/DATA_TYPE_CONSTANT")->get()[0] == 4 );
+  BOOST_CHECK( csManager->getProcessArray<float>("FLOAT/DATA_TYPE_CONSTANT")->get()[0] == 1./4 );
+  BOOST_CHECK( csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->get()[0] == 1./8 );
 }
 
 BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){

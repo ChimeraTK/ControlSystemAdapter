@@ -9,9 +9,9 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "ControlSystemSynchronizationUtility.h"
 
 #include "CountingProcessVariableListener.h"
 
@@ -28,25 +28,25 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     boost::shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    ProcessScalar<int32_t>::SharedPtr devIntOut =
-        devManager->createProcessScalar<int32_t>(controlSystemToDevice,
-            "intOut");
-    ProcessScalar<int32_t>::SharedPtr csIntOut = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntOut =
+        devManager->createProcessArray<int32_t>(controlSystemToDevice,
+            "intOut",1);
+    ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<
         int32_t>("intOut");
-    ProcessScalar<float>::SharedPtr devFloatOut =
-        devManager->createProcessScalar<float>(controlSystemToDevice,
-            "floatOut");
-    ProcessScalar<float>::SharedPtr csFloatOut = csManager->getProcessScalar<
+    ProcessArray<float>::SharedPtr devFloatOut =
+        devManager->createProcessArray<float>(controlSystemToDevice,
+            "floatOut",1);
+    ProcessArray<float>::SharedPtr csFloatOut = csManager->getProcessArray<
         float>("floatOut");
-    ProcessScalar<int32_t>::SharedPtr devIntIn =
-        devManager->createProcessScalar<int32_t>(deviceToControlSystem,
-            "intIn");
-    ProcessScalar<int32_t>::SharedPtr csIntIn = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntIn =
+        devManager->createProcessArray<int32_t>(deviceToControlSystem,
+            "intIn",1);
+    ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<
         int32_t>("intIn");
-    ProcessScalar<float>::SharedPtr devFloatIn =
-        devManager->createProcessScalar<float>(deviceToControlSystem,
-            "floatIn");
-    ProcessScalar<float>::SharedPtr csFloatIn = csManager->getProcessScalar<
+    ProcessArray<float>::SharedPtr devFloatIn =
+        devManager->createProcessArray<float>(deviceToControlSystem,
+            "floatIn",1);
+    ProcessArray<float>::SharedPtr csFloatIn = csManager->getProcessArray<
         float>("floatIn");
 
     ControlSystemSynchronizationUtility syncUtil(csManager);
@@ -66,98 +66,98 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     // Next we test it with a single element.
     ProcessVariable::SharedPtr singletonRawArray[1];
     singletonRawArray[0] = csIntIn;
-    *devIntIn = 42;
-    devIntIn->send();
+    devIntIn->accessData(0) = 42;
+    devIntIn->write();
     syncUtil.receive(singletonRawArray, singletonRawArray + 1);
-    BOOST_CHECK(*csIntIn == 42);
+    BOOST_CHECK(csIntIn->accessData(0) == 42);
     singletonRawArray[0] = csIntOut;
-    *csIntOut = 43;
+    csIntOut->accessData(0) = 43;
     syncUtil.send(singletonRawArray, singletonRawArray + 1);
-    devIntOut->receive();
-    BOOST_CHECK(*devIntOut == 43);
+    devIntOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 43);
     std::vector<ProcessVariable::SharedPtr> singletonVector(1);
     singletonVector[0] = csIntIn;
-    *devIntIn = 44;
-    devIntIn->send();
+    devIntIn->accessData(0) = 44;
+    devIntIn->write();
     syncUtil.receive(singletonVector);
-    BOOST_CHECK(*csIntIn == 44);
+    BOOST_CHECK(csIntIn->accessData(0) == 44);
     singletonVector[0] = csIntOut;
-    *csIntOut = 45;
+    csIntOut->accessData(0) = 45;
     syncUtil.send(singletonVector);
-    devIntOut->receive();
-    BOOST_CHECK(*devIntOut == 45);
+    devIntOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 45);
     std::list<ProcessVariable::SharedPtr> singletonList;
     singletonList.push_back(csIntIn);
-    *devIntIn = 46;
-    devIntIn->send();
+    devIntIn->accessData(0) = 46;
+    devIntIn->write();
     syncUtil.receive(singletonList);
-    BOOST_CHECK(*csIntIn == 46);
+    BOOST_CHECK(csIntIn->accessData(0) == 46);
     singletonList.clear();
     singletonList.push_back(csIntOut);
-    *csIntOut = 47;
+    csIntOut->accessData(0) = 47;
     syncUtil.send(singletonList);
-    devIntOut->receive();
-    BOOST_CHECK(*devIntOut == 47);
+    devIntOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 47);
 
     // Finally, we test with two elements.
     ProcessVariable::SharedPtr doubleRawArray[2];
     doubleRawArray[0] = csIntIn;
     doubleRawArray[1] = csFloatIn;
-    *devIntIn = 48;
-    *devFloatIn = 49.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->accessData(0) = 48;
+    devFloatIn->accessData(0) = 49.0f;
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleRawArray, doubleRawArray + 2);
-    BOOST_CHECK(*csIntIn == 48);
-    BOOST_CHECK(*csFloatIn == 49.0f);
+    BOOST_CHECK(csIntIn->accessData(0) == 48);
+    BOOST_CHECK(csFloatIn->accessData(0) == 49.0f);
     doubleRawArray[0] = csIntOut;
     doubleRawArray[1] = csFloatOut;
-    *csIntOut = 49;
-    *csFloatOut = 50.0f;
+    csIntOut->accessData(0) = 49;
+    csFloatOut->accessData(0) = 50.0f;
     syncUtil.send(doubleRawArray, doubleRawArray + 2);
-    devIntOut->receive();
-    devFloatOut->receive();
-    BOOST_CHECK(*devIntOut == 49);
-    BOOST_CHECK(*devFloatOut == 50.0f);
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 49);
+    BOOST_CHECK(devFloatOut->accessData(0) == 50.0f);
     std::vector<ProcessVariable::SharedPtr> doubleVector(2);
     doubleVector[0] = csIntIn;
     doubleVector[1] = csFloatIn;
-    *devIntIn = 51;
-    *devFloatIn = 52.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->accessData(0) = 51;
+    devFloatIn->accessData(0) = 52.0f;
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleVector);
-    BOOST_CHECK(*csIntIn == 51);
-    BOOST_CHECK(*csFloatIn == 52.0f);
+    BOOST_CHECK(csIntIn->accessData(0) == 51);
+    BOOST_CHECK(csFloatIn->accessData(0) == 52.0f);
     doubleVector[0] = csIntOut;
     doubleVector[1] = csFloatOut;
-    *csIntOut = 53;
-    *csFloatOut = 54.0f;
+    csIntOut->accessData(0) = 53;
+    csFloatOut->accessData(0) = 54.0f;
     syncUtil.send(doubleVector);
-    devIntOut->receive();
-    devFloatOut->receive();
-    BOOST_CHECK(*devIntOut == 53);
-    BOOST_CHECK(*devFloatOut == 54.0f);
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 53);
+    BOOST_CHECK(devFloatOut->accessData(0) == 54.0f);
     std::list<ProcessVariable::SharedPtr> doubleList;
     doubleList.push_back(csIntIn);
     doubleList.push_back(csFloatIn);
-    *devIntIn = 55;
-    *devFloatIn = 56.0f;
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->accessData(0) = 55;
+    devFloatIn->accessData(0) = 56.0f;
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receive(doubleList);
-    BOOST_CHECK(*csIntIn == 55);
-    BOOST_CHECK(*csFloatIn == 56.0f);
+    BOOST_CHECK(csIntIn->accessData(0) == 55);
+    BOOST_CHECK(csFloatIn->accessData(0) == 56.0f);
     doubleList.clear();
     doubleList.push_back(csIntOut);
     doubleList.push_back(csFloatOut);
-    *csIntOut = 57;
-    *csFloatOut = 58.0f;
+    csIntOut->accessData(0) = 57;
+    csFloatOut->accessData(0) = 58.0f;
     syncUtil.send(doubleList);
-    devIntOut->receive();
-    devFloatOut->receive();
-    BOOST_CHECK(*devIntOut == 57);
-    BOOST_CHECK(*devFloatOut == 58.0f);
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 57);
+    BOOST_CHECK(devFloatOut->accessData(0) == 58.0f);
   }
 
   BOOST_AUTO_TEST_CASE( testReceiveAll ) {
@@ -166,18 +166,18 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     boost::shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    ProcessScalar<int32_t>::SharedPtr devIntIn =
-        devManager->createProcessScalar<int32_t>(deviceToControlSystem,
-            "intIn");
-    ProcessScalar<int32_t>::SharedPtr csIntIn = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntIn =
+        devManager->createProcessArray<int32_t>(deviceToControlSystem,
+            "intIn",1);
+    ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<
         int32_t>("intIn");
 
     ControlSystemSynchronizationUtility syncUtil(csManager);
 
-    *devIntIn = 5;
-    devIntIn->send();
+    devIntIn->accessData(0) = 5;
+    devIntIn->write();
     syncUtil.receiveAll();
-    BOOST_CHECK(*csIntIn == 5);
+    BOOST_CHECK(csIntIn->accessData(0) == 5);
   }
 
   BOOST_AUTO_TEST_CASE( testSendAll ) {
@@ -186,31 +186,31 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     boost::shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    ProcessScalar<int32_t>::SharedPtr devIntOut =
-        devManager->createProcessScalar<int32_t>(controlSystemToDevice,
-            "intOut");
-    ProcessScalar<int32_t>::SharedPtr csIntOut = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntOut =
+        devManager->createProcessArray<int32_t>(controlSystemToDevice,
+            "intOut",1);
+    ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<
         int32_t>("intOut");
-    ProcessScalar<float>::SharedPtr devFloatOut =
-        devManager->createProcessScalar<float>(controlSystemToDevice,
-            "floatOut");
-    ProcessScalar<float>::SharedPtr csFloatOut = csManager->getProcessScalar<
+    ProcessArray<float>::SharedPtr devFloatOut =
+        devManager->createProcessArray<float>(controlSystemToDevice,
+            "floatOut",1);
+    ProcessArray<float>::SharedPtr csFloatOut = csManager->getProcessArray<
         float>("floatOut");
-    ProcessScalar<int32_t>::SharedPtr devIntIn =
-        devManager->createProcessScalar<int32_t>(deviceToControlSystem,
-            "intIn");
-    ProcessScalar<int32_t>::SharedPtr csIntIn = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntIn =
+        devManager->createProcessArray<int32_t>(deviceToControlSystem,
+            "intIn",1);
+    ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<
         int32_t>("intIn");
 
     ControlSystemSynchronizationUtility syncUtil(csManager);
 
-    *csIntOut = 15;
-    *csFloatOut = 16.0f;
+    csIntOut->accessData(0) = 15;
+    csFloatOut->accessData(0) = 16.0f;
     syncUtil.sendAll();
-    devIntOut->receive();
-    devFloatOut->receive();
-    BOOST_CHECK(*devIntOut == 15);
-    BOOST_CHECK(*devFloatOut == 16.0f);
+    devIntOut->readNonBlocking();
+    devFloatOut->readNonBlocking();
+    BOOST_CHECK(devIntOut->accessData(0) == 15);
+    BOOST_CHECK(devFloatOut->accessData(0) == 16.0f);
   }
 
   BOOST_AUTO_TEST_CASE( testReceiveNotificationListener ) {
@@ -219,15 +219,15 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     boost::shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    ProcessScalar<int32_t>::SharedPtr devIntIn =
-        devManager->createProcessScalar<int32_t>(deviceToControlSystem,
-            "intIn");
-    ProcessScalar<int32_t>::SharedPtr csIntIn = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr devIntIn =
+        devManager->createProcessArray<int32_t>(deviceToControlSystem,
+            "intIn",1);
+    ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<
         int32_t>("intIn");
-    ProcessScalar<float>::SharedPtr devFloatIn =
-        devManager->createProcessScalar<float>(deviceToControlSystem,
-            "floatIn");
-    ProcessScalar<float>::SharedPtr csFloatIn = csManager->getProcessScalar<
+    ProcessArray<float>::SharedPtr devFloatIn =
+        devManager->createProcessArray<float>(deviceToControlSystem,
+            "floatIn",1);
+    ProcessArray<float>::SharedPtr csFloatIn = csManager->getProcessArray<
         float>("floatIn");
 
     ControlSystemSynchronizationUtility syncUtil(csManager);
@@ -237,14 +237,14 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
 
     syncUtil.addReceiveNotificationListener("intIn",
         receiveNotificationListener);
-    devIntIn->send();
-    devFloatIn->send();
+    devIntIn->write();
+    devFloatIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 1);
     BOOST_CHECK(
         receiveNotificationListener->lastProcessVariable->getName() == "intIn");
 
-    devIntIn->send();
+    devIntIn->write();
     std::vector<ProcessVariable::SharedPtr> pvList(1);
     pvList[0] = csIntIn;
     syncUtil.receive(pvList);
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
         receiveNotificationListener->lastProcessVariable->getName() == "intIn");
 
     syncUtil.removeReceiveNotificationListener("intIn");
-    devIntIn->send();
+    devIntIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 2);
   }

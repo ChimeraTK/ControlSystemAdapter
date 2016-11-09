@@ -8,9 +8,9 @@
 #include <boost/chrono.hpp>
 #include <boost/make_shared.hpp>
 
-#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "SynchronizationDirection.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -31,7 +31,7 @@ static void receiveAll(
       processVariables.begin(); i != processVariables.end(); ++i) {
     // Receive all pending values so that we can be sure that we have the most
     // up-to-date value.
-    while ((*i)->receive()) {
+    while ((*i)->readNonBlocking()) {
       continue;
     }
   }
@@ -43,7 +43,7 @@ static void receiveAll(
 static void sendAll(list<ProcessVariable::SharedPtr> const & processVariables) {
   for (list<ProcessVariable::SharedPtr>::const_iterator i =
       processVariables.begin(); i != processVariables.end(); ++i) {
-    (*i)->send();
+    (*i)->write();
   }
 }
 
@@ -51,25 +51,25 @@ template<class T>
 static void testCreateProcessVariables(const string& name,
     shared_ptr<DevicePVManager> devManager,
     shared_ptr<ControlSystemPVManager> csManager) {
-  shared_ptr<ProcessScalar<T> > createdPV = devManager->createProcessScalar<T>(
-      deviceToControlSystem, name + "In");
+  shared_ptr<ProcessArray<T> > createdPV = devManager->createProcessArray<T>(
+      deviceToControlSystem, name + "In", 1);
   BOOST_CHECK(createdPV->getName() == name + "In");
-  shared_ptr<ProcessScalar<T> > devPV = devManager->getProcessScalar<T>(
+  shared_ptr<ProcessArray<T> > devPV = devManager->getProcessArray<T>(
       name + "In");
   BOOST_CHECK(devPV->getName() == name + "In");
-  shared_ptr<ProcessScalar<T> > csPV = csManager->getProcessScalar<T>(
+  shared_ptr<ProcessArray<T> > csPV = csManager->getProcessArray<T>(
       name + "In");
   BOOST_CHECK(csPV->getName() == name + "In");
-  createdPV = devManager->createProcessScalar<T>(controlSystemToDevice,
-      name + "Out");
+  createdPV = devManager->createProcessArray<T>(controlSystemToDevice,
+      name + "Out", 1);
   BOOST_CHECK(createdPV->getName() == name + "Out");
-  devPV = devManager->getProcessScalar<T>(name + "Out");
+  devPV = devManager->getProcessArray<T>(name + "Out");
   BOOST_CHECK(devPV->getName() == name + "Out");
-  csPV = csManager->getProcessScalar<T>(name + "Out");
+  csPV = csManager->getProcessArray<T>(name + "Out");
   BOOST_CHECK(csPV->getName() == name + "Out");
 
-  BOOST_CHECK_THROW( devManager->createProcessScalar<T>(
-   static_cast<SynchronizationDirection>(-1),name + "ShouldFail"),
+  BOOST_CHECK_THROW( devManager->createProcessArray<T>(
+   static_cast<SynchronizationDirection>(-1),name + "ShouldFail", 1),
    std::invalid_argument );
 
   string arrayName = name + "Array";
@@ -129,15 +129,15 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<double>(deviceToControlSystem, "double");
+    devManager->createProcessArray<double>(deviceToControlSystem, "double", 1);
     // We expect a bad_argument exception to be thrown because the specified
     // PV name is already used.
     BOOST_CHECK_THROW(
-        devManager->createProcessScalar<float>(controlSystemToDevice, "double"),
+        devManager->createProcessArray<float>(controlSystemToDevice, "double", 1),
         std::invalid_argument);
     BOOST_CHECK_THROW(
-        devManager->createProcessScalar<double>(deviceToControlSystem,
-            "double"), std::invalid_argument);
+        devManager->createProcessArray<double>(deviceToControlSystem,
+            "double", 1), std::invalid_argument);
   }
 
   BOOST_AUTO_TEST_CASE( testNonExistentPVName ) {
@@ -147,8 +147,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    BOOST_CHECK(!devManager->getProcessScalar<double>("foo"));
-    BOOST_CHECK(!csManager->getProcessScalar<double>("foo"));
+    BOOST_CHECK(!devManager->getProcessArray<double>("foo"));
+    BOOST_CHECK(!csManager->getProcessArray<double>("foo"));
   }
 
   BOOST_AUTO_TEST_CASE( testInvalidCast ) {
@@ -158,26 +158,18 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<double>(deviceToControlSystem, "double");
+    devManager->createProcessArray<double>(deviceToControlSystem, "double", 1);
     devManager->createProcessArray<float>(controlSystemToDevice, "floatArray",
         10);
     // We expect a bad_cast exception to be thrown because the specified
     // PV name points to a PV of a different type.
-    BOOST_CHECK_THROW(devManager->getProcessScalar<float>("double"),
+    BOOST_CHECK_THROW(devManager->getProcessArray<float>("double"),
         std::bad_cast);
-    BOOST_CHECK_THROW(csManager->getProcessScalar<float>("double"),
-        std::bad_cast);
-    BOOST_CHECK_THROW(devManager->getProcessArray<double>("double"),
-        std::bad_cast);
-    BOOST_CHECK_THROW(csManager->getProcessArray<double>("double"),
+    BOOST_CHECK_THROW(csManager->getProcessArray<float>("double"),
         std::bad_cast);
     BOOST_CHECK_THROW(devManager->getProcessArray<double>("floatArray"),
         std::bad_cast);
     BOOST_CHECK_THROW(csManager->getProcessArray<double>("floatArray"),
-        std::bad_cast);
-    BOOST_CHECK_THROW(devManager->getProcessScalar<float>("floatArray"),
-        std::bad_cast);
-    BOOST_CHECK_THROW(csManager->getProcessScalar<float>("floatArray"),
         std::bad_cast);
   }
 
@@ -189,22 +181,25 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       T pv = *i;
       const std::string& name = pv->getName();
       if (name == "double") {
-        BOOST_CHECK(pv->isArray() == false);
         BOOST_CHECK(pv->getValueType() == typeid(double));
-        boost::dynamic_pointer_cast<ProcessScalar<double>,
-            typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 1);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
       } else if (name == "int32") {
-        BOOST_CHECK(pv->isArray() == false);
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
-        boost::dynamic_pointer_cast<ProcessScalar<int32_t>,
-            typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 1);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
       } else if (name == "floatArray") {
-        BOOST_CHECK(pv->isArray() == true);
         BOOST_CHECK(pv->getValueType() == typeid(float));
-        boost::dynamic_pointer_cast<ProcessArray<float>,
-            typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 10);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundFloatArray = true;
       } else {
         BOOST_FAIL(
@@ -222,22 +217,26 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       T pv = *i;
       const std::string& name = pv->getName();
       if (name == "double") {
-        BOOST_CHECK(pv->isArray() == false);
         BOOST_CHECK(pv->getValueType() == typeid(double));
-        boost::dynamic_pointer_cast<ProcessScalar<double>,
-            typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 1);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
       } else if (name == "int32") {
-        BOOST_CHECK(pv->isArray() == false);
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
-        boost::dynamic_pointer_cast<ProcessScalar<int32_t>,
-            typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 1);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
       } else if (name == "floatArray") {
         BOOST_CHECK(pv->isArray() == true);
-        BOOST_CHECK(pv->getValueType() == typeid(float));
-        boost::dynamic_pointer_cast<ProcessArray<float>,
-            typename T::element_type>(pv);
+        boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
+        auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
+        BOOST_CHECK(pvc->isArray() == true);
+        BOOST_CHECK(pvc->getNumberOfSamples() == 10);
+        BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundFloatArray = true;
       } else {
         BOOST_FAIL(
@@ -254,8 +253,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<double>(controlSystemToDevice, "double");
-    devManager->createProcessScalar<int32_t>(deviceToControlSystem, "int32");
+    devManager->createProcessArray<double>(controlSystemToDevice, "double", 1);
+    devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32", 1);
     devManager->createProcessArray<float>(deviceToControlSystem, "floatArray",
         10);
 
@@ -271,32 +270,32 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<DevicePVManager> pvManager;
 
     void operator()() {
-      ProcessScalar<int32_t>::SharedPtr int32In = pvManager->getProcessScalar<
+      ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<
           int32_t>("int32In");
-      ProcessScalar<int32_t>::SharedPtr int32Out = pvManager->getProcessScalar<
+      ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<
           int32_t>("int32Out");
       ProcessArray<float>::SharedPtr floatArrayIn = pvManager->getProcessArray<
           float>("floatArrayIn");
       ProcessArray<float>::SharedPtr floatArrayOut = pvManager->getProcessArray<
           float>("floatArrayOut");
-      ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-          pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+      ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+          pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
-      int32In->set(0);
-      int32Out->set(0);
+      int32In->accessData(0) = 0;
+      int32Out->accessData(0) = 0;
       floatArrayIn->set(vector<float>(10, 0.0));
       floatArrayOut->set(vector<float>(10, 0.0));
-      stopDeviceThread->set(0);
+      stopDeviceThread->accessData(0) = 0;
 
-      while (stopDeviceThread->get() == 0) {
+      while (stopDeviceThread->accessData(0) == 0) {
         *int32In = *int32Out;
         *floatArrayIn = *floatArrayOut;
-        int32In->send();
-        floatArrayIn->send();
+        int32In->write();
+        floatArrayIn->write();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
-        int32Out->receive();
-        floatArrayOut->receive();
+        stopDeviceThread->readNonBlocking();
+        int32Out->readNonBlocking();
+        floatArrayOut->readNonBlocking();
       }
     }
   };
@@ -308,14 +307,14 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<int32_t>(deviceToControlSystem, "int32In");
-    devManager->createProcessScalar<int32_t>(controlSystemToDevice, "int32Out");
+    devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
+    devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
     devManager->createProcessArray<float>(deviceToControlSystem, "floatArrayIn",
         10);
     devManager->createProcessArray<float>(controlSystemToDevice,
         "floatArrayOut", 10);
-    devManager->createProcessScalar<int8_t>(controlSystemToDevice,
-        "stopDeviceThread");
+    devManager->createProcessArray<int8_t>(controlSystemToDevice,
+        "stopDeviceThread", 1);
 
     TestDeviceCallable callable;
     callable.pvManager = devManager;
@@ -329,16 +328,16 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
   BOOST_AUTO_TEST_CASE( testSynchronization ) {
     shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib();
 
-    ProcessScalar<int32_t>::SharedPtr int32In = pvManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<
         int32_t>("int32In");
-    ProcessScalar<int32_t>::SharedPtr int32Out = pvManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<
         int32_t>("int32Out");
     ProcessArray<float>::SharedPtr floatArrayIn = pvManager->getProcessArray<
         float>("floatArrayIn");
     ProcessArray<float>::SharedPtr floatArrayOut = pvManager->getProcessArray<
         float>("floatArrayOut");
-    ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-        pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+    ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+        pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
     list<ProcessVariable::SharedPtr> inboundProcessVariables;
     inboundProcessVariables.push_back(int32In);
@@ -349,7 +348,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     outboundProcessVariables.push_back(floatArrayOut);
     outboundProcessVariables.push_back(stopDeviceThread);
 
-    *int32Out = 55;
+    int32Out->accessData(0) = 55;
     floatArrayOut->get().at(0) = 1.0f;
     floatArrayOut->get().at(1) = 2.0f;
     floatArrayOut->get().at(2) = -1.3f;
@@ -360,12 +359,12 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     boost::this_thread::sleep_for(boost::chrono::milliseconds(15));
     receiveAll(inboundProcessVariables);
 
-    BOOST_CHECK(*int32In == 55);
+    BOOST_CHECK(int32In->accessData(0) == 55);
     BOOST_CHECK(floatArrayIn->get().at(0) == 1.0f);
     BOOST_CHECK(floatArrayIn->get().at(1) == 2.0f);
     BOOST_CHECK(floatArrayIn->get().at(2) == -1.3f);
 
-    *int32Out = -300;
+    int32Out->accessData(0) = -300;
     floatArrayOut->get().at(0) = 15.0f;
     floatArrayOut->get().at(1) = -7.2f;
     floatArrayOut->get().at(9) = 120.0f;
@@ -376,49 +375,49 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     boost::this_thread::sleep_for(boost::chrono::milliseconds(15));
     receiveAll(inboundProcessVariables);
 
-    BOOST_CHECK(*int32In == -300);
+    BOOST_CHECK(int32In->accessData(0) == -300);
     BOOST_CHECK(floatArrayIn->get().at(0) == 15.0f);
     BOOST_CHECK(floatArrayIn->get().at(1) == -7.2f);
     BOOST_CHECK(floatArrayIn->get().at(9) == 120.0f);
 
-    *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->accessData(0) = 1;
+    stopDeviceThread->write();
   }
 
   struct TestDeviceCallable2 {
     shared_ptr<DevicePVManager> pvManager;
 
     void operator()() {
-      ProcessScalar<int32_t>::SharedPtr int32In = pvManager->getProcessScalar<
+      ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<
           int32_t>("int32In");
-      ProcessScalar<double>::SharedPtr doubleIn = pvManager->getProcessScalar<
+      ProcessArray<double>::SharedPtr doubleIn = pvManager->getProcessArray<
           double>("doubleIn");
-      ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-          pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+      ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+          pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
       int i = 0;
-      while (stopDeviceThread->get() == 0) {
+      while (stopDeviceThread->accessData(0) == 0) {
         if (i == 0) {
           // Flood notifications for first process variable before sending a
           // notification for a second one. This tests the mechanism that
           // prevents the queue from being filled with notifications for a
           // single process variable.
           while (i < 50000) {
-            int32In->set(i);
+            int32In->accessData(0) = i;
             ++i;
-            int32In->send();
+            int32In->write();
           }
-          doubleIn->set(2.0);
-          doubleIn->send();
+          doubleIn->accessData(0) = 2.0;
+          doubleIn->write();
         } else {
           // After the flood test, we send notifications in regular intervals
           // to ensure that the reset mechanism works (multiple notifications
           // can be sent if they are collected).
-          int32In->set(55);
-          int32In->send();
+          int32In->accessData(0) = 55;
+          int32In->write();
         }
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
+        stopDeviceThread->readNonBlocking();
       }
     }
   };
@@ -430,10 +429,10 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<int32_t>(deviceToControlSystem, "int32In");
-    devManager->createProcessScalar<double>(deviceToControlSystem, "doubleIn");
-    devManager->createProcessScalar<int8_t>(controlSystemToDevice,
-        "stopDeviceThread");
+    devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
+    devManager->createProcessArray<double>(deviceToControlSystem, "doubleIn", 1);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice,
+        "stopDeviceThread", 1);
 
     TestDeviceCallable2 callable;
     callable.pvManager = devManager;
@@ -447,12 +446,12 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
   BOOST_AUTO_TEST_CASE( testNotificationToControlSystem ) {
     shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib2();
 
-    ProcessScalar<int32_t>::SharedPtr int32In = pvManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<
         int32_t>("int32In");
-    ProcessScalar<double>::SharedPtr doubleIn = pvManager->getProcessScalar<
+    ProcessArray<double>::SharedPtr doubleIn = pvManager->getProcessArray<
         double>("doubleIn");
-    ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-        pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+    ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+        pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
     int int32NotificationCount = 0;
     int doubleNotificationCount = 0;
@@ -478,20 +477,20 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     BOOST_CHECK(int32NotificationCount >= 5);
     BOOST_CHECK(doubleNotificationCount >= 1);
 
-    *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->accessData(0) = 1;
+    stopDeviceThread->write();
   }
 
   struct TestDeviceCallable3 {
     shared_ptr<DevicePVManager> pvManager;
 
     void operator()() {
-      ProcessScalar<int32_t>::SharedPtr int32In = pvManager->getProcessScalar<
+      ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<
           int32_t>("int32Out");
-      ProcessScalar<double>::SharedPtr doubleIn = pvManager->getProcessScalar<
+      ProcessArray<double>::SharedPtr doubleIn = pvManager->getProcessArray<
           double>("doubleOut");
-      ProcessScalar<int8_t>::SharedPtr stopControlSystemThread =
-          pvManager->getProcessScalar<int8_t>("stopControlSystemThread");
+      ProcessArray<int8_t>::SharedPtr stopControlSystemThread =
+          pvManager->getProcessArray<int8_t>("stopControlSystemThread");
 
       int int32NotificationCount = 0;
       int doubleNotificationCount = 0;
@@ -517,8 +516,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       BOOST_CHECK(int32NotificationCount >= 5);
       BOOST_CHECK(doubleNotificationCount >= 1);
 
-      *stopControlSystemThread = 1;
-      stopControlSystemThread->send();
+      stopControlSystemThread->accessData(0) = 1;
+      stopControlSystemThread->write();
     }
   };
 
@@ -529,10 +528,10 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<int32_t>(controlSystemToDevice, "int32Out");
-    devManager->createProcessScalar<double>(controlSystemToDevice, "doubleOut");
-    devManager->createProcessScalar<int8_t>(deviceToControlSystem,
-        "stopControlSystemThread");
+    devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
+    devManager->createProcessArray<double>(controlSystemToDevice, "doubleOut", 1);
+    devManager->createProcessArray<int8_t>(deviceToControlSystem,
+        "stopControlSystemThread", 1);
 
     TestDeviceCallable3 callable;
     callable.pvManager = devManager;
@@ -546,36 +545,36 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
   BOOST_AUTO_TEST_CASE( testNotificationToDevice ) {
     shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib3();
 
-    ProcessScalar<int32_t>::SharedPtr int32Out = pvManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<
         int32_t>("int32Out");
-    ProcessScalar<double>::SharedPtr doubleOut = pvManager->getProcessScalar<
+    ProcessArray<double>::SharedPtr doubleOut = pvManager->getProcessArray<
         double>("doubleOut");
-    ProcessScalar<int8_t>::SharedPtr stopControlSystemThread =
-        pvManager->getProcessScalar<int8_t>("stopControlSystemThread");
+    ProcessArray<int8_t>::SharedPtr stopControlSystemThread =
+        pvManager->getProcessArray<int8_t>("stopControlSystemThread");
 
     int i = 0;
-    while (stopControlSystemThread->get() == 0) {
+    while (stopControlSystemThread->accessData(0) == 0) {
       if (i == 0) {
         // Flood notifications for first process variable before sending a
         // notification for a second one. This tests the mechanism that
         // prevents the queue from being filled with notifications for a
         // single process variable.
         while (i < 50000) {
-          int32Out->set(i);
+          int32Out->accessData(0) = i;
           ++i;
-          int32Out->send();
+          int32Out->write();
         }
-        doubleOut->set(2.0);
-        doubleOut->send();
+        doubleOut->accessData(0) = 2.0;
+        doubleOut->write();
       } else {
         // After the flood test, we send notifications in regular intervals
         // to ensure that the reset mechanism works (multiple notifications
         // can be sent if they are collected).
-        int32Out->set(55);
-        int32Out->send();
+        int32Out->accessData(0) = 55;
+        int32Out->write();
       }
       boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-      stopControlSystemThread->receive();
+      stopControlSystemThread->readNonBlocking();
     }
   }
 
@@ -583,14 +582,14 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<DevicePVManager> pvManager;
 
     void operator()() {
-      ProcessScalar<uint32_t>::SharedPtr intA = pvManager->getProcessScalar<
+      ProcessArray<uint32_t>::SharedPtr intA = pvManager->getProcessArray<
           uint32_t>("intA");
-      ProcessScalar<uint32_t>::SharedPtr intB = pvManager->getProcessScalar<
+      ProcessArray<uint32_t>::SharedPtr intB = pvManager->getProcessArray<
           uint32_t>("intB");
-      ProcessScalar<uint32_t>::SharedPtr index0 = pvManager->getProcessScalar<
+      ProcessArray<uint32_t>::SharedPtr index0 = pvManager->getProcessArray<
           uint32_t>("index0");
-      ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-          pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+      ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+          pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
       uint32_t nextIndexNumber = 0;
 
@@ -598,32 +597,32 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       BOOST_CHECK(pvManager->isAutomaticReferenceTimeStampMode());
 
       pvManager->setReferenceTimeStamp(TimeStamp::currentTime(nextIndexNumber));
-      index0->set(nextIndexNumber);
+      index0->accessData(0) = nextIndexNumber;
       ++nextIndexNumber;
 
       // Setting a reference time-stamp should implicitly disable the automatic
       // mode.
       BOOST_CHECK(!pvManager->isAutomaticReferenceTimeStampMode());
 
-      intA->set(0);
-      intB->set(0);
+      intA->accessData(0) = 0;
+      intB->accessData(0) = 0;
 
-      while (stopDeviceThread->get() == 0) {
+      while (stopDeviceThread->accessData(0) == 0) {
         // On each iteration, we set the current time-stamp. This should ensure
         // that all PVs receive the same time-stamp.
         pvManager->setReferenceTimeStamp(
             TimeStamp::currentTime(nextIndexNumber));
-        index0->set(nextIndexNumber);
+        index0->accessData(0) = nextIndexNumber;
         ++nextIndexNumber;
 
-        intA->set(intA->get() + 2);
-        intB->set(intB->get() + 2);
+        intA->accessData(0) = intA->accessData(0) + 2;
+        intB->accessData(0) = intB->accessData(0) + 2;
 
-        index0->send();
-        intA->send();
-        intB->send();
+        index0->write();
+        intA->write();
+        intB->write();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        stopDeviceThread->receive();
+        stopDeviceThread->readNonBlocking();
       }
     }
   };
@@ -635,11 +634,11 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    devManager->createProcessScalar<uint32_t>(deviceToControlSystem, "intA");
-    devManager->createProcessScalar<uint32_t>(deviceToControlSystem, "intB");
-    devManager->createProcessScalar<uint32_t>(deviceToControlSystem, "index0");
-    devManager->createProcessScalar<int8_t>(controlSystemToDevice,
-        "stopDeviceThread");
+    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intA", 1);
+    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intB", 1);
+    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "index0", 1);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice,
+        "stopDeviceThread", 1);
 
     TestDeviceCallable4 callable;
     callable.pvManager = devManager;
@@ -653,24 +652,24 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
   BOOST_AUTO_TEST_CASE( testTimeStamps ) {
     shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib4();
 
-    ProcessScalar<uint32_t>::SharedPtr intA = pvManager->getProcessScalar<
+    ProcessArray<uint32_t>::SharedPtr intA = pvManager->getProcessArray<
         uint32_t>("intA");
-    ProcessScalar<uint32_t>::SharedPtr intB = pvManager->getProcessScalar<
+    ProcessArray<uint32_t>::SharedPtr intB = pvManager->getProcessArray<
         uint32_t>("intB");
-    ProcessScalar<uint32_t>::SharedPtr index0 = pvManager->getProcessScalar<
+    ProcessArray<uint32_t>::SharedPtr index0 = pvManager->getProcessArray<
         uint32_t>("index0");
-    ProcessScalar<int8_t>::SharedPtr stopDeviceThread =
-        pvManager->getProcessScalar<int8_t>("stopDeviceThread");
+    ProcessArray<int8_t>::SharedPtr stopDeviceThread =
+        pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
     list<ProcessVariable::SharedPtr> inboundProcessVariables;
     inboundProcessVariables.push_back(intA);
     inboundProcessVariables.push_back(intB);
     inboundProcessVariables.push_back(index0);
 
-    while (*index0 < 150) {
-      uint32_t i0 = *index0;
-      uint32_t a = *intA;
-      uint32_t b = *intB;
+    while (index0->accessData(0) < 150) {
+      uint32_t i0 = index0->accessData(0);
+      uint32_t a = intA->accessData(0);
+      uint32_t b = intB->accessData(0);
       TimeStamp i0TS = index0->getTimeStamp();
       TimeStamp aTS = intA->getTimeStamp();
       TimeStamp bTS = intB->getTimeStamp();
@@ -696,8 +695,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       receiveAll(inboundProcessVariables);
     }
 
-    *stopDeviceThread = 1;
-    stopDeviceThread->send();
+    stopDeviceThread->accessData(0) = 1;
+    stopDeviceThread->write();
   }
 
   BOOST_AUTO_TEST_CASE( automaticTimeStampMode ) {
@@ -707,30 +706,30 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    ProcessScalar<int32_t>::SharedPtr intAdev = devManager->createProcessScalar<
-        int32_t>(deviceToControlSystem, "intA");
-    ProcessScalar<int32_t>::SharedPtr intBdev = devManager->createProcessScalar<
-        int32_t>(deviceToControlSystem, "intB");
-    ProcessScalar<int32_t>::SharedPtr intAcs = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr intAdev = devManager->createProcessArray<
+        int32_t>(deviceToControlSystem, "intA",1);
+    ProcessArray<int32_t>::SharedPtr intBdev = devManager->createProcessArray<
+        int32_t>(deviceToControlSystem, "intB",1);
+    ProcessArray<int32_t>::SharedPtr intAcs = csManager->getProcessArray<
         int32_t>("intA");
-    ProcessScalar<int32_t>::SharedPtr intBcs = csManager->getProcessScalar<
+    ProcessArray<int32_t>::SharedPtr intBcs = csManager->getProcessArray<
         int32_t>("intB");
 
     // By default, the PV manager should be in automatic time-stamp mode.
     BOOST_CHECK(devManager->isAutomaticReferenceTimeStampMode());
 
-    intAdev->send();
+    intAdev->write();
 
     // We sleep slightly more than a second, this should ensure that the time
     // changes even on systems that do not have a high precision timer.
     boost::this_thread::sleep_for(boost::chrono::milliseconds(1100));
 
-    intBdev->send();
+    intBdev->write();
 
     // intB should have a time stamp that is greater than the time stamp of
     // intA.
-    intAcs->receive();
-    intBcs->receive();
+    intAcs->readNonBlocking();
+    intBcs->readNonBlocking();
     BOOST_CHECK(
         intAcs->getTimeStamp().seconds < intBcs->getTimeStamp().seconds);
   }
