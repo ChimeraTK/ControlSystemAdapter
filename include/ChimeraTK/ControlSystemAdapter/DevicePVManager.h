@@ -132,7 +132,6 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using the
-     * {@link createProcessScalar(SynchronizationDirection, const std::string&, T, std::size_t)},
      * {@link createProcessArray(SynchronizationDirection, const std::string&, std::size_t, T, bool, std::size_t)},
      * or
      * {@link createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, bool, std::size_t)}

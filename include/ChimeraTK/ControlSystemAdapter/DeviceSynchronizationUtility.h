@@ -65,7 +65,7 @@ namespace ChimeraTK {
      * Run the receive operation on a list of process variables. This can be any
      * type of container that has <code>begin()</code> and <code>end()</code>
      * methods that return an appropriate iterator. The elements must be of type
-     * {@link ProcessVariable::SharedPtr}.
+     * ProcessVariable::SharedPtr.
      */
     template<class T>
     void receive(T processVariables);
@@ -74,7 +74,7 @@ namespace ChimeraTK {
      * Run the receive operation on a list of process variables. The list is
      * specified in the form of a begin and end iterator. For example, this can
      * be an STL iterator or a raw pointer. The elements must be of type
-     * {@link ProcessVariable::SharedPtr}.
+     * ProcessVariable::SharedPtr.
      */
     template<class T>
     void receive(T processVariablesBegin, T processVariablesEnd);
@@ -83,7 +83,7 @@ namespace ChimeraTK {
      * Run the send operation on a list of process variables. This can be any
      * type of container that has <code>begin()</code> and <code>end()</code>
      * methods that return an appropriate iterator. The elements must be of type
-     * {@link ProcessVariable::SharedPtr}.
+     * ProcessVariable::SharedPtr.
      */
     template<class T>
     void send(T processVariables);
@@ -92,7 +92,7 @@ namespace ChimeraTK {
      * Run the send operation on a list of process variables. The list is
      * specified in the form of a begin and end iterator. For example, this can
      * be an STL iterator or a raw pointer. The elements must be of type
-     * {@link ProcessVariable::SharedPtr}.
+     * ProcessVariable::SharedPtr.
      */
     template<class T>
     void send(T processVariablesBegin, T processVariablesEnd);

@@ -155,13 +155,13 @@ namespace ChimeraTK {
      * receiver.
      *
      * If the <code>maySendDestructively</code> flag is <code>true</code>, the
-     * {@link sendDestructively()} method may be used to transfer values without
+     * {@link ProcessArray::writeDestructively()} method may be used to transfer values without
      * copying but losing them on the sender side.
      *
      * The optional send-notification listener is notified every time the
-     * sender's {@link ProcessArray::send()} method is called. It can be
+     * sender's {@link ProcessArray::write()} method is called. It can be
      * used to queue a request for the receiver's
-     * {@link ProcessArray::receive()} method to be called. The process
+     * {@link ProcessArray::readNonBlocking()} method to be called. The process
      * variable passed to the listener is the receiver and not the sender.
      */
     ProcessArray(InstanceType instanceType, bool maySendDestructively,
@@ -303,13 +303,13 @@ namespace ChimeraTK {
 
     /**
      * Returns the version number that is associated with the current value.
-     * This is the version number that was received with the {@link receive()}
-     * operation that received the respective value or the last {@link send()}
+     * This is the version number that was received with the {@link readNonBlocking()}
+     * operation that received the respective value or the last {@link write()}
      * operation. If the last send operation was destructive, the version number
      * (like the current value) is undefined.
      *
      * The version number is used to resolve conflicting updates. When an update
-     * is received using the {@link receive()} method, it is only used if its
+     * is received using the {@link readNonBlocking()} method, it is only used if its
      * value has a version number that is greater than the version number of the
      * current value. Initially, each process variable has a version number of
      * zero.
@@ -678,8 +678,8 @@ namespace ChimeraTK {
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
-   * {@link ProcessArray::send()} method. The receiver can be updated with these
-   * changes by calling its {@link ProcessArray::receive()} method.
+   * {@link ProcessArray::write()} method. The receiver can be updated with these
+   * changes by calling its {@link ProcessArray::readNonBlocking()} method.
    *
    * The synchronization is implemented in a thread-safe manner, so that the
    * sender and the receiver can safely be used by different threads without
@@ -689,12 +689,12 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::send()} can be called
-   * in a row without losing data when {@link ProcessArray::receive()} is not
+   * number specifies, how many times {@link ProcessArray::write()} can be called
+   * in a row without losing data when {@link ProcessArray::readNonBlocking()} is not
    * called in between.
    *
    * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-   * <code>false</code> by default), the {@link sendDestructively()} method may
+   * <code>false</code> by default), the {@link ProcessArray::writeDestructively()} method may
    * be used to transfer values without copying but losing them on the sender
    * side.
    *
@@ -704,8 +704,8 @@ namespace ChimeraTK {
    * system-time when the value is sent is used.
    *
    * The optional send-notification listener is notified every time the sender's
-   * {@link ProcessArray::send()} method is called. It can be used to queue a
-   * request for the receiver's {@link ProcessArray::receive()} method to be
+   * {@link ProcessArray::write()} method is called. It can be used to queue a
+   * request for the receiver's {@link ProcessArray::readNonBlocking()} method to be
    * called.  The process variable passed to the listener is the receiver and
    * not the sender.
    *
@@ -729,8 +729,8 @@ namespace ChimeraTK {
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
-   * {@link ProcessArray::send()} method. The receiver can be updated with these
-   * changes by calling its {@link ProcessArray::receive()} method.
+   * {@link ProcessArray::write()} method. The receiver can be updated with these
+   * changes by calling its {@link ProcessArray::readNonBlocking()} method.
    *
    * The synchronization is implemented in a thread-safe manner, so that the
    * sender and the receiver can safely be used by different threads without
@@ -740,12 +740,12 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::send()} can be called
-   * in a row without losing data when {@link ProcessArray::receive()} is not
+   * number specifies, how many times {@link ProcessArray::write()} can be called
+   * in a row without losing data when {@link ProcessArray::readNonBlocking()} is not
    * called in between.
    *
    * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-   * <code>false</code> by default), the {@link sendDestructively()} method may
+   * <code>false</code> by default), the {@link ProcessArray::writeDestructively()} method may
    * be used to transfer values without copying but losing them on the sender
    * side.
    *
@@ -755,8 +755,8 @@ namespace ChimeraTK {
    * system-time when the value is sent is used.
    *
    * The optional send-notification listener is notified every time the sender's
-   * {@link ProcessArray::send()} method is called. It can be used to queue a
-   * request for the receiver's {@link ProcessArray::receive()} method to be
+   * {@link ProcessArray::write()} method is called. It can be used to queue a
+   * request for the receiver's {@link ProcessArray::readNonBlocking()} method to be
    * called.  The process variable passed to the listener is the receiver and
    * not the sender.
    *
