@@ -33,7 +33,10 @@ namespace ChimeraTK {
        *  checks if Application::shutdown() was properly called and throws an exception otherwise. */
       virtual ~ApplicationBase();
 
-      /** Initialise and run the application. This function must be implemented by the application programmer. */
+      /** Initialise and run the application. This function must be implemented by the application programmer. The
+        * application must be initialised, then a new thread must be started, in which the actual application will
+        * run. This function has to return after the application is initialised and the thread is created, so then
+        * control system adpater can continue its operation. */
       virtual void run() = 0;
 
       /** This will remove the global pointer to the instance and allows creating another instance
