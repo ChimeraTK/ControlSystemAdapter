@@ -4,7 +4,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
+#include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
 #include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 #include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
