@@ -33,13 +33,20 @@ struct TypedPVHolder{
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr dataTypeConstant;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
  
-  TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager, std::string typeNamePrefix):
-  toDeviceScalar( processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR",1) ),
-  fromDeviceScalar( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR",1) ),
-    toDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
-    fromDeviceArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
-    dataTypeConstant( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT",1) ),
-    constantArray( processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) ){
+  TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager, std::string typeNamePrefix)
+  : toDeviceScalar( processVariableManager->createProcessArray<DataType>( 
+                        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR",1) ),
+    fromDeviceScalar( processVariableManager->createProcessArray<DataType>(
+                        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR",1) ),
+    toDeviceArray( processVariableManager->createProcessArray<DataType>(
+                        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10) ),
+    fromDeviceArray( processVariableManager->createProcessArray<DataType>(
+                        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10) ),
+    dataTypeConstant( processVariableManager->createProcessArray<DataType>(
+                        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT",1) ),
+    constantArray( processVariableManager->createProcessArray<DataType>(
+                        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) )
+  {
       if (std::numeric_limits<DataType>::is_integer){
 	if (std::numeric_limits<DataType>::is_signed){
 	  // signed int

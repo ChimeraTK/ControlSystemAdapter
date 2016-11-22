@@ -87,10 +87,10 @@ namespace ChimeraTK {
      */
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> createProcessArrayDeviceToControlSystem(
-        const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool maySendDestructively = false,
-        std::size_t numberOfBuffers = 2);
+      typename ProcessArray<T>::SharedPtr> createProcessArrayDeviceToControlSystem(
+        const std::string& processVariableName, const std::vector<T>& initialValue,
+        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
     /**
      * Creates a new process array for transferring data from the control system
@@ -120,10 +120,10 @@ namespace ChimeraTK {
      */
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> createProcessArrayControlSystemToDevice(
-        const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool maySendDestructively = false,
-        std::size_t numberOfBuffers = 2);
+      typename ProcessArray<T>::SharedPtr> createProcessArrayControlSystemToDevice(
+        const std::string& processVariableName, const std::vector<T>& initialValue,
+        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -431,9 +431,9 @@ namespace ChimeraTK {
 
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
-      const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool maySendDestructively,
+    typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
+      const std::string& processVariableName, const std::vector<T>& initialValue,
+      const std::string& unit, const std::string& description, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
@@ -450,7 +450,7 @@ namespace ChimeraTK {
 
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(initialValue, processVariableName,
+        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
             _versionNumberSource, sendNotificationListener);
 
@@ -468,9 +468,9 @@ namespace ChimeraTK {
 
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayControlSystemToDevice(
-      const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool maySendDestructively,
+    typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayControlSystemToDevice(
+      const std::string& processVariableName, const std::vector<T>& initialValue,
+      const std::string& unit, const std::string& description, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
@@ -488,7 +488,7 @@ namespace ChimeraTK {
 
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(initialValue, processVariableName,
+        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
             _versionNumberSource, sendNotificationListener);
 

@@ -51,22 +51,40 @@ template<class T>
 static void testCreateProcessVariables(const string& name,
     shared_ptr<DevicePVManager> devManager,
     shared_ptr<ControlSystemPVManager> csManager) {
+
   shared_ptr<ProcessArray<T> > createdPV = devManager->createProcessArray<T>(
-      deviceToControlSystem, name + "In", 1);
+      deviceToControlSystem, name + "In", 1, "kindOfAUnit","any description");
   BOOST_CHECK(createdPV->getName() == name + "In");
+  BOOST_CHECK(createdPV->getUnit() == "kindOfAUnit");
+  BOOST_CHECK(createdPV->getDescription() == "any description");
+
   shared_ptr<ProcessArray<T> > devPV = devManager->getProcessArray<T>(
       name + "In");
   BOOST_CHECK(devPV->getName() == name + "In");
+  BOOST_CHECK(devPV->getUnit() == "kindOfAUnit");
+  BOOST_CHECK(devPV->getDescription() == "any description");
+
   shared_ptr<ProcessArray<T> > csPV = csManager->getProcessArray<T>(
       name + "In");
   BOOST_CHECK(csPV->getName() == name + "In");
+  BOOST_CHECK(csPV->getUnit() == "kindOfAUnit");
+  BOOST_CHECK(csPV->getDescription() == "any description");
+
   createdPV = devManager->createProcessArray<T>(controlSystemToDevice,
-      name + "Out", 1);
+      name + "Out", 1, "anotherUnit","something");
   BOOST_CHECK(createdPV->getName() == name + "Out");
+  BOOST_CHECK(createdPV->getUnit() == "anotherUnit");
+  BOOST_CHECK(createdPV->getDescription() == "something");
+
   devPV = devManager->getProcessArray<T>(name + "Out");
   BOOST_CHECK(devPV->getName() == name + "Out");
+  BOOST_CHECK(devPV->getUnit() == "anotherUnit");
+  BOOST_CHECK(devPV->getDescription() == "something");
+
   csPV = csManager->getProcessArray<T>(name + "Out");
   BOOST_CHECK(csPV->getName() == name + "Out");
+  BOOST_CHECK(csPV->getUnit() == "anotherUnit");
+  BOOST_CHECK(csPV->getDescription() == "something");
 
   BOOST_CHECK_THROW( devManager->createProcessArray<T>(
    static_cast<SynchronizationDirection>(-1),name + "ShouldFail", 1),
@@ -75,6 +93,9 @@ static void testCreateProcessVariables(const string& name,
   string arrayName = name + "Array";
   shared_ptr<ProcessArray<T> > createdPA = devManager->createProcessArray<T>(
       deviceToControlSystem, arrayName + "In", 5);
+  BOOST_CHECK(createdPA->getName() == arrayName + "In");
+  BOOST_CHECK(createdPA->getUnit() == "n./a.");
+  BOOST_CHECK(createdPA->getDescription() == "");
   BOOST_CHECK(createdPA->getName() == arrayName + "In");
   shared_ptr<ProcessArray<T> > devPA = devManager->getProcessArray<T>(
       arrayName + "In");
@@ -159,8 +180,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
     devManager->createProcessArray<double>(deviceToControlSystem, "double", 1);
-    devManager->createProcessArray<float>(controlSystemToDevice, "floatArray",
-        10);
+    devManager->createProcessArray<float>(controlSystemToDevice, "floatArray", 10);
     // We expect a bad_cast exception to be thrown because the specified
     // PV name points to a PV of a different type.
     BOOST_CHECK_THROW(devManager->getProcessArray<float>("double"),
@@ -255,8 +275,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
     devManager->createProcessArray<double>(controlSystemToDevice, "double", 1);
     devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32", 1);
-    devManager->createProcessArray<float>(deviceToControlSystem, "floatArray",
-        10);
+    devManager->createProcessArray<float>(deviceToControlSystem, "floatArray", 10);
 
     vector<ProcessVariable::SharedPtr> csProcessVariables(
         csManager->getAllProcessVariables());
@@ -309,12 +328,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
     devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
     devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
-    devManager->createProcessArray<float>(deviceToControlSystem, "floatArrayIn",
-        10);
-    devManager->createProcessArray<float>(controlSystemToDevice,
-        "floatArrayOut", 10);
-    devManager->createProcessArray<int8_t>(controlSystemToDevice,
-        "stopDeviceThread", 1);
+    devManager->createProcessArray<float>(deviceToControlSystem, "floatArrayIn", 10);
+    devManager->createProcessArray<float>(controlSystemToDevice, "floatArrayOut", 10);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
     TestDeviceCallable callable;
     callable.pvManager = devManager;
@@ -431,8 +447,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
     devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
     devManager->createProcessArray<double>(deviceToControlSystem, "doubleIn", 1);
-    devManager->createProcessArray<int8_t>(controlSystemToDevice,
-        "stopDeviceThread", 1);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
     TestDeviceCallable2 callable;
     callable.pvManager = devManager;
@@ -530,8 +545,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
     devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
     devManager->createProcessArray<double>(controlSystemToDevice, "doubleOut", 1);
-    devManager->createProcessArray<int8_t>(deviceToControlSystem,
-        "stopControlSystemThread", 1);
+    devManager->createProcessArray<int8_t>(deviceToControlSystem, "stopControlSystemThread", 1);
 
     TestDeviceCallable3 callable;
     callable.pvManager = devManager;
@@ -637,8 +651,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intA", 1);
     devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intB", 1);
     devManager->createProcessArray<uint32_t>(deviceToControlSystem, "index0", 1);
-    devManager->createProcessArray<int8_t>(controlSystemToDevice,
-        "stopDeviceThread", 1);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
     TestDeviceCallable4 callable;
     callable.pvManager = devManager;
@@ -707,9 +720,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
     ProcessArray<int32_t>::SharedPtr intAdev = devManager->createProcessArray<
-        int32_t>(deviceToControlSystem, "intA",1);
+        int32_t>(deviceToControlSystem, "intA", 1);
     ProcessArray<int32_t>::SharedPtr intBdev = devManager->createProcessArray<
-        int32_t>(deviceToControlSystem, "intB",1);
+        int32_t>(deviceToControlSystem, "intB", 1, "kindOfAUnit", "any description");
     ProcessArray<int32_t>::SharedPtr intAcs = csManager->getProcessArray<
         int32_t>("intA");
     ProcessArray<int32_t>::SharedPtr intBcs = csManager->getProcessArray<

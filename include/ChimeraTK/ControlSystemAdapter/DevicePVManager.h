@@ -81,8 +81,8 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
         const std::string& processVariableName, std::size_t size,
-        T initialValue = 0, bool maySendDestructively = false,
-        std::size_t numberOfBuffers = 2);
+        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        T initialValue = 0, bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
     /**
      * Creates a new process array and registers it with the PV manager.
@@ -111,9 +111,9 @@ namespace ChimeraTK {
     template<class T>
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
-        const std::string& processVariableName,
-        const std::vector<T>& initialValue, bool maySendDestructively = false,
-        std::size_t numberOfBuffers = 2);
+        const std::string& processVariableName, const std::vector<T>& initialValue,
+        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -224,16 +224,17 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
-      const std::string& processVariableName, std::size_t size, T initialValue,
+      const std::string& processVariableName, std::size_t size,
+      const std::string& unit, const std::string& description, T initialValue,
       bool maySendDestructively, std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
     case controlSystemToDevice:
       return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, std::vector<T>(size, initialValue),
+          processVariableName, std::vector<T>(size, initialValue), unit, description,
           maySendDestructively, numberOfBuffers).second;
     case deviceToControlSystem:
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, std::vector<T>(size, initialValue),
+          processVariableName, std::vector<T>(size, initialValue), unit, description,
           maySendDestructively, numberOfBuffers).second;
     default:
       throw std::invalid_argument("invalid SynchronizationDirection");
@@ -243,17 +244,17 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
-      const std::string& processVariableName,
-      const std::vector<T>& initialValue, bool maySendDestructively,
-      std::size_t numberOfBuffers) {
+      const std::string& processVariableName, const std::vector<T>& initialValue,
+      const std::string& unit, const std::string& description,
+      bool maySendDestructively, std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
     case controlSystemToDevice:
       return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, initialValue, maySendDestructively,
+          processVariableName, initialValue, unit, description, maySendDestructively,
           numberOfBuffers).second;
     case deviceToControlSystem:
       return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, initialValue, maySendDestructively,
+          processVariableName, initialValue, unit, description, maySendDestructively,
           numberOfBuffers).second;
     default:
       throw std::invalid_argument("invalid SynchronizationDirection");

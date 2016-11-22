@@ -34,7 +34,7 @@ namespace ChimeraTK {
    * source will always stay at zero.
    */
   template<class T>
-    class ProcessArray: public mtca4u::NDRegisterAccessor<T> {
+  class ProcessArray : public mtca4u::NDRegisterAccessor<T> {
 
   public:
 
@@ -73,13 +73,16 @@ namespace ChimeraTK {
      * and receive operations are not supported. However, all other operations
      * can be used like on any process variable.
      */
-    ProcessArray(InstanceType instanceType, const std::string& name,
-        const std::vector<T>& initialValue) :
-            mtca4u::NDRegisterAccessor<T>(name),
-            _instanceType(instanceType), _vectorSize(initialValue.size()),
-            _maySendDestructively(true),
-            _buffers(boost::make_shared<std::vector<Buffer> >(1)),
-            _currentIndex(0), _lastSentIndex(0) {
+    ProcessArray(InstanceType instanceType, const std::string &name, const std::string &unit,
+        const std::string &description, const std::vector<T> &initialValue)
+    : mtca4u::NDRegisterAccessor<T>(name, unit, description),
+      _instanceType(instanceType),
+      _vectorSize(initialValue.size()),
+      _maySendDestructively(true),
+      _buffers(boost::make_shared<std::vector<Buffer> >(1)),
+      _currentIndex(0),
+      _lastSentIndex(0)
+    {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != STAND_ALONE) {
@@ -99,17 +102,20 @@ namespace ChimeraTK {
      * This constructor creates the buffers and queues that are needed for the
      * send/receive process and are shared with the sender.
      */
-    ProcessArray(InstanceType instanceType, const std::string& name,
-        const std::vector<T>& initialValue, std::size_t numberOfBuffers,
-        VersionNumberSource::SharedPtr versionNumberSource) :
-        mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
-            initialValue.size()), _maySendDestructively(false), _buffers(
-            boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
-            boost::make_shared<boost::lockfree::queue<std::size_t> >(
-                numberOfBuffers)), _emptyBufferQueue(
-            boost::make_shared<boost::lockfree::spsc_queue<std::size_t> >(
-                numberOfBuffers)), _currentIndex(0), _lastSentIndex(0), _versionNumberSource(
-            versionNumberSource) {
+    ProcessArray(InstanceType instanceType, const std::string& name, const std::string &unit,
+        const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers,
+        VersionNumberSource::SharedPtr versionNumberSource)
+    : mtca4u::NDRegisterAccessor<T>(name, unit, description),
+      _instanceType(instanceType),
+      _vectorSize(initialValue.size()),
+      _maySendDestructively(false),
+      _buffers(boost::make_shared<std::vector<Buffer>>(numberOfBuffers + 2)),
+      _fullBufferQueue(boost::make_shared<boost::lockfree::queue<std::size_t>>(numberOfBuffers)),
+      _emptyBufferQueue(boost::make_shared<boost::lockfree::spsc_queue<std::size_t>>(numberOfBuffers)),
+      _currentIndex(0),
+      _lastSentIndex(0),
+      _versionNumberSource(versionNumberSource)
+    {
       // allocate and initialise buffer of the base class
       mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
@@ -168,15 +174,21 @@ namespace ChimeraTK {
         TimeStampSource::SharedPtr timeStampSource,
         VersionNumberSource::SharedPtr versionNumberSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
-        ProcessArray::SharedPtr receiver) :
-            mtca4u::NDRegisterAccessor<T>(receiver->getName()),
-            _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
-            _maySendDestructively(maySendDestructively), _buffers(
-            receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
-            receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
-            receiver), _timeStampSource(timeStampSource), _versionNumberSource(
-            versionNumberSource), _sendNotificationListener(
-            sendNotificationListener) {
+        ProcessArray::SharedPtr receiver)
+    : mtca4u::NDRegisterAccessor<T>(receiver->getName(), receiver->getUnit(), receiver->getDescription()),
+      _instanceType(instanceType),
+      _vectorSize(receiver->_vectorSize),
+      _maySendDestructively(maySendDestructively),
+      _buffers(receiver->_buffers),
+      _fullBufferQueue(receiver->_fullBufferQueue),
+      _emptyBufferQueue(receiver->_emptyBufferQueue),
+      _currentIndex(1),
+      _lastSentIndex(1),
+      _receiver(receiver),
+      _timeStampSource(timeStampSource),
+      _versionNumberSource(versionNumberSource),
+      _sendNotificationListener(sendNotificationListener)
+    {
       // allocate and initialise buffer of the base class
       mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
@@ -470,6 +482,7 @@ namespace ChimeraTK {
     virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
       // You can't replace anything here. Just do nothing.
     }
+
   private:
 
     /**
@@ -659,8 +672,8 @@ namespace ChimeraTK {
    * The specified initial value is used for all the elements of the array.
    */
   template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size,
-      const std::string & name = "", T initialValue = 0);
+  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size, const std::string &name = "",
+      const std::string &unit = "", const std::string &description = "", T initialValue = 0);
 
   /**
    * Creates a simple process array. A simple process array just works on its
@@ -672,8 +685,8 @@ namespace ChimeraTK {
    * values provided by this vector.
    */
   template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(
-      const std::vector<T>& initialValue, const std::string & name = "");
+  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(const std::vector<T>& initialValue,
+    const std::string & name = "", const std::string &unit = "", const std::string &description = "");
 
   /**
    * Creates a synchronized process array. A synchronized process array works
@@ -716,10 +729,10 @@ namespace ChimeraTK {
    * The specified initial value is used for all the elements of the array.
    */
   template<class T>
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      std::size_t size, const std::string & name = "", T initialValue = 0,
-      std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
+  std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
+      std::size_t size, const std::string & name = "", const std::string &unit = "",
+      const std::string &description = "", T initialValue = 0, std::size_t numberOfBuffers = 2,
+      bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       VersionNumberSource::SharedPtr versionNumberSource =
           VersionNumberSource::SharedPtr(),
@@ -769,10 +782,9 @@ namespace ChimeraTK {
    * values provided by this vector.
    */
   template<class T>
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      const std::vector<T>& initialValue, const std::string & name = "",
-      std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
+  std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
+      const std::vector<T>& initialValue, const std::string & name = "", const std::string &unit = "",
+      const std::string &description = "", std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       VersionNumberSource::SharedPtr versionNumberSource =
           VersionNumberSource::SharedPtr(),
@@ -784,19 +796,19 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size,
-      const std::string & name, T initialValue) {
+  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size, const std::string & name,
+      const std::string &unit, const std::string &description, T initialValue) {
     return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
-        name, std::vector<T>(size, initialValue));
+        name, unit, description, std::vector<T>(size, initialValue));
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(
-      const std::vector<T>& initialValue, const std::string & name) {
+      const std::vector<T>& initialValue, const std::string & name, const std::string &unit, const std::string &description) {
     return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
-        name, initialValue);
+        name, unit, description, initialValue);
   }
 
 /*********************************************************************************************************************/
@@ -804,13 +816,13 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      std::size_t size, const std::string & name, T initialValue,
+      std::size_t size, const std::string & name, const std::string &unit, const std::string &description, T initialValue,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name,
+        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, unit, description, 
         std::vector<T>(size, initialValue), numberOfBuffers,
         versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
@@ -826,13 +838,13 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      const std::vector<T>& initialValue, const std::string & name,
+      const std::vector<T>& initialValue, const std::string & name, const std::string &unit, const std::string &description,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
-        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, initialValue,
+        ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, unit, description, initialValue,
         numberOfBuffers, versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::SENDER, maySendDestructively,

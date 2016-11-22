@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
     ProcessArray<int32_t>::SharedPtr devIntOut =
-        devManager->createProcessArray<int32_t>(controlSystemToDevice,"intOut",1);
+        devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
     ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
 
     DeviceSynchronizationUtility syncUtil(devManager);

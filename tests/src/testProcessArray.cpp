@@ -72,8 +72,10 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(simpleArray->get().size() == N_ELEMENTS);
     // Now we test the constructor with non-default parameters.
-    simpleArray = createSimpleProcessArray<T>(N_ELEMENTS, "test", SOME_NUMBER);
+    simpleArray = createSimpleProcessArray<T>(N_ELEMENTS, "test", "myUnit", "someDescription", SOME_NUMBER);
     BOOST_CHECK(simpleArray->getName() == "test");
+    BOOST_CHECK(simpleArray->getUnit() == "myUnit");
+    BOOST_CHECK(simpleArray->getDescription() == "someDescription");
     for (typename std::vector<T>::iterator i = simpleArray->get().begin();
         i != simpleArray->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
@@ -87,7 +89,7 @@ namespace ChimeraTK {
     referenceVector.push_back(1);
     referenceVector.push_back(2);
     referenceVector.push_back(3);
-    simpleArray = createSimpleProcessArray<T>(referenceVector, "test");
+    simpleArray = createSimpleProcessArray<T>(referenceVector, "test", "", "");
     BOOST_CHECK(simpleArray->getName() == "test");
     BOOST_CHECK(simpleArray->get().size() == 4);
     BOOST_CHECK(
@@ -120,7 +122,7 @@ namespace ChimeraTK {
     BOOST_CHECK(sender->isWriteable());
     BOOST_CHECK(receiver->isReadable());
     BOOST_CHECK(!receiver->isWriteable());
-    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test",
+    senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test", "", "",
         SOME_NUMBER, 5);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
@@ -136,7 +138,7 @@ namespace ChimeraTK {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     BOOST_CHECK(receiver->get().size() == N_ELEMENTS);
-    senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test",
+    senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test", "", "",
         5, false);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
@@ -157,7 +159,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr array1 = createSimpleProcessArray<T>(
         N_ELEMENTS);
     typename ProcessArray<T>::SharedPtr array2 = createSimpleProcessArray<T>(
-        N_ELEMENTS, "", SOME_NUMBER);
+        N_ELEMENTS, "", "", "", SOME_NUMBER);
     // Test the assignment of another process array.
     (*array1) = (*array2);
     for (typename std::vector<T>::iterator i = array1->get().begin();
@@ -188,7 +190,7 @@ namespace ChimeraTK {
   template<class T>
   void ProcessArrayTest<T>::testGet() {
     typename ProcessArray<T>::SharedPtr simpleArray =
-        createSimpleProcessArray<T>(N_ELEMENTS, "", SOME_NUMBER);
+        createSimpleProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
     typename std::vector<T> & v = simpleArray->get();
     typename std::vector<T> const & cv = simpleArray->get();
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
@@ -225,7 +227,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr array1 = createSimpleProcessArray<T>(
         N_ELEMENTS);
     typename ProcessArray<T>::SharedPtr array2 = createSimpleProcessArray<T>(
-        N_ELEMENTS, "", SOME_NUMBER);
+        N_ELEMENTS, "", "", "", SOME_NUMBER);
     // Test the assignment of another process array.
     array1->set(*array2);
     for (typename std::vector<T>::iterator i = array1->get().begin();
@@ -284,7 +286,7 @@ namespace ChimeraTK {
         boost::make_shared<CountingProcessVariableListener>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
             TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
             sendNotificationListener);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
@@ -304,7 +306,7 @@ namespace ChimeraTK {
         boost::make_shared<CountingTimeStampSource>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
             timeStampSource);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
@@ -323,7 +325,7 @@ namespace ChimeraTK {
   void ProcessArrayTest<T>::testSynchronization() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, true);
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // If we send two values consecutively, they both should be received because
@@ -380,7 +382,7 @@ namespace ChimeraTK {
     // Calling writeDestructively() on a sender that has not the corresponding
     // flag set should result in an exception.
     senderReceiver =
-            createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, false);
+            createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     BOOST_CHECK_THROW(sender->writeDestructively(), std::runtime_error);
@@ -392,7 +394,7 @@ namespace ChimeraTK {
         VersionNumberSource>();
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", 0, 2, true,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true,
             TimeStampSource::SharedPtr(), versionNumberSource);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
