@@ -76,10 +76,10 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue) :
             mtca4u::NDRegisterAccessor<T>(name),
-	    _instanceType(instanceType), _vectorSize(initialValue.size()),
-	    _maySendDestructively(true),
-	    _buffers(boost::make_shared<std::vector<Buffer> >(1)),
-	    _currentIndex(0), _lastSentIndex(0) {
+            _instanceType(instanceType), _vectorSize(initialValue.size()),
+            _maySendDestructively(true),
+            _buffers(boost::make_shared<std::vector<Buffer> >(1)),
+            _currentIndex(0), _lastSentIndex(0) {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != STAND_ALONE) {
@@ -102,7 +102,7 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const std::string& name,
         const std::vector<T>& initialValue, std::size_t numberOfBuffers,
         VersionNumberSource::SharedPtr versionNumberSource) :
-	mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
+        mtca4u::NDRegisterAccessor<T>(name), _instanceType(instanceType), _vectorSize(
             initialValue.size()), _maySendDestructively(false), _buffers(
             boost::make_shared<std::vector<Buffer> >(numberOfBuffers + 2)), _fullBufferQueue(
             boost::make_shared<boost::lockfree::queue<std::size_t> >(
@@ -169,9 +169,9 @@ namespace ChimeraTK {
         VersionNumberSource::SharedPtr versionNumberSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
         ProcessArray::SharedPtr receiver) :
-	    mtca4u::NDRegisterAccessor<T>(receiver->getName()),
-	    _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
-	    _maySendDestructively(maySendDestructively), _buffers(
+            mtca4u::NDRegisterAccessor<T>(receiver->getName()),
+            _instanceType(instanceType), _vectorSize(receiver->_vectorSize),
+            _maySendDestructively(maySendDestructively), _buffers(
             receiver->_buffers), _fullBufferQueue(receiver->_fullBufferQueue), _emptyBufferQueue(
             receiver->_emptyBufferQueue), _currentIndex(1), _lastSentIndex(1), _receiver(
             receiver), _timeStampSource(timeStampSource), _versionNumberSource(
@@ -631,7 +631,7 @@ namespace ChimeraTK {
             throw std::runtime_error(
                 "Assertion that empty-buffer queue has at least one element failed.");
           }
-	  _fullBufferQueue->push(_currentIndex);
+          _fullBufferQueue->push(_currentIndex);
         }
       }
       if (shouldCopy) {
