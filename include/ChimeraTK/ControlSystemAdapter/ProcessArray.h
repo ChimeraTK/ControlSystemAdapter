@@ -647,6 +647,10 @@ namespace ChimeraTK {
 
   };
 
+/*********************************************************************************************************************/
+/*** Non-member functions below this line ****************************************************************************/
+/*********************************************************************************************************************/
+
   /**
    * Creates a simple process array. A simple process array just works on its
    * own and does not implement a synchronization mechanism. Apart from this,
@@ -775,6 +779,10 @@ namespace ChimeraTK {
       ProcessVariableListener::SharedPtr sendNotificationListener =
           ProcessVariableListener::SharedPtr());
 
+/*********************************************************************************************************************/
+/*** Implementations below this line *********************************************************************************/
+/*********************************************************************************************************************/
+
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size,
       const std::string & name, T initialValue) {
@@ -782,12 +790,16 @@ namespace ChimeraTK {
         name, std::vector<T>(size, initialValue));
   }
 
+/*********************************************************************************************************************/
+
   template<class T>
   typename ProcessArray<T>::SharedPtr createSimpleProcessArray(
       const std::vector<T>& initialValue, const std::string & name) {
     return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
         name, initialValue);
   }
+
+/*********************************************************************************************************************/
 
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
@@ -808,6 +820,8 @@ namespace ChimeraTK {
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
+
+/*********************************************************************************************************************/
 
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
