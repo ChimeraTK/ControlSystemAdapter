@@ -39,9 +39,17 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
   message("Boost unit_test_framework not found, disabling testing")
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
+# DeviceAccess is needed due to the common interface classes
 FIND_PACKAGE(mtca4u-deviceaccess 00.18 REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
 include_directories(SYSTEM ${mtca4u-deviceaccess_INCLUDE_DIRS})
+
+# libXML++ is used for parsing/writing XML files
+FIND_PACKAGE(PkgConfig REQUIRED)
+set(LIBXML++_VERSION "libxml++-2.6")
+PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
+PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
+include_directories(SYSTEM "${LibXML++_INCLUDEDIR}/${LIBXML++_VERSION}" ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
 
 #Includes inside the library are local includes, so we give the full path to the include directory
 include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
@@ -85,7 +93,7 @@ endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
-target_link_libraries(${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
 
 #change the install prefix to the source directory in case the user has not specified a destination 
 #i. e. CMAKE_INSTALL_PREFIX is not set manually
