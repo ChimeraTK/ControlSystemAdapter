@@ -139,7 +139,7 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
       const std::string& processVariableName) const {
     auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
-    if(_persistentDataStorage) pv->setPersistentDataStorage(_persistentDataStorage);
+    if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
     return pv;
   }
 
