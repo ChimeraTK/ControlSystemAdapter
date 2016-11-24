@@ -14,90 +14,10 @@ namespace ChimeraTK {
 
   /*********************************************************************************************************************/
 
-  PersistentDataStorage::PersistentDataStorage() {
-    
-    _filename = ApplicationBase::getInstance().getName() + ".persist";
-      
-    try {
-      xmlpp::DomParser parser;
-      //parser.set_validate();
-      parser.set_substitute_entities(); //We just want the text to be resolved/unescaped automatically.
-      parser.parse_file(_filename);
-      if(parser) {
-        // obtain root node
-        const xmlpp::Node *rootElement = parser.get_document()->get_root_node(); // object will be deleted by DomParser
-        
-        // iterate through variables
-        for(auto &elem : rootElement->get_children()) {
-          const xmlpp::Element *child = dynamic_cast<const xmlpp::Element*>(elem);
-          if(!child) continue;    // comment or white spaces...
-          std::string name = child->get_attribute("name")->get_value();
-          std::string type = child->get_attribute("type")->get_value();
-          if(type == "int8") { readXmlValueTags<int8_t>(child, registerVariable<int8_t>(name, 0)); }
-          else if(type == "uint8") { readXmlValueTags<uint8_t>(child, registerVariable<uint8_t>(name, 0)); }
-          else if(type == "int16") { readXmlValueTags<int16_t>(child, registerVariable<int16_t>(name, 0)); }
-          else if(type == "uint16") { readXmlValueTags<uint16_t>(child, registerVariable<uint16_t>(name, 0)); }
-          else if(type == "int32") { readXmlValueTags<int32_t>(child, registerVariable<int32_t>(name, 0)); }
-          else if(type == "uint32") { readXmlValueTags<uint32_t>(child, registerVariable<uint32_t>(name, 0)); }
-          else if(type == "float") { readXmlValueTags<float>(child, registerVariable<float>(name, 0)); }
-          else if(type == "double") { readXmlValueTags<double>(child, registerVariable<double>(name, 0)); }
-          else if(type == "string") { readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0)); }
-          else { /* @todo TODO ??? */ }
-        }
-      }
-      else {
-        std::cout << "No parser... " << std::endl;    // @todo TODO proper exception handling
-      }
-    }
-    catch(const std::exception& ex) {   // @todo TODO proper exception handling
-      std::cout << "Exception caught: " << ex.what() << std::endl;
-    }    
-      
-  }
-
-  /*********************************************************************************************************************/
-
-  template<typename DataType>
-  void PersistentDataStorage::generateXmlValueTags(xmlpp::Element *parent, size_t id) {
-    
-    // obtain the data vector from the map
-    std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
-
-    // add one child element per element of the value
-    for(size_t idx=0; idx<value.size(); ++idx) {
-      xmlpp::Element *valueElement = parent->add_child("val");
-      valueElement->set_attribute("i", boost::lexical_cast<std::string>(idx));
-      valueElement->set_attribute("v", boost::lexical_cast<std::string>(value[idx]));
-    }
-  }
-
-  /*********************************************************************************************************************/
-
-  template<typename DataType>
-  void PersistentDataStorage::readXmlValueTags(const xmlpp::Element *parent, size_t id) {
-    
-    // obtain the data vector from the map
-    std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
-
-    // collect values
-    for(auto &valElems : parent->get_children()) {
-      const xmlpp::Element *valChild = dynamic_cast<const xmlpp::Element*>(valElems);
-      if(!valChild) continue;    // comment or white spaces...
-      
-      // obtain index and value as string
-      std::string s_idx = valChild->get_attribute("i")->get_value();
-      std::string s_val = valChild->get_attribute("v")->get_value();
-      
-      // convert to data type
-      size_t idx = boost::lexical_cast<size_t>(s_idx);
-      DataType val = boost::lexical_cast<DataType>(s_val);
-      
-      // resize vector if needed
-      if(value.size() <= idx) value.resize(idx+1);
-      
-      // store value
-      value[idx] = val;
-    }
+  PersistentDataStorage::PersistentDataStorage(std::string const &applicationName) {
+    _filename = applicationName+".persist";
+    _applicationName = applicationName;
+    readFromFile();
   }
 
   /*********************************************************************************************************************/
@@ -113,7 +33,7 @@ namespace ChimeraTK {
     // create XML document with root node and a flat list of variables below this root
     xmlpp::Document doc;
     xmlpp::Element *rootElement = doc.create_root_node("PersistentData", "https://github.com/ChimeraTK/ControlSystemAdapter");
-    rootElement->set_attribute("application", ApplicationBase::getInstance().getName());
+    rootElement->set_attribute("application", _applicationName);
 
     for(size_t i=0; i<_variableNames.size(); ++i) {
 
@@ -173,6 +93,92 @@ namespace ChimeraTK {
 
   }
 
+  /*********************************************************************************************************************/
+
+  template<typename DataType>
+  void PersistentDataStorage::generateXmlValueTags(xmlpp::Element *parent, size_t id) {
+    
+    // obtain the data vector from the map
+    std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
+
+    // add one child element per element of the value
+    for(size_t idx=0; idx<value.size(); ++idx) {
+      xmlpp::Element *valueElement = parent->add_child("val");
+      valueElement->set_attribute("i", boost::lexical_cast<std::string>(idx));
+      valueElement->set_attribute("v", boost::lexical_cast<std::string>(value[idx]));
+    }
+  }
+
+  /*********************************************************************************************************************/
+
+  void PersistentDataStorage::readFromFile() {
+      
+    try {
+      xmlpp::DomParser parser;
+      //parser.set_validate();
+      parser.set_substitute_entities(); //We just want the text to be resolved/unescaped automatically.
+      parser.parse_file(_filename);
+      if(parser) {
+        // obtain root node
+        const xmlpp::Node *rootElement = parser.get_document()->get_root_node(); // object will be deleted by DomParser
+        /// @todo TODO check if the application name is correct?
+        
+        // iterate through variables
+        for(auto &elem : rootElement->get_children()) {
+          const xmlpp::Element *child = dynamic_cast<const xmlpp::Element*>(elem);
+          if(!child) continue;    // comment or white spaces...
+          std::string name = child->get_attribute("name")->get_value();
+          std::string type = child->get_attribute("type")->get_value();
+          if(type == "int8") { readXmlValueTags<int8_t>(child, registerVariable<int8_t>(name, 0)); }
+          else if(type == "uint8") { readXmlValueTags<uint8_t>(child, registerVariable<uint8_t>(name, 0)); }
+          else if(type == "int16") { readXmlValueTags<int16_t>(child, registerVariable<int16_t>(name, 0)); }
+          else if(type == "uint16") { readXmlValueTags<uint16_t>(child, registerVariable<uint16_t>(name, 0)); }
+          else if(type == "int32") { readXmlValueTags<int32_t>(child, registerVariable<int32_t>(name, 0)); }
+          else if(type == "uint32") { readXmlValueTags<uint32_t>(child, registerVariable<uint32_t>(name, 0)); }
+          else if(type == "float") { readXmlValueTags<float>(child, registerVariable<float>(name, 0)); }
+          else if(type == "double") { readXmlValueTags<double>(child, registerVariable<double>(name, 0)); }
+          else if(type == "string") { readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0)); }
+          else { /* @todo TODO ??? */ }
+        }
+      }
+      else {
+        std::cout << "No parser... " << std::endl;    // @todo TODO proper exception handling
+      }
+    }
+    catch(const std::exception& ex) {   // @todo TODO proper exception handling
+      std::cout << "Exception caught: " << ex.what() << std::endl;
+    }    
+      
+  }
+
+  /*********************************************************************************************************************/
+
+  template<typename DataType>
+  void PersistentDataStorage::readXmlValueTags(const xmlpp::Element *parent, size_t id) {
+    
+    // obtain the data vector from the map
+    std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
+
+    // collect values
+    for(auto &valElems : parent->get_children()) {
+      const xmlpp::Element *valChild = dynamic_cast<const xmlpp::Element*>(valElems);
+      if(!valChild) continue;    // comment or white spaces...
+      
+      // obtain index and value as string
+      std::string s_idx = valChild->get_attribute("i")->get_value();
+      std::string s_val = valChild->get_attribute("v")->get_value();
+      
+      // convert to data type
+      size_t idx = boost::lexical_cast<size_t>(s_idx);
+      DataType val = boost::lexical_cast<DataType>(s_val);
+      
+      // resize vector if needed
+      if(value.size() <= idx) value.resize(idx+1);
+      
+      // store value
+      value[idx] = val;
+    }
+  }
 
   /*********************************************************************************************************************/
   

@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "PVManager.h"
+#include "ApplicationBase.h"
 
 namespace ChimeraTK {
 
@@ -111,6 +112,14 @@ namespace ChimeraTK {
      * notification.
      */
     ProcessVariable::SharedPtr nextNotification();
+    
+    /**
+     * Enable the persistent data storage system provided by the ControlSystemAdapter. This function requires an
+     * existing instance of an ApplicationBase class.
+     */
+    void enablePersistentDataStorage() {
+      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage();
+    }
 
   private:
     /**
@@ -119,12 +128,19 @@ namespace ChimeraTK {
      */
     boost::shared_ptr<PVManager> _pvManager;
 
+    /**
+     * All process variables should be registered in this persistent data storage 
+     */
+    boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+
   };
 
   template<class T>
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
       const std::string& processVariableName) const {
-    return _pvManager->getProcessArray<T>(processVariableName).first;
+    auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
+    if(_persistentDataStorage) pv->setPersistentDataStorage(_persistentDataStorage);
+    return pv;
   }
 
 }

@@ -25,9 +25,8 @@ namespace ChimeraTK {
 
     public:
       
-      /** Constructor: Open and parse the storage file. The instance of ApplicationBase must already exist before
-       *  calling the constructor! */
-      PersistentDataStorage();
+      /** Constructor: Open and parse the storage file. */
+      PersistentDataStorage(std::string const &applicationName);
       
       /** Destructor: Store variables to the file. */
       ~PersistentDataStorage();
@@ -51,6 +50,9 @@ namespace ChimeraTK {
       /** Write out the file containing the persistent data */
       void writeToFile();
     
+      /** Read the file containing the persistent data */
+      void readFromFile();
+    
       /** Generate XML tags for the given value */
       template<typename DataType>
       void generateXmlValueTags(xmlpp::Element *parent, size_t id);
@@ -58,6 +60,9 @@ namespace ChimeraTK {
       /** Read value from XML tags */
       template<typename DataType>
       void readXmlValueTags(const xmlpp::Element *parent, size_t id);
+      
+      /** Application name */
+      std::string _applicationName;
     
       /** File name to store the data to */
       std::string _filename;

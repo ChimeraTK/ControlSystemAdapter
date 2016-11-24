@@ -67,6 +67,12 @@ namespace ChimeraTK {
         return applicationName;
       }
 
+      /** Obtain the PersistentDataStorage object */
+      boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage() {
+        if(!_persistentDataStorage) _persistentDataStorage.reset(new PersistentDataStorage(applicationName));
+        return _persistentDataStorage;
+      }
+
     protected:
 
       /** The name of the application */
@@ -74,6 +80,9 @@ namespace ChimeraTK {
 
       /** Pointer to the process variable manager used to create variables exported to the control system */
       boost::shared_ptr<ChimeraTK::DevicePVManager> _processVariableManager;
+
+      /** Pointer to persistent data storage object, if used */
+      boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
 
       /** Flag if shutdown() has been called. */
       bool hasBeenShutdown{false};

@@ -13,15 +13,6 @@ using namespace boost::unit_test_framework;
 
 using namespace ChimeraTK;
 
-// a simple test application, just to fullfill the requirement of its existence
-class TestApplication : public ApplicationBase {
-  public:
-    using ApplicationBase::ApplicationBase;
-    ~TestApplication() { shutdown(); }
-    void initialise() {};
-    void run() {};
-};
-
 // Create a test suite which holds all your tests.
 BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
 
@@ -32,15 +23,13 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
 
 // Define one test after another. Each one needs a unique name.
   BOOST_AUTO_TEST_CASE( testStoreAndRetrieve ) {
-
-    TestApplication app{"myTestApplication"};
     
     // remove persistency file from previous test run
     boost::filesystem::remove("myTestApplication.persist");
 
     // create PersistentDataStorage for the first time and fill it with two variables
     {
-      PersistentDataStorage storage;
+      PersistentDataStorage storage{"myTestApplication"};
 
       // register integer variable MyVar1 with 10 array elements and fill it
       std::vector<int32_t> myVar1(10);
@@ -64,7 +53,7 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
     
     // create another PersistentDataStorage and read the previously stored variables from it
     {
-      PersistentDataStorage storage;
+      PersistentDataStorage storage{"myTestApplication"};
       
       // check MyVar1
       std::vector<int32_t> myVar1(10);
@@ -86,7 +75,7 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
     
     // create another PersistentDataStorage and read the previously stored variables from it
     {
-      PersistentDataStorage storage;
+      PersistentDataStorage storage{"myTestApplication"};
       
       // check MyVar1
       std::vector<int32_t> myVar1(10);

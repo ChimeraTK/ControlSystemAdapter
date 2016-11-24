@@ -16,9 +16,11 @@
 #include <boost/lockfree/spsc_queue.hpp>
 
 #include <mtca4u/NDRegisterAccessor.h>
+
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
 #include "VersionNumberSource.h"
+#include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
   /**
@@ -482,6 +484,13 @@ namespace ChimeraTK {
     virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
       // You can't replace anything here. Just do nothing.
     }
+    
+    /** Associate a persistent data storage object to be updated on each write operation of this ProcessArray */
+    void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
+      _persistentDataStorage = storage;
+      _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(mtca4u::TransferElement::getName(),
+                                    mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
+    }
 
   private:
 
@@ -593,6 +602,16 @@ namespace ChimeraTK {
      * Listener that is notified when the process variable is sent.
      */
     boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
+    
+    /**
+     * Persistent data storage which needs to be informed when the process variable is sent.
+     */
+    boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+
+    /**
+     * Variable ID for the persistent data storage
+     */
+    size_t _persistentDataStorageID{0};
 
     /**
      * Internal implementation of the various {@code send} methods. All these
@@ -612,6 +631,12 @@ namespace ChimeraTK {
         throw std::runtime_error(
             "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
       }
+      // First update the persistent data storage, if any was associated. This cannot be done after sending, since the
+      // value might no longer be available within this instance.
+      if (_persistentDataStorage) {
+        _persistentDataStorage->updateValue(_persistentDataStorageID, mtca4u::NDRegisterAccessor<T>::buffer_2D[0]);
+      }
+      
       // Before sending the value, we have to update the associated
       // time-stamp.
       TimeStamp newTimeStamp =
