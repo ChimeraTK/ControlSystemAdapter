@@ -18,8 +18,19 @@ namespace ChimeraTK {
   class ControlSystemPVManager;
   
   /**
-   *  Persistent data storage for process variables. Note: This class can only be used in applications based on the
-   *  class ApplicationBase.
+   *  Persistent data storage for process variables.
+   *  
+   *  The PersistentDataStorage will create a file in the current working directory based on the provided application
+   *  name ("<applicationName>.persist"). This file will be an XML file containing all values of the registered
+   *  variables. The file is written when the PersistentDataStorage is destroyed and read when it is constructed.
+   *  After reading the file, all variables will be updated with the current values taken from the file. This will be
+   *  seen as a value received by the application just like any other update.
+   * 
+   *  @todo TODO list:
+   *    * thread safety (only an issue when having multiple ControlSystemPVManagers)
+   *    * automatic periodic commits
+   *    * manual commits triggered by the application (with support for other implementations, e.g. if the persistency
+   *      is already provided by the control system middleware)
    */
   class PersistentDataStorage {
 
