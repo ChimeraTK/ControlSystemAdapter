@@ -485,11 +485,24 @@ namespace ChimeraTK {
       // You can't replace anything here. Just do nothing.
     }
     
-    /** Associate a persistent data storage object to be updated on each write operation of this ProcessArray */
+    /** 
+     *  Associate a persistent data storage object to be updated on each write operation of this ProcessArray. If no
+     *  persistent data storage as associated previously, the value from the persistent storage is read and send to
+     *  the receiver.
+     * 
+     *  Note: This function should only be used for sender-type variables!
+     */
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
+      assert(isWriteable());
+      bool sendInitialValue = false;
+      if(!_persistentDataStorage) sendInitialValue = true;
       _persistentDataStorage = storage;
       _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(mtca4u::TransferElement::getName(),
                                     mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
+      if(sendInitialValue) {
+         mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
+         write();
+      }
     }
 
   private:
