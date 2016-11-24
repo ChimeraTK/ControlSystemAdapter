@@ -129,9 +129,12 @@ namespace ChimeraTK {
     boost::shared_ptr<PVManager> _pvManager;
 
     /**
-     * All process variables should be registered in this persistent data storage 
+     * All process variables should be registered in this persistent data storage.
+     * This member is mutable, since it is required in a non-const form inside const functions like getProcessArray().
+     * The change of the persistent data storage object does not represent a state change which is visible to the
+     * outside, thus this is a legit use of the mutable qualifier.
      */
-    boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+    mutable boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
 
   };
 
