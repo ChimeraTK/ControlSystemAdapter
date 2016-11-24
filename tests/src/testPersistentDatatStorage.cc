@@ -8,10 +8,22 @@ using namespace boost::unit_test_framework;
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
 
+#include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
+#include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/PersistentDataStorage.h>
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 
 using namespace ChimeraTK;
+
+// define empty test application to fullfill the requirement of having an instance
+class MyTestApplication : public ApplicationBase {
+  public:
+    using ApplicationBase::ApplicationBase;
+    ~MyTestApplication() { shutdown(); }
+    void initialise() {};
+    void run() {};
+};
+
 
 // Create a test suite which holds all your tests.
 BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
@@ -104,6 +116,85 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       myVar1[3] = 120;
       storage.updateValue(id1, myVar1);
     }
+    
+  }
+
+  BOOST_AUTO_TEST_CASE( testUsageInPVManager ) {
+
+    // remove persistency file from previous test run
+    boost::filesystem::remove("myTestApplication.persist");
+    
+    // first application instance: initialise the variables with some values and store them in the persistency file
+    {
+
+      // create instance of test application
+      MyTestApplication myTestApplication{"myTestApplication"};
+
+      // create PV managers
+      auto pvManagers = createPVManager();
+      auto csManager = pvManagers.first;
+      auto devManager = pvManagers.second;
+
+      // create some variables
+      devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+      
+      // enable persist data storage
+      csManager->enablePersistentDataStorage();
+      
+      // obtain the process variables, send some values to the variables
+      auto v1 = csManager->getProcessArray<uint16_t>("SomeCsToDevVar");
+      for(int i=0; i<7; ++i) v1->get()[i] = i*17;
+      v1->write();
+
+      auto v2 = csManager->getProcessArray<float>("AnotherCsToDevVar");
+      for(int i=0; i<42; ++i) v2->get()[i] = i*3.1415 * 1e12;
+      v2->write();
+
+      auto v3 = devManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
+      for(int i=0; i<7; ++i) v3->get()[i] = 9*i + 666;
+      v3->write();
+      
+    }
+    
+    // second application instance: check if stored values are properly retrieved
+    {
+
+      // create instance of test application
+      MyTestApplication myTestApplication{"myTestApplication"};
+
+      // create PV managers
+      auto pvManagers = createPVManager();
+      auto csManager = pvManagers.first;
+      auto devManager = pvManagers.second;
+
+      // create some variables
+      devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+      
+      // enable persist data storage
+      csManager->enablePersistentDataStorage();
+      
+      // obtain all variables from the manager to initialise them with the persistent data storage
+      csManager->getAllProcessVariables();
+      
+      // obtain the process variables, send some values to the variables
+      auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
+      v1->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK( v1->get()[i] == i*17 );
+
+      auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
+      v2->readNonBlocking();
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->get()[i], i*3.1415 * 1e30, 2e23);
+
+      auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
+      v3->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK( v3->get()[i] == 0 );
+      
+    }
+    
     
   }
 
