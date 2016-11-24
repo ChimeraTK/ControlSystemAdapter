@@ -30,6 +30,9 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
 #boost thread is needed for synchronization and multi-threading
 FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
 
+#boost system is needed by some tests
+FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
+
 #the unit test component is optional
 FIND_PACKAGE(Boost COMPONENTS unit_test_framework)
 IF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
@@ -74,7 +77,7 @@ if(TESTING_IS_ENABLED)
     # Linking the boost libraries and using their included counterparts at the
     # same time causes problems.
     #target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_LIBRARIES})
-    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES})
+    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 

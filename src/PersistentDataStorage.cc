@@ -42,7 +42,7 @@ namespace ChimeraTK {
           else if(type == "float") { readXmlValueTags<float>(child, registerVariable<float>(name, 0)); }
           else if(type == "double") { readXmlValueTags<double>(child, registerVariable<double>(name, 0)); }
           else if(type == "string") { readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0)); }
-          else { /* @todo ??? */ }
+          else { /* @todo TODO ??? */ }
         }
       }
       else {
