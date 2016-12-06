@@ -82,7 +82,7 @@ namespace ChimeraTK {
         dataTypeName = "string";
       }
       else {
-        /// @tod TODO what todo here?
+        /// @todo TODO what todo here?
       }
       
       // set type attribute

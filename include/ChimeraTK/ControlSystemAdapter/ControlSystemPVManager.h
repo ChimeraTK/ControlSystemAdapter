@@ -56,9 +56,9 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, T, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)}
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name. Throws a bad_cast exception if
      * there is a process scalar or array with the specified name but its type
@@ -71,9 +71,9 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, T, bool, std::size_t)},
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)},
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name.
      */
