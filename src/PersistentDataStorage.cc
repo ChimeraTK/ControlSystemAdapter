@@ -5,6 +5,8 @@
  *      Author: Martin Hierholzer
  */
 
+#include <sys/stat.h>
+
 #include <libxml++/libxml++.h>
 
 #include "PersistentDataStorage.h"
@@ -112,7 +114,16 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   void PersistentDataStorage::readFromFile() {
-      
+  
+    // check if file exists
+    struct stat buffer;   
+    if(stat(_filename.c_str(), &buffer) != 0) {
+      // file does not exist: print message and do nothing
+      std::cerr << "ChimeraTK::PersistentDataStorage: Persistency file '" << _filename << "' does not exist. "
+                   "It will be created when exiting the application." << std::endl;
+      return;
+    }
+    
     try {
       xmlpp::DomParser parser;
       //parser.set_validate();
