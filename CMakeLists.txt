@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 2.8.0)
 project(ChimeraTK-ControlSystemAdapter)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
-set(${PROJECT_NAME}_MINOR_VERSION 02)
+set(${PROJECT_NAME}_MINOR_VERSION 03)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 set(${PROJECT_NAME}_VERSION
   ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
 set(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION})
- 
+
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -fPIC -Wextra -Wshadow
 #-Weffc++ -ansi -pedantic -Wuninitialized -std=c++11")
 #skip -Weffc++ for the moment. It gives too many false positives
