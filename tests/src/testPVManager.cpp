@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     // Send the values, wait a moment for the other thread to send the updates
     // and then receive the new values.
     sendAll(outboundProcessVariables);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(15));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(150));
     receiveAll(inboundProcessVariables);
 
     BOOST_CHECK(int32In->accessData(0) == 55);
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     // Send the values, wait a moment for the other thread to send the updates
     // and then receive the new values.
     sendAll(outboundProcessVariables);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(15));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(150));
     receiveAll(inboundProcessVariables);
 
     BOOST_CHECK(int32In->accessData(0) == -300);
