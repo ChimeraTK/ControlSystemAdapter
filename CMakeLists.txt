@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.0)
 
 project(ChimeraTK-ControlSystemAdapter)
 
+include(cmake/add_dependency.cmake)
+
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 03)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
@@ -43,9 +45,7 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
 # DeviceAccess is needed due to the common interface classes
-FIND_PACKAGE(mtca4u-deviceaccess 00.18 REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${mtca4u-deviceaccess_CXX_FLAGS}")
-include_directories(SYSTEM ${mtca4u-deviceaccess_INCLUDE_DIRS})
+add_dependency(mtca4u-deviceaccess 00.18 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
@@ -73,10 +73,6 @@ if(TESTING_IS_ENABLED)
     #The IndependentTestCore is written to work with the control system adapter as installed, so 
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
-    #no target library yet
-    # Linking the boost libraries and using their included counterparts at the
-    # same time causes problems.
-    #target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_LIBRARIES})
     target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
@@ -128,7 +124,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
 #but there are none.
 set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
 set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES}")
-set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS}")
+set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS} ${mtca4u-deviceaccess_LIBRARY_DIRS}")
 set(${PROJECT_NAME}_CXX_FLAGS "-std=c++11 ${mtca4u-deviceaccess_CXX_FLAGS}")
 set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags")
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
