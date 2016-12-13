@@ -37,13 +37,15 @@ namespace ChimeraTK {
     inline VersionNumber nextVersionNumber() {
       VersionNumber currentVersionNumber = _lastReturnedVersionNumber.load(
           boost::memory_order_acquire);
-      VersionNumber nextVersionNumber = currentVersionNumber + 1;
+      // Don't call this variable nextVersionNumber (but nextVersionNr) because
+      // compilers might complain that it shadows the function name
+      VersionNumber nextVersionNr = currentVersionNumber + 1;
       while (!_lastReturnedVersionNumber.compare_exchange_weak(
-          currentVersionNumber, nextVersionNumber, boost::memory_order_acq_rel,
+          currentVersionNumber, nextVersionNr, boost::memory_order_acq_rel,
           boost::memory_order_acquire)) {
-        nextVersionNumber = currentVersionNumber + 1;
+        nextVersionNr = currentVersionNumber + 1;
       }
-      return nextVersionNumber;
+      return nextVersionNr;
     }
 
   private:
