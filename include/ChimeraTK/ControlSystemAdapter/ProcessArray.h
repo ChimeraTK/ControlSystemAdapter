@@ -83,7 +83,6 @@ namespace ChimeraTK {
       _maySendDestructively(true),
       _buffers(boost::make_shared<std::vector<Buffer> >(1)),
       _currentIndex(0),
-      _lastSentIndex(0)
     {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
@@ -115,7 +114,6 @@ namespace ChimeraTK {
       _fullBufferQueue(boost::make_shared<boost::lockfree::queue<std::size_t>>(numberOfBuffers)),
       _emptyBufferQueue(boost::make_shared<boost::lockfree::spsc_queue<std::size_t>>(numberOfBuffers)),
       _currentIndex(0),
-      _lastSentIndex(0),
       _versionNumberSource(versionNumberSource)
     {
       // allocate and initialise buffer of the base class
@@ -185,7 +183,6 @@ namespace ChimeraTK {
       _fullBufferQueue(receiver->_fullBufferQueue),
       _emptyBufferQueue(receiver->_emptyBufferQueue),
       _currentIndex(1),
-      _lastSentIndex(1),
       _receiver(receiver),
       _timeStampSource(timeStampSource),
       _versionNumberSource(versionNumberSource),
@@ -581,13 +578,6 @@ namespace ChimeraTK {
     std::size_t _currentIndex;
 
     /**
-     * Index of the buffer that has been sent last. This index is only
-     * meaningful if this is a sender and swapping is not allowed on the
-     * receiver.
-     */
-    std::size_t _lastSentIndex;
-
-    /**
      * Pointer to the receiver associated with this sender. This field is only
      * used if this process variable represents a sender.
      */
@@ -682,7 +672,6 @@ namespace ChimeraTK {
         (*_buffers)[nextIndex].timeStamp = newTimeStamp;
         (*_buffers)[nextIndex].versionNumber = newVersionNumber;
       }
-      _lastSentIndex = _currentIndex;
       _currentIndex = nextIndex;
       if (_sendNotificationListener) {
         _sendNotificationListener->notify(_receiver);
