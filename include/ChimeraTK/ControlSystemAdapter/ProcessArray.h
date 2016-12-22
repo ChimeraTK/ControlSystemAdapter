@@ -82,7 +82,7 @@ namespace ChimeraTK {
       _vectorSize(initialValue.size()),
       _maySendDestructively(true),
       _buffers(boost::make_shared<std::vector<Buffer> >(1)),
-      _currentIndex(0),
+      _currentIndex(0)
     {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
