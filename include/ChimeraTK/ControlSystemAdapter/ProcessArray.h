@@ -319,6 +319,7 @@ namespace ChimeraTK {
         boost::shared_future<void> future;
         bool atLeastOneFuturePresent = _notificationQueue->pop(future);
         assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
+        (void)atLeastOneFuturePresent;    // prevent warning in case asserts are disabled
         future.wait();
       }
     }
