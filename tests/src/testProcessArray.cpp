@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <stdexcept>
+#include <thread>
 
 #include <boost/test/included/unit_test.hpp>
 
@@ -28,6 +29,7 @@ namespace ChimeraTK {
     static void testTimeStampSource();
     static void testSynchronization();
     static void testVersionNumbers();
+    static void testBlockingRead();
 
   private:
     static size_t const N_ELEMENTS = 12;
@@ -56,6 +58,7 @@ namespace ChimeraTK {
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testTimeStampSource));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSynchronization));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testVersionNumbers));
+      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testBlockingRead));
     }
   };
 
@@ -435,6 +438,44 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->get()[0] == 4);
   }
 
+  template<class T>
+  void ProcessArrayTest<T>::testBlockingRead() {
+    auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
+    auto sender = senderReceiver.first;
+    auto receiver = senderReceiver.second;
+
+    // blocking read should just return the value if it is already there
+    sender->accessData(0) = 42;
+    sender->write();
+    receiver->read();
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
+
+    // start blocking read first in the background and send then the data
+    {
+      std::thread backgroundTask( [&receiver] { receiver->read(); } );
+      usleep(200000);
+      sender->accessData(0) = 43;
+      sender->write();
+      backgroundTask.join();
+      BOOST_CHECK_EQUAL(receiver->accessData(0), 43);
+    }
+
+    // same with multiple transfers
+    {
+      std::thread backgroundTask( [&receiver] {
+        for(int i=0; i<10; ++i) {
+          receiver->read();
+          BOOST_CHECK_EQUAL(static_cast<int>(receiver->accessData(0)), 2 + i);
+        }
+      });
+      for(int i=0; i<10; ++i) {
+        usleep(10000);
+        sender->accessData(0) = 2+i;
+        sender->write();
+      }
+      backgroundTask.join();
+    }
+  }
 }  //namespace ChimeraTK
 
 test_suite*

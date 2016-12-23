@@ -14,6 +14,7 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/lockfree/queue.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
+#include <boost/thread/future.hpp>
 
 #include <mtca4u/NDRegisterAccessor.h>
 
@@ -115,6 +116,8 @@ namespace ChimeraTK {
       _buffers(boost::make_shared<std::vector<Buffer>>(numberOfBuffers + 2)),
       _fullBufferQueue(boost::make_shared<boost::lockfree::queue<std::size_t>>(numberOfBuffers)),
       _emptyBufferQueue(boost::make_shared<boost::lockfree::spsc_queue<std::size_t>>(numberOfBuffers)),
+      _notificationQueue(boost::make_shared<boost::lockfree::spsc_queue<boost::shared_future<void>,
+                                            boost::lockfree::capacity<2>>>()),
       _currentIndex(0),
       _versionNumberSource(versionNumberSource)
     {
@@ -181,15 +184,13 @@ namespace ChimeraTK {
       _buffers(receiver->_buffers),
       _fullBufferQueue(receiver->_fullBufferQueue),
       _emptyBufferQueue(receiver->_emptyBufferQueue),
+      _notificationQueue(receiver->_notificationQueue),
       _currentIndex(1),
       _receiver(receiver),
       _timeStampSource(timeStampSource),
       _versionNumberSource(versionNumberSource),
       _sendNotificationListener(sendNotificationListener)
     {
-      // allocate and initialise buffer of the base class
-      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != SENDER) {
@@ -202,6 +203,11 @@ namespace ChimeraTK {
         throw std::invalid_argument(
             "The pointer to the receiver must point to an instance that is actually a receiver.");
       }
+      // allocate and initialise buffer of the base class
+      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
+      // put future into the notification queue
+      _notificationQueue->push(_notificationPromise.get_future());
     }
 
     /**
@@ -306,7 +312,15 @@ namespace ChimeraTK {
     }
 
     virtual void read(){
-      throw std::logic_error("Blocking read is not supported by process array.");
+      // Obtain futures from the notification queue and wait on them until we receive data. We start with checking
+      // for data before obtaining a future from the notification queue, since this is faster and the notification
+      // queue is shorter than the data queue.
+      while(!readNonBlocking()) {
+        boost::shared_future<void> future;
+        bool atLeastOneFuturePresent = _notificationQueue->pop(future);
+        assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
+        future.wait();
+      }
     }
 
     /**
@@ -549,7 +563,7 @@ namespace ChimeraTK {
     /**
      * Buffers that hold the actual values.
      */
-    boost::shared_ptr<std::vector<Buffer> > _buffers;
+    boost::shared_ptr<std::vector<Buffer>> _buffers;
 
     /**
      * Queue holding the indices of the full buffers. Those are the buffers
@@ -558,13 +572,31 @@ namespace ChimeraTK {
      * thread, so there are two threads which might consume elements and thus
      * an spsc_queue is not safe.
      */
-    boost::shared_ptr<boost::lockfree::queue<std::size_t> > _fullBufferQueue;
+    boost::shared_ptr<boost::lockfree::queue<std::size_t>> _fullBufferQueue;
 
     /**
      * Queue holding the empty buffers. Those are the buffers that have been
      * returned to the sender by the receiver.
      */
-    boost::shared_ptr<boost::lockfree::spsc_queue<std::size_t> > _emptyBufferQueue;
+    boost::shared_ptr<boost::lockfree::spsc_queue<std::size_t>> _emptyBufferQueue;
+
+    /**
+     * Queue holding futures for notification. The receiver can obtain a future from this queue when the
+     * _fullBufferQueue is empty and wait on it until new data has been sent.
+     * 
+     * It is sufficient to have a fixed queue length of 2, since it is only important to guarantee the presence of
+     * at least one unfulfilled future in the queue.
+     * 
+     * We are using a shared future, since the spsc_queue expects a copy-constructable data type. Since the data
+     * type void is not particularly expensive to copy, this should have no performance impact.
+     */
+    boost::shared_ptr<boost::lockfree::spsc_queue<boost::shared_future<void>,
+                      boost::lockfree::capacity<2>>> _notificationQueue;
+                      
+    /**
+     * The promise corresponding to the unfulfilled future in the _notificationQueue
+     */
+    boost::promise<void> _notificationPromise;
 
     /**
      * Index into the _buffers array that is currently owned by this instance
@@ -670,6 +702,14 @@ namespace ChimeraTK {
       _currentIndex = nextIndex;
       if (_sendNotificationListener) {
         _sendNotificationListener->notify(_receiver);
+      }
+      // Notify the receiver through the notification queue. It must be guaranteed that there is at least one
+      // unfulfilled future in the notification queue at all times, so we try pushing a new one first. If this
+      // failes, there is already one unfulfilled and one fulfilled future in the queue, so we are done.
+      boost::promise<void> nextPromise;
+      if(_notificationQueue->push(nextPromise.get_future())) {
+        _notificationPromise.set_value();
+        _notificationPromise = std::move(nextPromise);
       }
     }
 
