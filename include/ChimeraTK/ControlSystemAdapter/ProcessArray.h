@@ -4,12 +4,12 @@
 #include <vector>
 #include <utility>
 
-#include <boost/smart_ptr.hpp>
 #include <limits>
 #include <stdexcept>
 #include <typeinfo>
 #include <vector>
 
+#include <boost/smart_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/lockfree/queue.hpp>
@@ -74,6 +74,8 @@ namespace ChimeraTK {
      * instance is not synchronized with any other instance and thus the send
      * and receive operations are not supported. However, all other operations
      * can be used like on any process variable.
+     * 
+     * TODO @todo Is this really a wanted feature? I see no benefit in it...
      */
     ProcessArray(InstanceType instanceType, const std::string &name, const std::string &unit,
         const std::string &description, const std::vector<T> &initialValue)
@@ -122,14 +124,12 @@ namespace ChimeraTK {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != RECEIVER) {
-        throw std::invalid_argument(
-            "This constructor may only be used for a receiver process scalar.");
+        throw std::invalid_argument("This constructor may only be used for a receiver process scalar.");
       }
       // We need at least two buffers for the queue (so four buffers in total)
       // in order to guarantee that we never have to block.
       if (numberOfBuffers < 2) {
-        throw std::invalid_argument(
-            "The number of buffers must be at least two.");
+        throw std::invalid_argument("The number of buffers must be at least two.");
       }
       // We have to limit the number of buffers because we cannot allocate
       // more buffers than can be represented by size_t and the total number
@@ -142,9 +142,8 @@ namespace ChimeraTK {
         throw std::invalid_argument("The number of buffers is too large.");
       }
       // We have to initialize the buffers by copying in the initial vectors.
-      for (typename std::vector<Buffer>::iterator i = _buffers->begin();
-          i != _buffers->end(); ++i) {
-        i->value=initialValue;
+      for (auto &i : *_buffers) {
+        i.value = initialValue;
       }
       // The buffer with the index 0 is assigned to the receiver and the
       // buffer with the index 1 is assigned to the sender. All buffers have
@@ -194,12 +193,10 @@ namespace ChimeraTK {
       // It would be better to do the validation before initializing, but this
       // would mean that we would have to initialize twice.
       if (instanceType != SENDER) {
-        throw std::invalid_argument(
-            "This constructor may only be used for a sender process scalar.");
+        throw std::invalid_argument("This constructor may only be used for a sender process scalar.");
       }
       if (!receiver) {
-        throw std::invalid_argument(
-            "The pointer to the receiver must not be null.");
+        throw std::invalid_argument("The pointer to the receiver must not be null.");
       }
       if (receiver->_instanceType != RECEIVER) {
         throw std::invalid_argument(
@@ -337,23 +334,21 @@ namespace ChimeraTK {
 
     bool readNonBlocking() {
       if (_instanceType != RECEIVER) {
-        throw std::logic_error(
-            "Receive operation is only allowed for a receiver process variable.");
+        throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
       }
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
       if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
-        throw std::runtime_error(
-            "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
+        throw std::runtime_error("Cannot run receive operation because the size of the vector belonging to the current"
+                                 " buffer has been modified.");
       }
       std::size_t nextIndex;
       if (_fullBufferQueue->pop(nextIndex)) {
         // We only use the incoming update if it has a higher version number
         // than the current value. This check is disabled when there is no
         // version number source.
-        if (!_versionNumberSource
-            || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
+        if (!_versionNumberSource || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
           _emptyBufferQueue->push(_currentIndex);
           _currentIndex = nextIndex;
           mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
