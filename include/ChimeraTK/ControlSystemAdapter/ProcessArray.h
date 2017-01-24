@@ -217,6 +217,8 @@ namespace ChimeraTK {
      * It can be of a different implementation, though. The size of the assigned
      * array must be smaller than or equal to the target size.
      * This behaves excactly like the set(...) method.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED
      */
     ProcessArray<T> & operator=(ProcessArray<T> const & other) {
       set(other);
@@ -228,12 +230,17 @@ namespace ChimeraTK {
      * The size of the assigned array must be smaller than or equal to the
      * target size.
      * This behaves exactly like the set(...) method.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use ScalarRegisterAccessor::operator=() instead 
      */
     ProcessArray<T> & operator=(std::vector<T> const & v) {
       set(v);
       return *this;
     }
 
+    /*
+     * @todo THIS FUNCTION IS DEPRECTED
+     */
     operator std::vector<T>() const {
       return get();
     }
@@ -242,6 +249,8 @@ namespace ChimeraTK {
      * Updates this process variable's value with the elements from the
      * specified vector. The vector's number of elements must match this process
      * variable's number of elements.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use accessData() instead
      */
     void set(std::vector<T> const & v) {
       get() = v;
@@ -251,6 +260,8 @@ namespace ChimeraTK {
      * Updates this process variable's value with the other process variable's
      * value. The other process variable's number of elements must match this
      * process variable's number of elements.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use accessData() instead
      */
     void set(ProcessArray<T> const & other) {
       set(other.get());
@@ -262,6 +273,8 @@ namespace ChimeraTK {
      * The <code>boost::scoped_ptr</code> passed must not be <code>null</code>
      * and must point to a vector that has the same size as the vector it is
      * swapped with.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use accessData()[0].swap() instead
      */
     void swap(std::vector<T> & otherVector) {
       if (otherVector.size() != get().size()) {
@@ -277,6 +290,8 @@ namespace ChimeraTK {
      * The reference returned by this method becomes invalid when a receive,
      * send, or swap operation is performed on this process variable. Use of an
      * invalid reference results in undefined behavior.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use accessData() instead
      */
     std::vector<T> & get() {
       return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
@@ -290,38 +305,27 @@ namespace ChimeraTK {
      * The reference returned by this method becomes invalid when a receive,
      * send, or swap operation is performed on this process variable. Use of an
      * invalid reference results in undefined behavior.
+     * 
+     * @todo THIS FUNCTION IS DEPRECTED, use accessData() instead
      */
     std::vector<T> const & get() const {
       return mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
 
-    virtual bool isReadable() const {
+    bool isReadable() const override {
       return _instanceType == RECEIVER;
     }
 
-    virtual bool isWriteable() const {
+    bool isWriteable() const override {
       return _instanceType == SENDER;
     }
 
-    virtual bool isReadOnly() const {
+    bool isReadOnly() const override {
       return !isWriteable();
     }
   
-    TimeStamp getTimeStamp() const {
+    TimeStamp getTimeStamp() const override {
       return ((*_buffers)[_currentIndex]).timeStamp;
-    }
-
-    virtual void read(){
-      // Obtain futures from the notification queue and wait on them until we receive data. We start with checking
-      // for data before obtaining a future from the notification queue, since this is faster and the notification
-      // queue is shorter than the data queue.
-      while(!readNonBlocking()) {
-        boost::shared_future<void> future;
-        bool atLeastOneFuturePresent = _notificationQueue->pop(future);
-        assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
-        (void)atLeastOneFuturePresent;    // prevent warning in case asserts are disabled
-        future.wait();
-      }
     }
 
     /**
@@ -341,13 +345,26 @@ namespace ChimeraTK {
      * source, its version number always stays at zero and the version-number
      * logic is disabled.
      */
-    VersionNumber getVersionNumber() const {
+    VersionNumber getVersionNumber() const { /// @todo FIXME this function must be present in TransferElement already!
       // On the other hand, this should not matter too much because the current
       // value will be in an undefined state anyway and thus we might not care.
       return ((*_buffers)[_currentIndex]).versionNumber;
     }
 
-    bool readNonBlocking() {
+    void doReadTransfer() override {
+      // Obtain futures from the notification queue and wait on them until we receive data. We start with checking
+      // for data before obtaining a future from the notification queue, since this is faster and the notification
+      // queue is shorter than the data queue.
+      while(!doReadTransferNonBlocking()) {
+        boost::shared_future<void> future;
+        bool atLeastOneFuturePresent = _notificationQueue->pop(future);
+        assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
+        (void)atLeastOneFuturePresent;    // prevent warning in case asserts are disabled
+        future.wait();
+      }
+    }
+
+    bool doReadTransferNonBlocking() override {
       if (_instanceType != RECEIVER) {
         throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
       }
@@ -366,7 +383,6 @@ namespace ChimeraTK {
         if (!_versionNumberSource || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
           _emptyBufferQueue->push(_currentIndex);
           _currentIndex = nextIndex;
-          mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
           return true;
         } else {
           _emptyBufferQueue->push(nextIndex);
@@ -376,20 +392,12 @@ namespace ChimeraTK {
         return false;
       }
     }
+    
+    void postRead() override {
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
+    }
 
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * If this process variable has a version-number source, a new version
-     * number is retrieved from this source and used for the value being sent to
-     * the receiver. Otherwise, a version number of zero is used.
-     *
-     * Throws an exception if this process variable is not a sender.
-     */
-    void write() {
+    void write() override {
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
@@ -411,7 +419,7 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a sender.
      */
-    void write(VersionNumber newVersionNumber) {
+    void write(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already! ???
       writeInternal(newVersionNumber, true);
     }
 
@@ -434,7 +442,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    void writeDestructively() {
+    void writeDestructively() { /// @todo FIXME this function must be present in TransferElement already!
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
@@ -463,7 +471,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    void writeDestructively(VersionNumber newVersionNumber) {
+    void writeDestructively(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already!
       if (!_maySendDestructively) {
         throw std::runtime_error(
             "This process variable must not be sent destructively because the corresponding flag has not been set.");
@@ -471,28 +479,28 @@ namespace ChimeraTK {
       writeInternal(newVersionNumber, false);
     }
 
-    const std::type_info& getValueType() const {
+    const std::type_info& getValueType() const override {
       return typeid(T);
     }
 
-    bool isArray() const {
+    bool isArray() const override {
       return true;
     }
 
-    virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const{
+    bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const override {
       // only true if the very instance of the transfer element is the same
       return e.get() == this;
     }
 
-    virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements(){
+    std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
       return { boost::enable_shared_from_this<mtca4u::TransferElement>::shared_from_this() };
     }
     
-    virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>){
+    void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>) override {
       // You can't replace anything here. Just do nothing.
     }
     
-    void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
+    void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override {
       if(!isWriteable()) return;
       bool sendInitialValue = false;
       if(!_persistentDataStorage) sendInitialValue = true;
