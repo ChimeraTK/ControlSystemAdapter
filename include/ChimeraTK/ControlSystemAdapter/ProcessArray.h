@@ -3,11 +3,9 @@
 
 #include <vector>
 #include <utility>
-
 #include <limits>
 #include <stdexcept>
 #include <typeinfo>
-#include <vector>
 
 #include <boost/smart_ptr.hpp>
 #include <boost/shared_ptr.hpp>
@@ -24,6 +22,7 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
+  
   /**
    * Array implementation of the ProcessVariable. This implementation is used
    * for all three use cases (sender, receiver, and stand-alone).
@@ -84,7 +83,7 @@ namespace ChimeraTK {
       _instanceType(instanceType),
       _vectorSize(initialValue.size()),
       _maySendDestructively(true),
-      _buffers(boost::make_shared<std::vector<Buffer> >(1)),
+      _sharedState(boost::make_shared<SharedState>(1)),
       _currentIndex(0)
     {
       // It would be better to do the validation before initializing, but this
@@ -113,11 +112,7 @@ namespace ChimeraTK {
       _instanceType(instanceType),
       _vectorSize(initialValue.size()),
       _maySendDestructively(false),
-      _buffers(boost::make_shared<std::vector<Buffer>>(numberOfBuffers + 2)),
-      _fullBufferQueue(boost::make_shared<boost::lockfree::queue<std::size_t>>(numberOfBuffers)),
-      _emptyBufferQueue(boost::make_shared<boost::lockfree::spsc_queue<std::size_t>>(numberOfBuffers)),
-      _notificationQueue(boost::make_shared<boost::lockfree::spsc_queue<boost::shared_future<void>,
-                                            boost::lockfree::capacity<2>>>()),
+      _sharedState(boost::make_shared<SharedState>(numberOfBuffers)),
       _currentIndex(0),
       _versionNumberSource(versionNumberSource)
     {
@@ -145,14 +140,14 @@ namespace ChimeraTK {
         throw std::invalid_argument("The number of buffers is too large.");
       }
       // We have to initialize the buffers by copying in the initial vectors.
-      for (auto &i : *_buffers) {
+      for (auto &i : _sharedState->_buffers) {
         i.value = initialValue;
       }
       // The buffer with the index 0 is assigned to the receiver and the
       // buffer with the index 1 is assigned to the sender. All buffers have
       // to be added to the empty-buffer queue.
-      for (std::size_t i = 2; i < _buffers->size(); ++i) {
-        _emptyBufferQueue->push(i);
+      for (std::size_t i = 2; i < _sharedState->_buffers.size(); ++i) {
+        _sharedState->_emptyBufferQueue.push(i);
       }
     }
 
@@ -181,10 +176,7 @@ namespace ChimeraTK {
       _instanceType(instanceType),
       _vectorSize(receiver->_vectorSize),
       _maySendDestructively(maySendDestructively),
-      _buffers(receiver->_buffers),
-      _fullBufferQueue(receiver->_fullBufferQueue),
-      _emptyBufferQueue(receiver->_emptyBufferQueue),
-      _notificationQueue(receiver->_notificationQueue),
+      _sharedState(receiver->_sharedState),
       _currentIndex(1),
       _receiver(receiver),
       _timeStampSource(timeStampSource),
@@ -207,7 +199,28 @@ namespace ChimeraTK {
       mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
       // put future into the notification queue
-      _notificationQueue->push(_notificationPromise.get_future());
+      _sharedState->_notificationQueue.push(_sharedState->_notificationPromise.get_future());
+    }
+
+    /**
+     * Exception class for notifying a pending asynchronous doReadTransfer() to shut down
+     */
+    class ShutdownException {};
+
+    ~ProcessArray() {
+      // if this is a receiver, shutdown a potentially running readAsync
+      if(_instanceType == RECEIVER) {
+        if(this->readAsyncThread.joinable()) {
+          this->readAsyncThread.interrupt();
+          try {
+            _sharedState->_notificationPromise.set_value();
+          }
+          catch(boost::promise_already_satisfied) {
+            // ignore -> already notified
+          }
+          this->readAsyncThread.join();
+        }
+      }
     }
 
     /**
@@ -325,7 +338,7 @@ namespace ChimeraTK {
     }
   
     TimeStamp getTimeStamp() const override {
-      return ((*_buffers)[_currentIndex]).timeStamp;
+      return (_sharedState->_buffers[_currentIndex]).timeStamp;
     }
 
     /**
@@ -348,7 +361,7 @@ namespace ChimeraTK {
     VersionNumber getVersionNumber() const { /// @todo FIXME this function must be present in TransferElement already!
       // On the other hand, this should not matter too much because the current
       // value will be in an undefined state anyway and thus we might not care.
-      return ((*_buffers)[_currentIndex]).versionNumber;
+      return (_sharedState->_buffers[_currentIndex]).versionNumber;
     }
 
     void doReadTransfer() override {
@@ -357,10 +370,11 @@ namespace ChimeraTK {
       // queue is shorter than the data queue.
       while(!doReadTransferNonBlocking()) {
         boost::shared_future<void> future;
-        bool atLeastOneFuturePresent = _notificationQueue->pop(future);
+        bool atLeastOneFuturePresent = _sharedState->_notificationQueue.pop(future);
         assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
         (void)atLeastOneFuturePresent;    // prevent warning in case asserts are disabled
         future.wait();
+        boost::this_thread::interruption_point();
       }
     }
 
@@ -371,21 +385,21 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      if ((*_buffers)[_currentIndex].value.size() != _vectorSize) {
+      if (_sharedState->_buffers[_currentIndex].value.size() != _vectorSize) {
         throw std::runtime_error("Cannot run receive operation because the size of the vector belonging to the current"
                                  " buffer has been modified.");
       }
       std::size_t nextIndex;
-      if (_fullBufferQueue->pop(nextIndex)) {
+      if (_sharedState->_fullBufferQueue.pop(nextIndex)) {
         // We only use the incoming update if it has a higher version number
         // than the current value. This check is disabled when there is no
         // version number source.
-        if (!_versionNumberSource || ((*_buffers)[nextIndex]).versionNumber > getVersionNumber()) {
-          _emptyBufferQueue->push(_currentIndex);
+        if (!_versionNumberSource || (_sharedState->_buffers[nextIndex]).versionNumber > getVersionNumber()) {
+          _sharedState->_emptyBufferQueue.push(_currentIndex);
           _currentIndex = nextIndex;
           return true;
         } else {
-          _emptyBufferQueue->push(nextIndex);
+          _sharedState->_emptyBufferQueue.push(nextIndex);
           return false;
         }
       } else {
@@ -394,7 +408,7 @@ namespace ChimeraTK {
     }
     
     void postRead() override {
-      mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( ((*_buffers)[_currentIndex]).value );
+      mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( (_sharedState->_buffers[_currentIndex]).value );
     }
 
     void write() override {
@@ -568,44 +582,59 @@ namespace ChimeraTK {
      * on this process array.
      */
     bool _maySendDestructively;
+                        
+    /**
+     * The state shared between the sender and the receiver
+     */
+    struct SharedState {
 
-    /**
-     * Buffers that hold the actual values.
-     */
-    boost::shared_ptr<std::vector<Buffer>> _buffers;
+      SharedState(size_t numberOfBuffers)
+      : _buffers(numberOfBuffers + 2),
+        _fullBufferQueue(numberOfBuffers),
+        _emptyBufferQueue(numberOfBuffers)
+      {}
 
-    /**
-     * Queue holding the indices of the full buffers. Those are the buffers
-     * that have been sent but not yet received. We do not use an spsc_queue
-     * for this queue, because might want to take elements from the sending
-     * thread, so there are two threads which might consume elements and thus
-     * an spsc_queue is not safe.
-     */
-    boost::shared_ptr<boost::lockfree::queue<std::size_t>> _fullBufferQueue;
+      /**
+      * Buffers that hold the actual values.
+      */
+      std::vector<Buffer> _buffers;
 
-    /**
-     * Queue holding the empty buffers. Those are the buffers that have been
-     * returned to the sender by the receiver.
-     */
-    boost::shared_ptr<boost::lockfree::spsc_queue<std::size_t>> _emptyBufferQueue;
+      /**
+      * Queue holding the indices of the full buffers. Those are the buffers
+      * that have been sent but not yet received. We do not use an spsc_queue
+      * for this queue, because might want to take elements from the sending
+      * thread, so there are two threads which might consume elements and thus
+      * an spsc_queue is not safe.
+      */
+      boost::lockfree::queue<std::size_t> _fullBufferQueue;
 
-    /**
-     * Queue holding futures for notification. The receiver can obtain a future from this queue when the
-     * _fullBufferQueue is empty and wait on it until new data has been sent.
-     * 
-     * It is sufficient to have a fixed queue length of 2, since it is only important to guarantee the presence of
-     * at least one unfulfilled future in the queue.
-     * 
-     * We are using a shared future, since the spsc_queue expects a copy-constructable data type. Since the data
-     * type void is not particularly expensive to copy, this should have no performance impact.
-     */
-    boost::shared_ptr<boost::lockfree::spsc_queue<boost::shared_future<void>,
-                      boost::lockfree::capacity<2>>> _notificationQueue;
-                      
-    /**
-     * The promise corresponding to the unfulfilled future in the _notificationQueue
-     */
-    boost::promise<void> _notificationPromise;
+      /**
+      * Queue holding the empty buffers. Those are the buffers that have been
+      * returned to the sender by the receiver.
+      */
+      boost::lockfree::spsc_queue<std::size_t> _emptyBufferQueue;
+
+      /**
+      * Queue holding futures for notification. The receiver can obtain a future from this queue when the
+      * _fullBufferQueue is empty and wait on it until new data has been sent.
+      * 
+      * It is sufficient to have a fixed queue length of 2, since it is only important to guarantee the presence of
+      * at least one unfulfilled future in the queue.
+      * 
+      * We are using a shared future, since the spsc_queue expects a copy-constructable data type. Since the data
+      * type void is not particularly expensive to copy, this should have no performance impact.
+      */
+      boost::lockfree::spsc_queue< boost::shared_future<void>, boost::lockfree::capacity<2> > _notificationQueue;
+    
+      /**
+      * The promise corresponding to the unfulfilled future in the _notificationQueue.
+      * This promise is basically only used by the sender. Only in the destructor of the receiver it is used to
+      * shutdown properly, thus it must be in the shared state.
+      */
+      boost::promise<void> _notificationPromise;
+
+    };
+    boost::shared_ptr<SharedState> _sharedState;
 
     /**
      * Index into the _buffers array that is currently owned by this instance
@@ -675,38 +704,38 @@ namespace ChimeraTK {
           _timeStampSource ?
               _timeStampSource->getCurrentTimeStamp() :
               TimeStamp::currentTime();
-      ((*_buffers)[_currentIndex]).timeStamp = newTimeStamp;
-      ((*_buffers)[_currentIndex]).versionNumber = newVersionNumber;
+      (_sharedState->_buffers[_currentIndex]).timeStamp = newTimeStamp;
+      (_sharedState->_buffers[_currentIndex]).versionNumber = newVersionNumber;
       if (shouldCopy) {
-        (*_buffers)[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
+        _sharedState->_buffers[_currentIndex].value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
       }
       else {
-        (*_buffers)[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
+        _sharedState->_buffers[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
       }
       std::size_t nextIndex;
-      if (_emptyBufferQueue->pop(nextIndex)) {
-        _fullBufferQueue->push(_currentIndex);
+      if (_sharedState->_emptyBufferQueue.pop(nextIndex)) {
+        _sharedState->_fullBufferQueue.push(_currentIndex);
       } else {
         // We can still send, but we will lose older data.
-        if (_fullBufferQueue->pop(nextIndex)) {
-          _fullBufferQueue->push(_currentIndex);
+        if (_sharedState->_fullBufferQueue.pop(nextIndex)) {
+          _sharedState->_fullBufferQueue.push(_currentIndex);
         } else {
           // It is possible, that we did not find an empty buffer but before
           // we could get a full buffer, the receiver processed all full
           // buffers. In this case, the queue of empty buffers cannot be empty
           // any longer because we have at least four buffers.
-          if (!_emptyBufferQueue->pop(nextIndex)) {
+          if (!_sharedState->_emptyBufferQueue.pop(nextIndex)) {
             // This should never happen and is just an assertion for extra
             // safety.
             throw std::runtime_error(
                 "Assertion that empty-buffer queue has at least one element failed.");
           }
-          _fullBufferQueue->push(_currentIndex);
+          _sharedState->_fullBufferQueue.push(_currentIndex);
         }
       }
       if (shouldCopy) {
-        (*_buffers)[nextIndex].timeStamp = newTimeStamp;
-        (*_buffers)[nextIndex].versionNumber = newVersionNumber;
+        _sharedState->_buffers[nextIndex].timeStamp = newTimeStamp;
+        _sharedState->_buffers[nextIndex].versionNumber = newVersionNumber;
       }
       _currentIndex = nextIndex;
       if (_sendNotificationListener) {
@@ -716,9 +745,14 @@ namespace ChimeraTK {
       // unfulfilled future in the notification queue at all times, so we try pushing a new one first. If this
       // failes, there is already one unfulfilled and one fulfilled future in the queue, so we are done.
       boost::promise<void> nextPromise;
-      if(_notificationQueue->push(nextPromise.get_future())) {
-        _notificationPromise.set_value();
-        _notificationPromise = std::move(nextPromise);
+      if(_sharedState->_notificationQueue.push(nextPromise.get_future())) {
+        try {
+          _sharedState->_notificationPromise.set_value();
+        }
+        catch(boost::promise_already_satisfied) {
+          // ignore -> this may happen only during shutdown
+        }
+        _sharedState->_notificationPromise = std::move(nextPromise);
       }
     }
 
