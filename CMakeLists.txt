@@ -45,7 +45,7 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(mtca4u-deviceaccess 00.19 REQUIRED)
+add_dependency(mtca4u-deviceaccess 00.21 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
@@ -131,4 +131,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 
 
 ## The instructions to create a debian package are loaded from a separate file
+
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
+
+include(${CMAKE_SOURCE_DIR}/cmake/enable_doxygen_documentation.cmake)
+
