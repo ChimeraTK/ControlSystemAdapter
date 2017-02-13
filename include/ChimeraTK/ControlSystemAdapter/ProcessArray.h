@@ -202,11 +202,6 @@ namespace ChimeraTK {
       _sharedState->_notificationQueue.push(_sharedState->_notificationPromise.get_future());
     }
 
-    /**
-     * Exception class for notifying a pending asynchronous doReadTransfer() to shut down
-     */
-    class ShutdownException {};
-
     ~ProcessArray() {
       // if this is a receiver, shutdown a potentially running readAsync
       if(_instanceType == RECEIVER) {
