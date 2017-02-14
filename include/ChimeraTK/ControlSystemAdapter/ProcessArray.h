@@ -401,8 +401,55 @@ namespace ChimeraTK {
         return false;
       }
     }
+
+    mtca4u::TransferFuture readAsync() override {
+      if (_instanceType != RECEIVER) {
+        throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
+      }
+      ChimeraTK::ExperimentalFeatures::check("asynchronous read");
+      if(mtca4u::TransferElement::hasActiveFuture) return mtca4u::TransferElement::activeFuture;  // the last future given out by this fuction is still active
+      
+      // check if we already have data
+      boost::promise<void> promise;
+      boost::shared_future<void> readyFuture = promise.get_future().share();
+      promise.set_value();
+      if(doReadTransferNonBlocking()) {
+        mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(readyFuture, static_cast<mtca4u::TransferElement*>(this));
+        mtca4u::TransferElement::hasActiveFuture = true;
+        return mtca4u::TransferElement::activeFuture;
+      }
+      else {
+        boost::shared_future<void> future;
+        // obtain future from queue
+        bool atLeastOneFuturePresent = _sharedState->_notificationQueue.pop(future);
+        assert(atLeastOneFuturePresent);  // if this is not true, there is something wrong with the algorithm
+        (void)atLeastOneFuturePresent;    // prevent warning in case asserts are disabled
+        // if this future is already fulfilled, obtain the next one
+        if(future.is_ready()) {
+          // before we can obtain the next future, we must check for new data once more
+          if(doReadTransferNonBlocking()) {
+            mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(readyFuture, static_cast<mtca4u::TransferElement*>(this));
+            mtca4u::TransferElement::hasActiveFuture = true;
+            return mtca4u::TransferElement::activeFuture;
+          }
+          atLeastOneFuturePresent = _sharedState->_notificationQueue.pop(future);
+          assert(atLeastOneFuturePresent);
+        }
+        // return the future
+        mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(future, static_cast<mtca4u::TransferElement*>(this));
+        mtca4u::TransferElement::hasActiveFuture = true;
+        return mtca4u::TransferElement::activeFuture;
+      }
+    }
     
     void postRead() override {
+      // if this is called inside mtca4u::TransferFuture::wait(), we still need to obtain the new data from the queue
+      if(mtca4u::TransferElement::hasActiveFuture) {
+        bool hasNewDataAfterFuture = doReadTransferNonBlocking();
+        assert(hasNewDataAfterFuture);    // if this is not true, we did not receive new data despied being notified about new data...
+        (void)hasNewDataAfterFuture;      // prevent warning in case asserts are disabled
+      }
+      // swap data out of the queue buffer
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( (_sharedState->_buffers[_currentIndex]).value );
     }
 
