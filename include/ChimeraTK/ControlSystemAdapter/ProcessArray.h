@@ -416,6 +416,7 @@ namespace ChimeraTK {
       if(doReadTransferNonBlocking()) {
         mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(readyFuture, static_cast<mtca4u::TransferElement*>(this));
         mtca4u::TransferElement::hasActiveFuture = true;
+        _asyncReadTransferNeeded = false;
         return mtca4u::TransferElement::activeFuture;
       }
       else {
@@ -430,6 +431,7 @@ namespace ChimeraTK {
           if(doReadTransferNonBlocking()) {
             mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(readyFuture, static_cast<mtca4u::TransferElement*>(this));
             mtca4u::TransferElement::hasActiveFuture = true;
+           _asyncReadTransferNeeded = false;
             return mtca4u::TransferElement::activeFuture;
           }
           atLeastOneFuturePresent = _sharedState->_notificationQueue.pop(future);
@@ -438,13 +440,15 @@ namespace ChimeraTK {
         // return the future
         mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(future, static_cast<mtca4u::TransferElement*>(this));
         mtca4u::TransferElement::hasActiveFuture = true;
+        _asyncReadTransferNeeded = true;
         return mtca4u::TransferElement::activeFuture;
       }
     }
     
     void postRead() override {
-      // if this is called inside mtca4u::TransferFuture::wait(), we still need to obtain the new data from the queue
-      if(mtca4u::TransferElement::hasActiveFuture) {
+      // if this is called inside mtca4u::TransferFuture::wait(), we may still need to obtain the new data from the queue
+      if(_asyncReadTransferNeeded) {
+        _asyncReadTransferNeeded = false;
         bool hasNewDataAfterFuture = doReadTransferNonBlocking();
         assert(hasNewDataAfterFuture);    // if this is not true, we did not receive new data despied being notified about new data...
         (void)hasNewDataAfterFuture;      // prevent warning in case asserts are disabled
@@ -715,6 +719,12 @@ namespace ChimeraTK {
      * Variable ID for the persistent data storage
      */
     size_t _persistentDataStorageID{0};
+    
+    /**
+     * Flag set in readAsync() whether doReadTransferNonBlocking() must or must not be called in postRead() after the
+     * future go tready.
+     */
+    bool _asyncReadTransferNeeded{false};
 
     /**
      * Internal implementation of the various {@code send} methods. All these
