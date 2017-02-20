@@ -61,20 +61,20 @@ void AsyncReadTest::testAsyncRead() {
   auto senderAccessor = mtca4u::ScalarRegisterAccessor<int32_t>(sender);
   
   // simple reading through readAsync without actual need
-  TransferFuture future;
+  TransferFuture *future;
   senderAccessor = 5;
   senderAccessor.write();
-  future = accessor.readAsync();
-  future.wait();
+  future = &(accessor.readAsync());
+  future->wait();
   BOOST_CHECK( accessor == 5 );
 
   // check that future's wait() function won't return before the read is complete
   for(int i=0; i<5; ++i) {
     senderAccessor = 42+i;
-    future = accessor.readAsync();
+    future = &(accessor.readAsync());
     std::atomic<bool> flag;
     flag = false;
-    std::thread thread([&future, &flag] { future.wait(); flag = true; });
+    std::thread thread([&future, &flag] { future->wait(); flag = true; });
     usleep(100000);
     BOOST_CHECK(flag == false);
     senderAccessor.write();
@@ -85,19 +85,19 @@ void AsyncReadTest::testAsyncRead() {
   // check that obtaining the same future multiple times works properly
   senderAccessor = 666;
   for(int i=0; i<5; ++i) {
-    future = accessor.readAsync();
+    future = &(accessor.readAsync());
     BOOST_CHECK( accessor == 46 );    // still the old value from the last test part
   }
   senderAccessor.write();
-  future.wait();
+  future->wait();
   BOOST_CHECK( accessor == 666 );
   
   // now try another asynchronous transfer
   senderAccessor = 999;
-  future = accessor.readAsync();
+  future = &(accessor.readAsync());
   std::atomic<bool> flag;
   flag = false;
-  std::thread thread([&future, &flag] { future.wait(); flag = true; });
+  std::thread thread([&future, &flag] { future->wait(); flag = true; });
   usleep(100000);
   BOOST_CHECK(flag == false);
   senderAccessor.write();
