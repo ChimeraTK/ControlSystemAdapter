@@ -402,7 +402,7 @@ namespace ChimeraTK {
       }
     }
 
-    mtca4u::TransferFuture readAsync() override {
+    mtca4u::TransferFuture& readAsync() override {
       if (_instanceType != RECEIVER) {
         throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
       }
