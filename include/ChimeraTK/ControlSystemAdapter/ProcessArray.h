@@ -573,6 +573,13 @@ namespace ChimeraTK {
       }
     }
 
+    /** Return a unique ID of this process variable, which will be indentical for the receiver and sender side of the
+     *  same variable but different for any other process variable within the same process. The unique ID will not be
+     *  persistent accross executions of the process. */
+    size_t getUniqueId() const {
+      return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
+    }
+
   private:
 
     /**
