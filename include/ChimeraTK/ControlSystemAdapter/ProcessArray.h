@@ -463,14 +463,14 @@ namespace ChimeraTK {
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( (_sharedState->_buffers[_currentIndex]).value );
     }
 
-    void write() override {
+    bool write() override {
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
       } else {
         newVersionNumber = 0;
       }
-      write(newVersionNumber);
+      return write(newVersionNumber);
     }
 
     /**
@@ -485,8 +485,8 @@ namespace ChimeraTK {
      *
      * Throws an exception if this process variable is not a sender.
      */
-    void write(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already! ???
-      writeInternal(newVersionNumber, true);
+    bool write(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already! ???
+      return writeInternal(newVersionNumber, true);
     }
 
     /**
@@ -508,14 +508,14 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    void writeDestructively() { /// @todo FIXME this function must be present in TransferElement already!
+    bool writeDestructively() { /// @todo FIXME this function must be present in TransferElement already!
       VersionNumber newVersionNumber;
       if (_versionNumberSource) {
         newVersionNumber = _versionNumberSource->nextVersionNumber();
       } else {
         newVersionNumber = 0;
       }
-      writeDestructively(newVersionNumber);
+      return writeDestructively(newVersionNumber);
     }
 
     /**
@@ -537,12 +537,12 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    void writeDestructively(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already!
+    bool writeDestructively(VersionNumber newVersionNumber) { /// @todo FIXME this function must be present in TransferElement already!
       if (!_maySendDestructively) {
         throw std::runtime_error(
             "This process variable must not be sent destructively because the corresponding flag has not been set.");
       }
-      writeInternal(newVersionNumber, false);
+      return writeInternal(newVersionNumber, false);
     }
 
     const std::type_info& getValueType() const override {
@@ -744,8 +744,10 @@ namespace ChimeraTK {
      * methods basically do the same and only differ in whether the data in the
      * sent array is copied to the buffer used as the new current buffer and
      * which version number is used.
+     * 
+     * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
      */
-    void writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
+    bool writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
       if (_instanceType != SENDER) {
         throw std::logic_error(
             "Send operation is only allowed for a sender process variable.");
@@ -778,12 +780,14 @@ namespace ChimeraTK {
         _sharedState->_buffers[_currentIndex].value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
       }
       std::size_t nextIndex;
+      bool lostData = false;
       if (_sharedState->_emptyBufferQueue.pop(nextIndex)) {
         _sharedState->_fullBufferQueue.push(_currentIndex);
       } else {
         // We can still send, but we will lose older data.
         if (_sharedState->_fullBufferQueue.pop(nextIndex)) {
           _sharedState->_fullBufferQueue.push(_currentIndex);
+          lostData = true;
         } else {
           // It is possible, that we did not find an empty buffer but before
           // we could get a full buffer, the receiver processed all full
@@ -819,8 +823,9 @@ namespace ChimeraTK {
         }
         _sharedState->_notificationPromise = std::move(nextPromise);
       }
-    }
 
+      return lostData;
+    }
   };
 
 /*********************************************************************************************************************/
