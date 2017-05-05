@@ -45,7 +45,7 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(mtca4u-deviceaccess 00.21 REQUIRED)
+add_dependency(mtca4u-deviceaccess 00.23 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
