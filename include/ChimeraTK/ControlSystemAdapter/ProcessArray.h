@@ -750,14 +750,15 @@ namespace ChimeraTK {
     bool writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
       if (_instanceType != SENDER) {
         throw std::logic_error(
-            "Send operation is only allowed for a sender process variable.");
+            "Send operation is only allowed for a sender process variable. Variable name: "+this->getName());
       }
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the receiver might get into
       // trouble when it suddenly experiences a vector of the wrong size.
       if (mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
         throw std::runtime_error(
-            "Cannot run receive operation because the size of the vector belonging to the current buffer has been modified.");
+            "Cannot run receive operation because the size of the vector belonging to the current buffer has been "
+            "modified. Variable name: "+this->getName());
       }
       // First update the persistent data storage, if any was associated. This cannot be done after sending, since the
       // value might no longer be available within this instance.
