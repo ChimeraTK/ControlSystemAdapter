@@ -82,7 +82,7 @@ namespace ChimeraTK {
         SynchronizationDirection synchronizationDirection,
         const std::string& processVariableName, std::size_t size,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
-        T initialValue = 0, bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
+        T initialValue = T(), bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
     /**
      * Creates a new process array and registers it with the PV manager.
@@ -228,16 +228,16 @@ namespace ChimeraTK {
       const std::string& unit, const std::string& description, T initialValue,
       bool maySendDestructively, std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
-    case controlSystemToDevice:
-      return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, std::vector<T>(size, initialValue), unit, description,
-          maySendDestructively, numberOfBuffers).second;
-    case deviceToControlSystem:
-      return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, std::vector<T>(size, initialValue), unit, description,
-          maySendDestructively, numberOfBuffers).second;
-    default:
-      throw std::invalid_argument("invalid SynchronizationDirection");
+      case controlSystemToDevice:
+        return _pvManager->createProcessArrayControlSystemToDevice<T>(
+            processVariableName, std::vector<T>(size, initialValue), unit, description,
+            maySendDestructively, numberOfBuffers).second;
+      case deviceToControlSystem:
+        return _pvManager->createProcessArrayDeviceToControlSystem<T>(
+            processVariableName, std::vector<T>(size, initialValue), unit, description,
+            maySendDestructively, numberOfBuffers).second;
+      default:
+        throw std::invalid_argument("invalid SynchronizationDirection");
     }
   }
 
@@ -248,16 +248,16 @@ namespace ChimeraTK {
       const std::string& unit, const std::string& description,
       bool maySendDestructively, std::size_t numberOfBuffers) {
     switch (synchronizationDirection) {
-    case controlSystemToDevice:
-      return _pvManager->createProcessArrayControlSystemToDevice<T>(
-          processVariableName, initialValue, unit, description, maySendDestructively,
-          numberOfBuffers).second;
-    case deviceToControlSystem:
-      return _pvManager->createProcessArrayDeviceToControlSystem<T>(
-          processVariableName, initialValue, unit, description, maySendDestructively,
-          numberOfBuffers).second;
-    default:
-      throw std::invalid_argument("invalid SynchronizationDirection");
+      case controlSystemToDevice:
+        return _pvManager->createProcessArrayControlSystemToDevice<T>(
+            processVariableName, initialValue, unit, description, maySendDestructively,
+            numberOfBuffers).second;
+      case deviceToControlSystem:
+        return _pvManager->createProcessArrayDeviceToControlSystem<T>(
+            processVariableName, initialValue, unit, description, maySendDestructively,
+            numberOfBuffers).second;
+      default:
+        throw std::invalid_argument("invalid SynchronizationDirection");
     }
   }
 
