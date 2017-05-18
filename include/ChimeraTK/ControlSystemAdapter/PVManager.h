@@ -516,7 +516,16 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr devPV = boost::dynamic_pointer_cast<
           ProcessArray<T>, ProcessVariable>(processVariable.second);
       if (!csPV || !devPV) {
-        throw std::bad_cast();
+        struct bad_cast : std::bad_cast {
+          bad_cast(const std::string &what) : _what(what) {}
+          const char* what() const noexcept override {
+            return _what.c_str();
+          }
+          std::string _what;
+        };
+        throw bad_cast("PVManager::getProcessArray() called for variable '" + processVariableName +"' with type "
+                       +typeid(T).name()+" which is not the original type " + processVariable.first->getValueType().name()
+                       + " of this process variable.");
       }
       return std::make_pair(csPV, devPV);
     } else {
