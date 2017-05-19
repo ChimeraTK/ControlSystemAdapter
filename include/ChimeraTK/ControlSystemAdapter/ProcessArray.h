@@ -456,8 +456,16 @@ namespace ChimeraTK {
       if(_asyncReadTransferNeeded) {
         _asyncReadTransferNeeded = false;
         bool hasNewDataAfterFuture = doReadTransferNonBlocking();
-        assert(hasNewDataAfterFuture);    // if this is not true, we did not receive new data despied being notified about new data...
-        (void)hasNewDataAfterFuture;      // prevent warning in case asserts are disabled
+        if(!hasNewDataAfterFuture) {
+          // we did not receive new data despite being notified about new data...
+          // this either means there is a bug in the ControlSystemAdapter, or the application has called postRead() from
+          // a different thread while mtca4u::TransferFuture::wait() is still waiting. This is in principle violating
+          // the interface definition, but can be safe under certain circumstances (e.g. in ApplicationCore's testable
+          // mode, when a stall is detected and debugging information should be printed). Thus we do not raise an
+          // assertion but throw an exception which can be caught when this is known to be safe.
+          throw std::logic_error("postRead() called despite no new data has arrived. Are you reading the same "
+                                 "ProcessArray from different threads?");
+        }
       }
       // swap data out of the queue buffer
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( (_sharedState->_buffers[_currentIndex]).value );
