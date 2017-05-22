@@ -360,6 +360,9 @@ namespace ChimeraTK {
     }
 
     void doReadTransfer() override {
+      // If previously a TransferFuture has been requested by readAsync(), first make sure that that future is
+      // already fulfilled. Otherwise we might run out of futures on the notification queue.
+      if(mtca4u::TransferElement::hasActiveFuture) mtca4u::TransferElement::activeFuture.wait();
       // Obtain futures from the notification queue and wait on them until we receive data. We start with checking
       // for data before obtaining a future from the notification queue, since this is faster and the notification
       // queue is shorter than the data queue.
