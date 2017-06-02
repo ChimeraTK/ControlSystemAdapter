@@ -380,6 +380,11 @@ namespace ChimeraTK {
       if (_instanceType != RECEIVER) {
         throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
       }
+      // If previously a TransferFuture has been requested by readAsync(), first make sure that that future is
+      // already fulfilled. Otherwise we might run out of futures on the notification queue.
+      if(mtca4u::TransferElement::hasActiveFuture) {
+        return mtca4u::TransferElement::activeFuture.hasNewData();
+      }
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
@@ -467,7 +472,7 @@ namespace ChimeraTK {
           // mode, when a stall is detected and debugging information should be printed). Thus we do not raise an
           // assertion but throw an exception which can be caught when this is known to be safe.
           throw std::logic_error("postRead() called despite no new data has arrived. Are you reading the same "
-                                 "ProcessArray from different threads?");
+                                 "ProcessArray from different threads? Variable name: "+this->getName());
         }
       }
       // swap data out of the queue buffer
