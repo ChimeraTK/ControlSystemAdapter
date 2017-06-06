@@ -67,6 +67,12 @@ void AsyncReadTest::testAsyncRead() {
   future = &(accessor.readAsync());
   future->wait();
   BOOST_CHECK( accessor == 5 );
+  
+  senderAccessor = 6;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  future->wait();
+  BOOST_CHECK( accessor == 6 );
 
   // check that future's wait() function won't return before the read is complete
   for(int i=0; i<5; ++i) {
