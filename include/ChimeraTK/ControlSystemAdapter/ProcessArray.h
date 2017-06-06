@@ -463,6 +463,7 @@ namespace ChimeraTK {
       // if this is called inside mtca4u::TransferFuture::wait(), we may still need to obtain the new data from the queue
       if(_asyncReadTransferNeeded) {
         _asyncReadTransferNeeded = false;
+        mtca4u::TransferElement::hasActiveFuture = false;  // prevent doReadTransferNonBlocking() from checking the future only
         bool hasNewDataAfterFuture = doReadTransferNonBlocking();
         if(!hasNewDataAfterFuture) {
           // we did not receive new data despite being notified about new data...
