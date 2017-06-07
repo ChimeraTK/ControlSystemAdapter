@@ -362,7 +362,12 @@ namespace ChimeraTK {
     void doReadTransfer() override {
       // If previously a TransferFuture has been requested by readAsync(), first make sure that that future is
       // already fulfilled. Otherwise we might run out of futures on the notification queue.
-      if(mtca4u::TransferElement::hasActiveFuture) mtca4u::TransferElement::activeFuture.wait();
+      if(mtca4u::TransferElement::hasActiveFuture) {
+        mtca4u::TransferElement::activeFuture.getBoostFuture().wait();
+        mtca4u::TransferElement::hasActiveFuture = false;
+        if(!_asyncReadTransferNeeded) return;
+        _asyncReadTransferNeeded = false;
+      }
       // Obtain futures from the notification queue and wait on them until we receive data. We start with checking
       // for data before obtaining a future from the notification queue, since this is faster and the notification
       // queue is shorter than the data queue.
@@ -383,7 +388,12 @@ namespace ChimeraTK {
       // If previously a TransferFuture has been requested by readAsync(), first make sure that that future is
       // already fulfilled. Otherwise we might run out of futures on the notification queue.
       if(mtca4u::TransferElement::hasActiveFuture) {
-        return mtca4u::TransferElement::activeFuture.hasNewData();
+        auto theFuture = mtca4u::TransferElement::activeFuture.getBoostFuture();
+        auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
+        if(status == boost::future_status::timeout) return false;
+        mtca4u::TransferElement::hasActiveFuture = false;
+        if(!_asyncReadTransferNeeded) return true;
+        _asyncReadTransferNeeded = false;
       }
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
