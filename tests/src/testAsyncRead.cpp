@@ -25,9 +25,13 @@ class AsyncReadTest {
     /// test the TransferElement::readAny() function on ProcessArrays
     void testReadAny();
 
+    /// test mixing asynchronous with synchronous reads
+    void testMixedRead();
+
 };
 
 /**********************************************************************************************************************/
+
 class  AsyncReadTestSuite : public test_suite {
   public:
     AsyncReadTestSuite() : test_suite("Async read test suite") {
@@ -35,9 +39,11 @@ class  AsyncReadTestSuite : public test_suite {
 
       add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testAsyncRead, asyncReadTest ) );
       add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testReadAny, asyncReadTest ) );
+      add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testMixedRead, asyncReadTest ) );
     }};
 
 /**********************************************************************************************************************/
+
 test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
 {
   ChimeraTK::ExperimentalFeatures::enable();
@@ -49,6 +55,7 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
 }
 
 /**********************************************************************************************************************/
+
 void AsyncReadTest::testAsyncRead() {
   std::cout << "testAsyncRead" << std::endl;
 
@@ -256,5 +263,169 @@ void AsyncReadTest::testReadAny() {
     thread.join();
     BOOST_CHECK( a3 == 122 );
   }
+  
+}
+
+/**********************************************************************************************************************/
+
+void AsyncReadTest::testMixedRead() {
+  std::cout << "testMixedRead" << std::endl;
+
+  auto senderReceiver = createSynchronizedProcessArray<int32_t>(1, "someName");
+  auto sender = senderReceiver.first;
+  auto receiver = senderReceiver.second;
+
+  // obtain register accessor with integral type
+  auto accessor = mtca4u::ScalarRegisterAccessor<int32_t>(receiver);
+  auto senderAccessor = mtca4u::ScalarRegisterAccessor<int32_t>(sender);
+  
+  TransferFuture *future;
+
+  // plain readAsync and read mixed one after each other
+  senderAccessor = 5;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  future->wait();
+  BOOST_CHECK( accessor == 5 );
+  
+  senderAccessor = 6;
+  senderAccessor.write();
+  accessor.read();
+  BOOST_CHECK( accessor == 6 );
+
+  senderAccessor = 7;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  future->wait();
+  BOOST_CHECK( accessor == 7 );
+
+  senderAccessor = 8;
+  senderAccessor.write();
+  accessor.read();
+  BOOST_CHECK( accessor == 8 );
+
+  future = &(accessor.readAsync());
+  senderAccessor = 9;
+  senderAccessor.write();
+  future->wait();
+  BOOST_CHECK( accessor == 9 );
+
+  senderAccessor = 10;
+  senderAccessor.write();
+  accessor.read();
+  BOOST_CHECK( accessor == 10 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+  
+  // mixing with read() when future stays unfulfilled
+  future = &(accessor.readAsync());
+  usleep(10000);
+  BOOST_CHECK(future->hasNewData() == false);
+
+  senderAccessor = 11;
+  senderAccessor.write();
+  usleep(10000);
+
+  accessor.read();
+  BOOST_CHECK( accessor == 11 );
+  senderAccessor = 12;
+  senderAccessor.write();
+  accessor.read();
+  BOOST_CHECK( accessor == 12 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // mixing with read() when future stays unfulfilled, different order
+  future = &(accessor.readAsync());
+  usleep(10000);
+  BOOST_CHECK(future->hasNewData() == false);
+  
+  senderAccessor = 13;
+  senderAccessor.write();
+  senderAccessor = 14;
+  senderAccessor.write();
+  usleep(10000);
+
+  accessor.read();
+  BOOST_CHECK( accessor == 13 );
+
+  accessor.read();
+  BOOST_CHECK( accessor == 14 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // readAsync with data already present, then discard the future
+  senderAccessor = 15;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  usleep(10000);
+  accessor.read();
+  BOOST_CHECK( accessor == 15 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // readAsync with data already present, then discard the future, with more data
+  senderAccessor = 15;
+  senderAccessor.write();
+  senderAccessor = 16;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  usleep(10000);
+  accessor.read();
+  BOOST_CHECK( accessor == 15 );
+  accessor.read();
+  BOOST_CHECK( accessor == 16 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // mixing with readNonBlocking() when future stays unfulfilled
+  future = &(accessor.readAsync());
+  usleep(10000);
+  BOOST_CHECK(future->hasNewData() == false);
+  
+  senderAccessor = 13;
+  senderAccessor.write();
+  senderAccessor = 14;
+  senderAccessor.write();
+  usleep(10000);
+
+  BOOST_CHECK( accessor.readNonBlocking() == true );
+  BOOST_CHECK( accessor == 13 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == true );
+  BOOST_CHECK( accessor == 14 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // mixing with readNonBlocking() when future stays unfulfilled and a readNonBlocking() also is unsuccessfull
+  future = &(accessor.readAsync());
+  usleep(10000);
+  BOOST_CHECK(future->hasNewData() == false);
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+  
+  senderAccessor = 13;
+  senderAccessor.write();
+  senderAccessor = 14;
+  senderAccessor.write();
+  usleep(10000);
+
+  BOOST_CHECK( accessor.readNonBlocking() == true );
+  BOOST_CHECK( accessor == 13 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == true );
+  BOOST_CHECK( accessor == 14 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
+
+  // readAsync with data already present, then discard the future - readNonBlocking() version
+  senderAccessor = 15;
+  senderAccessor.write();
+  future = &(accessor.readAsync());
+  usleep(10000);
+  BOOST_CHECK( accessor.readNonBlocking() == true );
+  BOOST_CHECK( accessor == 15 );
+
+  BOOST_CHECK( accessor.readNonBlocking() == false );
   
 }
