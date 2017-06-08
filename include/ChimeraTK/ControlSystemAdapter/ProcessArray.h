@@ -482,8 +482,16 @@ namespace ChimeraTK {
           // the interface definition, but can be safe under certain circumstances (e.g. in ApplicationCore's testable
           // mode, when a stall is detected and debugging information should be printed). Thus we do not raise an
           // assertion but throw an exception which can be caught when this is known to be safe.
-          throw std::logic_error("postRead() called despite no new data has arrived. Are you reading the same "
-                                 "ProcessArray from different threads? Variable name: "+this->getName());
+
+          /// @todo Change this back to an exception, this busy-waiting loop is only a temporary work around until the
+          ///       problem has been fully understood and solved.
+          /* throw std::logic_error("postRead() called despite no new data has arrived. Are you reading the same "
+                                 "ProcessArray from different threads? Variable name: "+this->getName()); */
+          std::cerr << "*** ERROR: ProcessArrya::postRead() called despite no new data has arrived. Are you reading the "
+                       "same ProcessArray from different threads? Variable name: "+this->getName() << std::endl;
+          std::cerr << "    Using 1ms polling interval to wait for actual new data." << std::endl;
+          while(!doReadTransferNonBlocking()) usleep(1000);
+          std::cerr << "    New data has arrived for " << this->getName() << ". Busy waiting stopped." << std::endl;
         }
       }
       // swap data out of the queue buffer
