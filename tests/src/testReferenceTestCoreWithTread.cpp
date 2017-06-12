@@ -1,28 +1,28 @@
-#define BOOST_TEST_MODULE ReferenceTestCoreWithThreadTest
+#define BOOST_TEST_MODULE ReferenceTestApplicationWithThreadTest
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
 #include "ControlSystemSynchronizationUtility.h"
-#include "IndependentTestCore.h"
+#include "ReferenceTestApplication.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
-// We are testing the reference core when executed with it's own thread running.
+// We are testing the reference application when executed with it's own thread running.
 // Synchronisation is done through the atomic mainBodyCompletelyExecuted variable.
 
 // This test is only executed for int32_t scalars because it is only testing the thread
 // functionality. The rest is done in the {FIXEM: find a better name ) fullStubTest
 
-BOOST_AUTO_TEST_SUITE( ReferenceTestCoreWithThreadTestSuite )
+BOOST_AUTO_TEST_SUITE( ReferenceTestApplicationWithThreadTestSuite )
 
 BOOST_AUTO_TEST_CASE( testInt32_t ){
   auto pvManagers =  createPVManager();
   auto csManager = pvManagers.first;
   auto devManager = pvManagers.second;
 
-  // create the control core with it's own thread running the main loop
-  IndependentTestCore testCore( devManager );
+  // create the control application with it's own thread running the main loop
+  ReferenceTestApplication testApplication( devManager );
 
   ControlSystemSynchronizationUtility csSyncUtil(csManager);
 

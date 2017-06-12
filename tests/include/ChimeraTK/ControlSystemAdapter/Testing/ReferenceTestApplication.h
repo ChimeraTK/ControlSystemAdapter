@@ -1,5 +1,5 @@
-#ifndef _INDEPENDENT_CONTOL_CORE_H_
-#define _INDEPENDENT_CONTOL_CORE_H_
+#ifndef _REFERENCE_TEST_APPLICATION_H_
+#define _REFERENCE_TEST_APPLICATION_H_
 
 #include <boost/scoped_ptr.hpp>
 
@@ -87,7 +87,7 @@ typedef boost::fusion::map<
   > HolderMap;
 
 
-class IndependentTestCore{
+class ReferenceTestApplication{
  public:
   ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
@@ -134,7 +134,7 @@ class IndependentTestCore{
    *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
    *  an endless loop.
    */
-  IndependentTestCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
+  ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
       //initialise all process variables, using the factory
       : processVariableManager( processVariableManager_ ),
     holderMap(
@@ -151,10 +151,10 @@ class IndependentTestCore{
 
     syncUtil.sendAll();
 
-    _deviceThread.reset( new boost::thread( boost::bind( &IndependentTestCore::mainLoop, this ) ) );
+    _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
   }
   
-  ~IndependentTestCore(){
+  ~ReferenceTestApplication(){
     // stop the device thread before any other destructors are called
     if (_deviceThread){
       _deviceThread->interrupt();
@@ -164,7 +164,7 @@ class IndependentTestCore{
 
 };
 
-inline void IndependentTestCore::mainLoop(){
+inline void ReferenceTestApplication::mainLoop(){
   mainLoopMutex().lock();
   
   while (!boost::this_thread::interruption_requested()) {
@@ -194,13 +194,13 @@ struct PerformInputToOutput{
   }
 };
 
-inline void IndependentTestCore::mainBody(){
+inline void ReferenceTestApplication::mainBody(){
 
   syncUtil.receiveAll();
   for_each( holderMap, PerformInputToOutput() );
 }
 
-inline void IndependentTestCore::runMainLoopOnce(){
+inline void ReferenceTestApplication::runMainLoopOnce(){
   mainLoopExecutionRequested() = true;
   do{
     mainLoopMutex().unlock();
@@ -211,7 +211,7 @@ inline void IndependentTestCore::runMainLoopOnce(){
   }while( mainLoopExecutionRequested() );
 }
 
-inline void IndependentTestCore::initialiseManualLoopControl(){
+inline void ReferenceTestApplication::initialiseManualLoopControl(){
   manuallyControlMainLoop() = true;
   do{
     boost::this_thread::sleep_for( boost::chrono::milliseconds(10) );
@@ -219,9 +219,9 @@ inline void IndependentTestCore::initialiseManualLoopControl(){
   mainLoopMutex().lock();
 }
 
-inline void IndependentTestCore::releaseManualLoopControl(){
+inline void ReferenceTestApplication::releaseManualLoopControl(){
   manuallyControlMainLoop() = false;
   initalisationForManualLoopControlFinished() = false;
   mainLoopMutex().unlock();
 }
-#endif // _INDEPENDENT_CONTOL_CORE_H_
+#endif // _REFERENCE_TEST_APPLICATION_H_

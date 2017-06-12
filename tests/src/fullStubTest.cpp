@@ -3,34 +3,34 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "ControlSystemSynchronizationUtility.h"
-#include "IndependentTestCore.h"
+#include "ReferenceTestApplication.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
-struct TestCoreFixture{
+struct TestApplicationFixture{
   std::pair<boost::shared_ptr<ControlSystemPVManager>,
 	    boost::shared_ptr<DevicePVManager> > pvManagers;
   boost::shared_ptr<ControlSystemPVManager> csManager;
   boost::shared_ptr<DevicePVManager> devManager;
   
-  IndependentTestCore testCore;
+  ReferenceTestApplication testApplication;
 
   ControlSystemSynchronizationUtility csSyncUtil;
 
-  TestCoreFixture() : 
+  TestApplicationFixture() : 
     pvManagers( createPVManager() ),
     csManager( pvManagers.first ),
     devManager( pvManagers.second ),
-    testCore(devManager),
+    testApplication(devManager),
     csSyncUtil(csManager){
-    std::cout << "this is TestCoreFixture():" << std::endl;
-    IndependentTestCore::initialiseManualLoopControl();
+    std::cout << "this is TestApplicationFixture():" << std::endl;
+    ReferenceTestApplication::initialiseManualLoopControl();
     csSyncUtil.receiveAll();
   }
-  ~TestCoreFixture(){
-    std::cout << "this is ~TestCoreFixture():" << std::endl;
-    IndependentTestCore::releaseManualLoopControl();
+  ~TestApplicationFixture(){
+    std::cout << "this is ~TestApplicationFixture():" << std::endl;
+    ReferenceTestApplication::releaseManualLoopControl();
   }
 
   template<class UserType>
@@ -43,7 +43,7 @@ struct TestCoreFixture{
     toDeviceScalar->accessData(0) = previousReadValue+13;
 
     csSyncUtil.sendAll();
-    IndependentTestCore::runMainLoopOnce();
+    ReferenceTestApplication::runMainLoopOnce();
     csSyncUtil.receiveAll();
   
     BOOST_CHECK( fromDeviceScalar->accessData(0) == previousReadValue+13 );
@@ -82,7 +82,7 @@ struct TestCoreFixture{
     }
 
     csSyncUtil.sendAll();
-    IndependentTestCore::runMainLoopOnce();
+    ReferenceTestApplication::runMainLoopOnce();
     csSyncUtil.receiveAll();
 
     for (size_t i = 0; i < fromDeviceArray->get().size(); ++i){
@@ -94,7 +94,7 @@ struct TestCoreFixture{
 
 BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
 
-BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
+BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestApplicationFixture){
   // just after creation of the fixture the constants should be available to the control system
   BOOST_CHECK( csManager->getProcessArray<int8_t>("CHAR/DATA_TYPE_CONSTANT")->get()[0] == -1 );
   BOOST_CHECK( csManager->getProcessArray<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->get()[0] == 1 );
@@ -106,7 +106,7 @@ BOOST_FIXTURE_TEST_CASE( test_read_scalar, TestCoreFixture){
   BOOST_CHECK( csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->get()[0] == 1./8 );
 }
 
-BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){
+BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestApplicationFixture){
   typedWriteScalarTest<int8_t>("CHAR");
   typedWriteScalarTest<uint8_t>("UCHAR");
   typedWriteScalarTest<int16_t>("SHORT");
@@ -117,7 +117,7 @@ BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestCoreFixture){
   typedWriteScalarTest<double>("DOUBLE");
 }
 
-BOOST_FIXTURE_TEST_CASE( test_read_array, TestCoreFixture){
+BOOST_FIXTURE_TEST_CASE( test_read_array, TestApplicationFixture){
   typedReadArrayTest<int8_t>("CHAR");	 
   typedReadArrayTest<uint8_t>("UCHAR");
   typedReadArrayTest<int16_t>("SHORT");
@@ -128,7 +128,7 @@ BOOST_FIXTURE_TEST_CASE( test_read_array, TestCoreFixture){
   typedReadArrayTest<double>("DOUBLE");  
 }
 
-BOOST_FIXTURE_TEST_CASE( test_write_array, TestCoreFixture){
+BOOST_FIXTURE_TEST_CASE( test_write_array, TestApplicationFixture){
   typedWriteArrayTest<int8_t>("CHAR");	 
   typedWriteArrayTest<uint8_t>("UCHAR");
   typedWriteArrayTest<int16_t>("SHORT");

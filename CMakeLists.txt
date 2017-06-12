@@ -70,7 +70,7 @@ if(TESTING_IS_ENABLED)
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
-    #The IndependentTestCore is written to work with the control system adapter as installed, so 
+    #The ReferenceTestApplication is written to work with the control system adapter as installed, so 
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES} pthread)
@@ -113,10 +113,10 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include
             PATTERN "ChimeraTK/*.h"
             PATTERN "ChimeraTK/ControlSystemAdapter/*.h")
 
-#We additionally install the independent reference test application, it's header only
+#We additionally install the reference test application, it's header only
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
         FILES_MATCHING
-            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/IndependentTestCore.h")	
+            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")	
 
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
