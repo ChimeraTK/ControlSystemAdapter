@@ -7,6 +7,7 @@
 #include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
 #include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 #include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
+#include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 
 #include <limits>
 #include <atomic>
@@ -87,8 +88,8 @@ typedef boost::fusion::map<
   > HolderMap;
 
 
-class ReferenceTestApplication{
- public:
+class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
+ protected:
   ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
   boost::scoped_ptr< boost::thread > _deviceThread;
@@ -118,15 +119,18 @@ class ReferenceTestApplication{
     return _initalisationForManualLoopControlFinished;
   }
 
+ public:
   static void initialiseManualLoopControl();
   static void releaseManualLoopControl();
 
+ protected:
   /// An infinite while loop, running mainBody()
   void mainLoop();
 
   /// The 'body' of the main loop, i.e. the functionality once, without the loop around it.
   void mainBody();
 
+ public:
   static void runMainLoopOnce();
 
   /** The constructor gets an instance of the variable factory to use. 
