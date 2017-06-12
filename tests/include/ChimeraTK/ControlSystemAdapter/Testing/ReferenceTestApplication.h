@@ -89,6 +89,25 @@ typedef boost::fusion::map<
 
 
 class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
+ public:
+  // Sets the application into testing mode: The main control loop will stop at the
+  // beginning, before executing mainBody.
+  static void initialiseManualLoopControl();
+  // Goes out of testing mode. The endless main loop starts again.
+  static void releaseManualLoopControl();
+  // When in testing mode, this runs the main loop exactly one. This is needed for testing.
+  // It guarantees that the main body has completed execution and has been run exactly one.
+  static void runMainLoopOnce();
+
+  /** The constructor gets an instance of the variable factory to use. 
+   *  The variables in the factory should already be initialised because the hardware is initialised here.
+   *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
+   *  an endless loop.
+   */
+  ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_);
+  
+  ~ReferenceTestApplication();
+
  protected:
   ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
@@ -119,28 +138,17 @@ class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
     return _initalisationForManualLoopControlFinished;
   }
 
- public:
-  static void initialiseManualLoopControl();
-  static void releaseManualLoopControl();
-
- protected:
   /// An infinite while loop, running mainBody()
   void mainLoop();
 
   /// The 'body' of the main loop, i.e. the functionality once, without the loop around it.
   void mainBody();
 
- public:
-  static void runMainLoopOnce();
+};
 
-  /** The constructor gets an instance of the variable factory to use. 
-   *  The variables in the factory should already be initialised because the hardware is initialised here.
-   *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
-   *  an endless loop.
-   */
-  ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
-      //initialise all process variables, using the factory
-      : processVariableManager( processVariableManager_ ),
+inline ReferenceTestApplication::ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
+  //initialise all process variables, using the factory
+  : processVariableManager( processVariableManager_ ),
     holderMap(
       boost::fusion::make_pair<int8_t>( TypedPVHolder<int8_t>( processVariableManager, "CHAR") ),
       boost::fusion::make_pair<uint8_t>( TypedPVHolder<uint8_t>( processVariableManager, "UCHAR") ),
@@ -152,21 +160,18 @@ class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
       boost::fusion::make_pair<double>( TypedPVHolder<double>( processVariableManager, "DOUBLE") )
     ),
     syncUtil(processVariableManager){
-
-    syncUtil.sendAll();
-
-    _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
-  }
+      syncUtil.sendAll();
+      _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
+}
   
-  ~ReferenceTestApplication(){
-    // stop the device thread before any other destructors are called
-    if (_deviceThread){
-      _deviceThread->interrupt();
-      _deviceThread->join();
-    }
- }
+inline ReferenceTestApplication::~ReferenceTestApplication(){
+  // stop the device thread before any other destructors are called
+  if (_deviceThread){
+    _deviceThread->interrupt();
+    _deviceThread->join();
+  }
+}
 
-};
 
 inline void ReferenceTestApplication::mainLoop(){
   mainLoopMutex().lock();
