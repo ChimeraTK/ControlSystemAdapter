@@ -88,7 +88,7 @@ typedef boost::fusion::map<
   > HolderMap;
 
 
-class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
+class ReferenceTestApplication : public ChimeraTK::ApplicationBase{
  public:
   // Sets the application into testing mode: The main control loop will stop at the
   // beginning, before executing mainBody.
@@ -99,23 +99,22 @@ class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
   // It guarantees that the main body has completed execution and has been run exactly one.
   static void runMainLoopOnce();
 
-  /** The constructor gets an instance of the variable factory to use. 
-   *  The variables in the factory should already be initialised because the hardware is initialised here.
-   *  If needed for the test, a thread can be started which automatically executes the 'mainBody()' function in 
-   *  an endless loop.
-   */
-  ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_);
-  
+  ReferenceTestApplication();
   ~ReferenceTestApplication();
 
+  /// Inherited from ApplicationBase
+  void initialise() override;
+  /// Inherited from ApplicationBase
+  void run() override;
+
  protected:
-  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
+  //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
   boost::scoped_ptr< boost::thread > _deviceThread;
-  HolderMap holderMap;
+  boost::scoped_ptr<HolderMap> _holderMap;
 
   // the syncUtil needs to be initalised after the PVs are added to the manager
-  ChimeraTK::DeviceSynchronizationUtility syncUtil;
+  boost::scoped_ptr<ChimeraTK::DeviceSynchronizationUtility> syncUtil;
 
   static std::mutex & mainLoopMutex(){
     static std::mutex _mainLoopMutex;
@@ -146,22 +145,29 @@ class ReferenceTestApplication{// : public ChimeraTK::ApplicationBase{
 
 };
 
-inline ReferenceTestApplication::ReferenceTestApplication(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager_)
+inline ReferenceTestApplication::ReferenceTestApplication()
   //initialise all process variables, using the factory
-  : processVariableManager( processVariableManager_ ),
-    holderMap(
-      boost::fusion::make_pair<int8_t>( TypedPVHolder<int8_t>( processVariableManager, "CHAR") ),
-      boost::fusion::make_pair<uint8_t>( TypedPVHolder<uint8_t>( processVariableManager, "UCHAR") ),
-      boost::fusion::make_pair<int16_t>( TypedPVHolder<int16_t>( processVariableManager, "SHORT") ),
-      boost::fusion::make_pair<uint16_t>( TypedPVHolder<uint16_t>( processVariableManager, "USHORT") ),
-      boost::fusion::make_pair<int32_t>( TypedPVHolder<int32_t>( processVariableManager, "INT") ),
-      boost::fusion::make_pair<uint32_t>( TypedPVHolder<uint32_t>( processVariableManager, "UINT") ),
-      boost::fusion::make_pair<float>( TypedPVHolder<float>( processVariableManager, "FLOAT") ),
-      boost::fusion::make_pair<double>( TypedPVHolder<double>( processVariableManager, "DOUBLE") )
-    ),
-    syncUtil(processVariableManager){
-      syncUtil.sendAll();
-      _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
+  : ApplicationBase("ReferenceTest"){
+}
+
+inline void ReferenceTestApplication::initialise(){
+  // fixme : if ! processVariableManager_ throw
+  _holderMap.reset( new HolderMap(
+      boost::fusion::make_pair<int8_t>( TypedPVHolder<int8_t>( _processVariableManager, "CHAR") ),
+      boost::fusion::make_pair<uint8_t>( TypedPVHolder<uint8_t>( _processVariableManager, "UCHAR") ),
+      boost::fusion::make_pair<int16_t>( TypedPVHolder<int16_t>( _processVariableManager, "SHORT") ),
+      boost::fusion::make_pair<uint16_t>( TypedPVHolder<uint16_t>( _processVariableManager, "USHORT") ),
+      boost::fusion::make_pair<int32_t>( TypedPVHolder<int32_t>( _processVariableManager, "INT") ),
+      boost::fusion::make_pair<uint32_t>( TypedPVHolder<uint32_t>( _processVariableManager, "UINT") ),
+      boost::fusion::make_pair<float>( TypedPVHolder<float>( _processVariableManager, "FLOAT") ),
+      boost::fusion::make_pair<double>( TypedPVHolder<double>( _processVariableManager, "DOUBLE") )
+   ));
+  syncUtil.reset(new ChimeraTK::DeviceSynchronizationUtility(_processVariableManager));
+  syncUtil->sendAll();
+}
+
+inline void ReferenceTestApplication::run(){
+  _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
 }
   
 inline ReferenceTestApplication::~ReferenceTestApplication(){
@@ -170,6 +176,8 @@ inline ReferenceTestApplication::~ReferenceTestApplication(){
     _deviceThread->interrupt();
     _deviceThread->join();
   }
+  // we need to call shutdown from ApplicationBase. FIXME: why do we have to do this manually?
+  shutdown();
 }
 
 
@@ -205,8 +213,8 @@ struct PerformInputToOutput{
 
 inline void ReferenceTestApplication::mainBody(){
 
-  syncUtil.receiveAll();
-  for_each( holderMap, PerformInputToOutput() );
+  syncUtil->receiveAll();
+  for_each( *_holderMap, PerformInputToOutput() );
 }
 
 inline void ReferenceTestApplication::runMainLoopOnce(){
@@ -233,4 +241,5 @@ inline void ReferenceTestApplication::releaseManualLoopControl(){
   initalisationForManualLoopControlFinished() = false;
   mainLoopMutex().unlock();
 }
+
 #endif // _REFERENCE_TEST_APPLICATION_H_

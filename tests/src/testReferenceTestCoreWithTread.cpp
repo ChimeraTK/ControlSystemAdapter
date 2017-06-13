@@ -22,7 +22,10 @@ BOOST_AUTO_TEST_CASE( testInt32_t ){
   auto devManager = pvManagers.second;
 
   // create the control application with it's own thread running the main loop
-  ReferenceTestApplication testApplication( devManager );
+  ReferenceTestApplication testApplication;
+  testApplication.setPVManager( devManager );
+  testApplication.initialise();
+  testApplication.run();
 
   ControlSystemSynchronizationUtility csSyncUtil(csManager);
 

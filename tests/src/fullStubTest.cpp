@@ -22,11 +22,13 @@ struct TestApplicationFixture{
     pvManagers( createPVManager() ),
     csManager( pvManagers.first ),
     devManager( pvManagers.second ),
-    testApplication(devManager),
     csSyncUtil(csManager){
-    std::cout << "this is TestApplicationFixture():" << std::endl;
-    ReferenceTestApplication::initialiseManualLoopControl();
-    csSyncUtil.receiveAll();
+     std::cout << "this is TestApplicationFixture():" << std::endl;
+     testApplication.setPVManager(devManager);
+     testApplication.initialise();
+     testApplication.run();
+     ReferenceTestApplication::initialiseManualLoopControl();
+     csSyncUtil.receiveAll();
   }
   ~TestApplicationFixture(){
     std::cout << "this is ~TestApplicationFixture():" << std::endl;
