@@ -7,9 +7,7 @@ include(cmake/add_dependency.cmake)
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 05)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
-set(${PROJECT_NAME}_VERSION
-  ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
-set(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION})
+include(cmake/set_version_numbers.cmake)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -fPIC -Wextra -Wshadow
 #-Weffc++ -ansi -pedantic -Wuninitialized -std=c++11")
