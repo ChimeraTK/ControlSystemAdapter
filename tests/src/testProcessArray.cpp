@@ -460,15 +460,15 @@ namespace ChimeraTK {
       BOOST_CHECK_EQUAL(receiver->accessData(0), 43);
     }
 
-    // same with multiple transfers
+    // same with multiple transfers (not more than the queue length to avoid race conditions)
     {
       std::thread backgroundTask( [&receiver] {
-        for(int i=0; i<10; ++i) {
+        for(int i=0; i<2; ++i) {
           receiver->read();
           BOOST_CHECK_EQUAL(static_cast<int>(receiver->accessData(0)), 2 + i);
         }
       });
-      for(int i=0; i<10; ++i) {
+      for(int i=0; i<2; ++i) {
         usleep(10000);
         sender->accessData(0) = 2+i;
         sender->write();
