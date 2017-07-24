@@ -15,10 +15,10 @@
 #include <boost/thread/future.hpp>
 
 #include <mtca4u/NDRegisterAccessor.h>
+#include <mtca4u/VersionNumberSource.h>
 
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
-#include "VersionNumberSource.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
