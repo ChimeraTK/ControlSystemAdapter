@@ -145,15 +145,15 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       
       // obtain the process variables, send some values to the variables
       auto v1 = csManager->getProcessArray<uint16_t>("SomeCsToDevVar");
-      for(int i=0; i<7; ++i) v1->get()[i] = i*17;
+      for(int i=0; i<7; ++i) v1->accessChannel(0)[i] = i*17;
       v1->write();
 
       auto v2 = csManager->getProcessArray<float>("AnotherCsToDevVar");
-      for(int i=0; i<42; ++i) v2->get()[i] = i*3.1415 * 1e12;
+      for(int i=0; i<42; ++i) v2->accessChannel(0)[i] = i*3.1415 * 1e12;
       v2->write();
 
       auto v3 = devManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
-      for(int i=0; i<7; ++i) v3->get()[i] = 9*i + 666;
+      for(int i=0; i<7; ++i) v3->accessChannel(0)[i] = 9*i + 666;
       v3->write();
       
     }
@@ -183,15 +183,15 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       // obtain the process variables, send some values to the variables
       auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
       v1->readNonBlocking();
-      for(int i=0; i<7; ++i) BOOST_CHECK( v1->get()[i] == i*17 );
+      for(int i=0; i<7; ++i) BOOST_CHECK( v1->accessChannel(0)[i] == i*17 );
 
       auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
       v2->readNonBlocking();
-      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->get()[i], i*3.1415 * 1e30, 2e23);
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i*3.1415 * 1e30, 2e23);
 
       auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
       v3->readNonBlocking();
-      for(int i=0; i<7; ++i) BOOST_CHECK( v3->get()[i] == 0 );
+      for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
       
     }
     
