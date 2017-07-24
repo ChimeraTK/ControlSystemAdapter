@@ -15,7 +15,6 @@
 #include <boost/thread/future.hpp>
 
 #include <mtca4u/NDRegisterAccessor.h>
-#include <mtca4u/VersionNumberSource.h>
 
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
@@ -115,26 +114,7 @@ namespace ChimeraTK {
       return (_sharedState->_buffers[_currentIndex]).timeStamp;
     }
 
-    /**
-     * Returns the version number that is associated with the current value.
-     * This is the version number that was received with the readNonBlocking()
-     * operation that received the respective value or the last {@link write()}
-     * operation. If the last send operation was destructive, the version number
-     * (like the current value) is undefined.
-     *
-     * The version number is used to resolve conflicting updates. When an update
-     * is received using the readNonBlocking() method, it is only used if its
-     * value has a version number that is greater than the version number of the
-     * current value. Initially, each process variable has a version number of
-     * zero.
-     *
-     * When this process variable has not been initialized with a version number
-     * source, its version number always stays at zero and the version-number
-     * logic is disabled.
-     */
-    VersionNumber getVersionNumber() const { /// @todo FIXME this function must be present in TransferElement already!
-      // On the other hand, this should not matter too much because the current
-      // value will be in an undefined state anyway and thus we might not care.
+    ChimeraTK::VersionNumber getVersionNumber() const override {
       return (_sharedState->_buffers[_currentIndex]).versionNumber;
     }
 
