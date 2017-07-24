@@ -78,17 +78,17 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sender->getName() == "");
-    for (typename std::vector<T>::iterator i = sender->get().begin();
-        i != sender->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = sender->accessChannel(0).begin();
+        i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
-    BOOST_CHECK(sender->get().size() == N_ELEMENTS);
+    BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
     BOOST_CHECK(receiver->getName() == "");
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
-    BOOST_CHECK(receiver->get().size() == N_ELEMENTS);
+    BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
     BOOST_CHECK(!sender->isReadable());
     BOOST_CHECK(sender->isWriteable());
     BOOST_CHECK(receiver->isReadable());
@@ -98,30 +98,30 @@ namespace ChimeraTK {
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     BOOST_CHECK(sender->getName() == "test");
-    for (typename std::vector<T>::iterator i = sender->get().begin();
-        i != sender->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = sender->accessChannel(0).begin();
+        i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    BOOST_CHECK(sender->get().size() == N_ELEMENTS);
+    BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
     BOOST_CHECK(receiver->getName() == "test");
-    for (typename std::vector<T>::const_iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::const_iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    BOOST_CHECK(receiver->get().size() == N_ELEMENTS);
+    BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
     senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test", "", "",
         5, false);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
     BOOST_CHECK(sender->getName() == "test");
-    BOOST_CHECK(sender->get().size() == 4);
+    BOOST_CHECK(sender->accessChannel(0).size() == 4);
     BOOST_CHECK(
-        std::equal(sender->get().begin(), sender->get().end(),
+        std::equal(sender->accessChannel(0).begin(), sender->accessChannel(0).end(),
             referenceVector.begin()));
     BOOST_CHECK(receiver->getName() == "test");
-    BOOST_CHECK(receiver->get().size() == 4);
+    BOOST_CHECK(receiver->accessChannel(0).size() == 4);
     BOOST_CHECK(
-        std::equal(receiver->get().begin(), receiver->get().end(),
+        std::equal(receiver->accessChannel(0).begin(), receiver->accessChannel(0).end(),
             referenceVector.begin()));
   }
 
@@ -132,23 +132,15 @@ namespace ChimeraTK {
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    sender->get();
-    receiver->get();
-    typename std::vector<T> & v = sender->get();
-    typename std::vector<T> const & cv = sender->get();
+    sender->accessChannel(0);
+    receiver->accessChannel(0);
+    typename std::vector<T> & v = sender->accessChannel(0);
+    typename std::vector<T> const & cv = sender->accessChannel(0);
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     for (typename std::vector<T>::const_iterator i = cv.begin(); i != cv.end();
         ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER);
-    }
-    // If we have a pointer to a const array, we should get a reference to a
-    // const vector.
-    typename boost::shared_ptr<ProcessArray<T> const> constSimpleArray = sender;
-    typename std::vector<T> const & cv2 = constSimpleArray->get();
-    for (typename std::vector<T>::const_iterator i = cv2.begin();
-        i != cv2.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
   }
@@ -162,12 +154,12 @@ namespace ChimeraTK {
 
     // Test the assignment of a vector.
     std::vector<T> v(N_ELEMENTS, SOME_NUMBER + 1);
-    sender->set(v);
-    receiver->set(v);
-    for(typename std::vector<T>::iterator i = sender->get().begin(); i != sender->get().end(); ++i) {
+    sender->accessChannel(0) = v;
+    receiver->accessChannel(0) = v;
+    for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
-    for(typename std::vector<T>::iterator i = receiver->get().begin(); i != receiver->get().end(); ++i) {
+    for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
     
@@ -184,16 +176,16 @@ namespace ChimeraTK {
 
     // Test swapping with a vector
     typename std::vector<T> v(N_ELEMENTS, SOME_NUMBER);
-    sender->swap(v);
-    for(typename std::vector<T>::iterator i = sender->get().begin(); i != sender->get().end(); ++i) {
+    sender->accessChannel(0).swap(v);
+    for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
-    sender->swap(v);
-    receiver->swap(v);
-    for(typename std::vector<T>::iterator i = receiver->get().begin(); i != receiver->get().end(); ++i) {
+    sender->accessChannel(0).swap(v);
+    receiver->accessChannel(0).swap(v);
+    for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
@@ -251,53 +243,53 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // If we send two values consecutively, they both should be received because
     // the number of buffers is two.
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER);
     sender->writeDestructively();
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 1);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 1);
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     BOOST_CHECK(receiver->readNonBlocking());
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());
     // Now we try to send three values consecutively. This should result in the
     // first value being dropped.
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 2);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 2);
     sender->writeDestructively();
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 3);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 3);
     sender->writeDestructively();
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 4);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 4);
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 3);
     }
     BOOST_CHECK(receiver->readNonBlocking());
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 4);
     }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());
     // When we send non-destructively, the value should also be preserved on the
     // sender side.
-    sender->get().assign(N_ELEMENTS, SOME_NUMBER + 5);
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
     sender->write();
     BOOST_CHECK(receiver->readNonBlocking());
-    for (typename std::vector<T>::iterator i = receiver->get().begin();
-        i != receiver->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 5);
     }
-    for (typename std::vector<T>::iterator i = sender->get().begin();
-        i != sender->get().end(); ++i) {
+    for (typename std::vector<T>::iterator i = sender->accessChannel(0).begin();
+        i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 5);
     }
     // Calling writeDestructively() on a sender that has not the corresponding
@@ -325,35 +317,35 @@ namespace ChimeraTK {
     // After sending destructively and receiving a value, the version number on
     // the receiver should be greater.
     VersionNumber initialVersionNumber = receiver->getVersionNumber();
-    sender->get()[0] = 1;
+    sender->accessChannel(0)[0] = 1;
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
     VersionNumber versionNumber = receiver->getVersionNumber();
     BOOST_CHECK(versionNumber > initialVersionNumber);
-    BOOST_CHECK(receiver->get()[0] == 1);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 1);
     // When we send again specifying the same version number, there should be no
     // update of the receiver.
-    sender->get()[0] = 2;
+    sender->accessChannel(0)[0] = 2;
     sender->writeDestructively(versionNumber);
     BOOST_CHECK(!receiver->readNonBlocking());
     BOOST_CHECK(versionNumber == receiver->getVersionNumber());
-    BOOST_CHECK(receiver->get()[0] == 1);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 1);
     // When we explicitly use a greater version number, the receiver should be
     // updated again.
-    sender->get()[0] = 3;
+    sender->accessChannel(0)[0] = 3;
     sender->writeDestructively(versionNumberSource->nextVersionNumber());
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
-    BOOST_CHECK(receiver->get()[0] == 3);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 3);
     // When we send non-destructively, the version number on the sender and the
     // receiver should match after sending and receiving.
     versionNumber = receiver->getVersionNumber();
-    sender->get()[0] = 4;
+    sender->accessChannel(0)[0] = 4;
     sender->write();
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
-    BOOST_CHECK(receiver->get()[0] == 4);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 4);
   }
 
   template<class T>
