@@ -21,7 +21,6 @@ namespace ChimeraTK {
   class ProcessArrayTest {
   public:
     static void testConstructors();
-    static void testAssignment();
     static void testGet();
     static void testSet();
     static void testSwap();
@@ -50,7 +49,6 @@ namespace ChimeraTK {
     ProcessArrayTestSuite() :
         test_suite("ProcessArray test suite") {
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testConstructors));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testAssignment));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testGet));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSet));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSwap));
@@ -64,42 +62,12 @@ namespace ChimeraTK {
 
   template<class T>
   void ProcessArrayTest<T>::testConstructors() {
-    typename ProcessArray<T>::SharedPtr simpleArray =
-        createSimpleProcessArray<T>(N_ELEMENTS);
-    // The name should be empty and all elements should have been initialized
-    // with zeroes.
-    BOOST_CHECK(simpleArray->getName() == "");
-    for (typename std::vector<T>::iterator i = simpleArray->get().begin();
-        i != simpleArray->get().end(); ++i) {
-      BOOST_CHECK(*i == 0);
-    }
-    BOOST_CHECK(simpleArray->get().size() == N_ELEMENTS);
-    // Now we test the constructor with non-default parameters.
-    simpleArray = createSimpleProcessArray<T>(N_ELEMENTS, "test", "myUnit", "someDescription", SOME_NUMBER);
-    BOOST_CHECK(simpleArray->getName() == "test");
-    BOOST_CHECK(simpleArray->getUnit() == "myUnit");
-    BOOST_CHECK(simpleArray->getDescription() == "someDescription");
-    for (typename std::vector<T>::iterator i = simpleArray->get().begin();
-        i != simpleArray->get().end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER);
-    }
-    BOOST_CHECK(simpleArray->get().size() == N_ELEMENTS);
-    BOOST_CHECK(!simpleArray->isReadable());
-    BOOST_CHECK(!simpleArray->isWriteable());
-    // Now we test the constructor that takes a whole reference vector.
+
     std::vector<T> referenceVector;
     referenceVector.push_back(0);
     referenceVector.push_back(1);
     referenceVector.push_back(2);
     referenceVector.push_back(3);
-    simpleArray = createSimpleProcessArray<T>(referenceVector, "test", "", "");
-    BOOST_CHECK(simpleArray->getName() == "test");
-    BOOST_CHECK(simpleArray->get().size() == 4);
-    BOOST_CHECK(
-        std::equal(simpleArray->get().begin(), simpleArray->get().end(),
-            referenceVector.begin()));
-    BOOST_CHECK(!simpleArray->isReadable());
-    BOOST_CHECK(!simpleArray->isWriteable());
 
     // Now we repeat the tests but for a sender / receiver pair. We do not test
     // the notification listener and time-stamp source because there is no
@@ -158,44 +126,16 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testAssignment() {
-    typename ProcessArray<T>::SharedPtr array1 = createSimpleProcessArray<T>(
-        N_ELEMENTS);
-    typename ProcessArray<T>::SharedPtr array2 = createSimpleProcessArray<T>(
-        N_ELEMENTS, "", "", "", SOME_NUMBER);
-    // Test the assignment of another process array.
-    (*array1) = (*array2);
-    for (typename std::vector<T>::iterator i = array1->get().begin();
-        i != array1->get().end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER);
-    }
-    // Test the assignment of a vector.
-    std::vector<T> v(N_ELEMENTS, SOME_NUMBER + 1);
-    (*array1) = v;
-    for (typename std::vector<T>::iterator i = array1->get().begin();
-        i != array1->get().end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER + 1);
-    }
-    // For the synchronized variant we only test that the assignment operator
-    // does not throw if it should not. As the implementation is the same as
-    // for the simple array, there is no need to check the actual values.
+  void ProcessArrayTest<T>::testGet() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS);
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    (*sender) = (*array1);
-    (*receiver) = (*array1);
-    (*sender) = v;
-    (*receiver) = v;
-  }
-
-  template<class T>
-  void ProcessArrayTest<T>::testGet() {
-    typename ProcessArray<T>::SharedPtr simpleArray =
-        createSimpleProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
-    typename std::vector<T> & v = simpleArray->get();
-    typename std::vector<T> const & cv = simpleArray->get();
+    sender->get();
+    receiver->get();
+    typename std::vector<T> & v = sender->get();
+    typename std::vector<T> const & cv = sender->get();
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
@@ -205,82 +145,60 @@ namespace ChimeraTK {
     }
     // If we have a pointer to a const array, we should get a reference to a
     // const vector.
-    typename boost::shared_ptr<ProcessArray<T> const> constSimpleArray =
-        simpleArray;
+    typename boost::shared_ptr<ProcessArray<T> const> constSimpleArray = sender;
     typename std::vector<T> const & cv2 = constSimpleArray->get();
     for (typename std::vector<T>::const_iterator i = cv2.begin();
         i != cv2.end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
-    // Next we run the tests for a synchronized array that supports swapping. We
-    // only test that the getter methods do not throw an exception, as we can
-    // assume that the returned reference is correct if it was correct for the
-    // simple array.
-    typename std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS);
-    typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-    typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    sender->get();
-    receiver->get();
   }
 
   template<class T>
   void ProcessArrayTest<T>::testSet() {
-    typename ProcessArray<T>::SharedPtr array1 = createSimpleProcessArray<T>(
-        N_ELEMENTS);
-    typename ProcessArray<T>::SharedPtr array2 = createSimpleProcessArray<T>(
-        N_ELEMENTS, "", "", "", SOME_NUMBER);
-    // Test the assignment of another process array.
-    array1->set(*array2);
-    for (typename std::vector<T>::iterator i = array1->get().begin();
-        i != array1->get().end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER);
-    }
+    typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
+        senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS);
+    typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
+    typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
+
     // Test the assignment of a vector.
     std::vector<T> v(N_ELEMENTS, SOME_NUMBER + 1);
-    array1->set(v);
-    for (typename std::vector<T>::iterator i = array1->get().begin();
-        i != array1->get().end(); ++i) {
+    sender->set(v);
+    receiver->set(v);
+    for(typename std::vector<T>::iterator i = sender->get().begin(); i != sender->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
-    // For the synchronized variant we only test that the set method does not
-    // throw if it should not. As the implementation is the same as for the
-    // simple array, there is no need to check the actual values.
+    for(typename std::vector<T>::iterator i = receiver->get().begin(); i != receiver->get().end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 1);
+    }
+    
+  }
+
+  template<class T>
+  void ProcessArrayTest<T>::testSwap() {
+
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    sender->set(*array1);
-    receiver->set(*array1);
-    sender->set(v);
-    receiver->set(v);
-  }
 
-  template<class T>
-  void ProcessArrayTest<T>::testSwap() {
-    typename ProcessArray<T>::SharedPtr simpleArray =
-        createSimpleProcessArray<T>(N_ELEMENTS);
+    // Test swapping with a vector
     typename std::vector<T> v(N_ELEMENTS, SOME_NUMBER);
-    simpleArray->swap(v);
-    for (typename std::vector<T>::iterator i = simpleArray->get().begin();
-        i != simpleArray->get().end(); ++i) {
+    sender->swap(v);
+    for(typename std::vector<T>::iterator i = sender->get().begin(); i != sender->get().end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
-    // For the synchronized variant we only test that the swap method does not
-    // throw if it should not. As the implementation is the same as for the
-    // simple array, there is no need to check the actual values.
-    typename std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS);
-    typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-    typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     sender->swap(v);
     receiver->swap(v);
+    for(typename std::vector<T>::iterator i = receiver->get().begin(); i != receiver->get().end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER);
+    }
+    for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
+      BOOST_CHECK(*i == 0);
+    }
   }
 
   template<class T>

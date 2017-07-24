@@ -25,7 +25,7 @@ namespace ChimeraTK {
   
   /**
    * Array implementation of the ProcessVariable. This implementation is used
-   * for all three use cases (sender, receiver, and stand-alone).
+   * for both use cases (sender and receiver).
    *
    * This class is not thread-safe and should only be used from a single thread.
    *
@@ -53,10 +53,6 @@ namespace ChimeraTK {
      * can be used.
      */
     enum InstanceType {
-      /**
-       * Instance acts on is own.
-       */
-      STAND_ALONE,
 
       /**
        * Instance acts as the sender in a sender / receiver pair.
@@ -68,34 +64,6 @@ namespace ChimeraTK {
        */
       RECEIVER
     };
-
-    /**
-     * Creates a process array that works independently. This means that the
-     * instance is not synchronized with any other instance and thus the send
-     * and receive operations are not supported. However, all other operations
-     * can be used like on any process variable.
-     * 
-     * TODO @todo Is this really a wanted feature? I see no benefit in it...
-     */
-    ProcessArray(InstanceType instanceType, const std::string &name, const std::string &unit,
-        const std::string &description, const std::vector<T> &initialValue)
-    : mtca4u::NDRegisterAccessor<T>(name, unit, description),
-      _instanceType(instanceType),
-      _vectorSize(initialValue.size()),
-      _maySendDestructively(true),
-      _sharedState(boost::make_shared<SharedState>(1)),
-      _currentIndex(0)
-    {
-      // It would be better to do the validation before initializing, but this
-      // would mean that we would have to initialize twice.
-      if (instanceType != STAND_ALONE) {
-        throw std::invalid_argument(
-            "This constructor may only be used for a stand-alone process scalar.");
-      }
-      // allocate and initialise buffer of the base class
-      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
-    }
 
     /**
      * Creates a process array that acts as a receiver. A receiver is
@@ -869,30 +837,6 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   /**
-   * Creates a simple process array. A simple process array just works on its
-   * own and does not implement a synchronization mechanism. Apart from this,
-   * it is fully functional, so that you get, set, and swap values.
-   *
-   * The specified initial value is used for all the elements of the array.
-   */
-  template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size, const std::string &name = "",
-      const std::string &unit = "", const std::string &description = "", T initialValue = 0);
-
-  /**
-   * Creates a simple process array. A simple process array just works on its
-   * own and does not implement a synchronization mechanism. Apart from this,
-   * it is fully functional, so that you get, set, and swap values.
-   *
-   * The array's size is set to the number of elements stored in the vector
-   * provided for initialization and all elements are initialized with the
-   * values provided by this vector.
-   */
-  template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(const std::vector<T>& initialValue,
-    const std::string & name = "", const std::string &unit = "", const std::string &description = "");
-
-  /**
    * Creates a synchronized process array. A synchronized process array works
    * as a pair of two process arrays, where one process array acts as a sender
    * and the other one acts as a receiver.
@@ -997,24 +941,6 @@ namespace ChimeraTK {
 
 /*********************************************************************************************************************/
 /*** Implementations below this line *********************************************************************************/
-/*********************************************************************************************************************/
-
-  template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(std::size_t size, const std::string & name,
-      const std::string &unit, const std::string &description, T initialValue) {
-    return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
-        name, unit, description, std::vector<T>(size, initialValue));
-  }
-
-/*********************************************************************************************************************/
-
-  template<class T>
-  typename ProcessArray<T>::SharedPtr createSimpleProcessArray(
-      const std::vector<T>& initialValue, const std::string & name, const std::string &unit, const std::string &description) {
-    return boost::make_shared<ProcessArray<T> >(ProcessArray<T>::STAND_ALONE,
-        name, unit, description, initialValue);
-  }
-
 /*********************************************************************************************************************/
 
   template<class T>
