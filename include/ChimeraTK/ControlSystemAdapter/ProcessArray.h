@@ -128,42 +128,7 @@ namespace ChimeraTK {
     
     void postRead() override;
 
-    bool write() override;
-
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * The specified version number is passed to the receiver. If the receiver
-     * has a value with a version number greater than or equal to the specified
-     * version number, it silently discards this update.
-     *
-     * Throws an exception if this process variable is not a sender.
-     */
-    bool write(VersionNumber newVersionNumber); /// @todo FIXME this function must be present in TransferElement already!
-
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * If this process variable has a version-number source, a new version
-     * number is retrieved from this source and used for the value being sent to
-     * the receiver. Otherwise, a version number of zero is used.
-     *
-     * This version of the send operation moves the current value from the
-     * sender to the receiver without copying it. This means that after calling
-     * this method, the sender's value, time stamp, and version number are
-     * undefined. Therefore, this method must only be used if this process
-     * variable is not read (on the sender side) after sending it.
-     *
-     * Throws an exception if this process variable is not a sender or if this
-     * process variable does not allow destructive sending.
-     */
-    bool writeDestructively(); /// @todo FIXME this function must be present in TransferElement already!
+    bool write(ChimeraTK::VersionNumber versionNumber={}) override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -184,7 +149,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool writeDestructively(VersionNumber newVersionNumber); /// @todo FIXME this function must be present in TransferElement already!
+    bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}); /// @todo FIXME this function must be present in TransferElement already!
 
     const std::type_info& getValueType() const override {
       return typeid(T);
@@ -735,37 +700,33 @@ namespace ChimeraTK {
     // swap data out of the queue buffer
     mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( (_sharedState->_buffers[_currentIndex]).value );
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
-  bool ProcessArray<T>::write() {
-    return write(VersionNumberSource::nextVersionNumber());
+  bool ProcessArray<T>::write(ChimeraTK::VersionNumber versionNumber) {
+    if(versionNumber.isValid()) {
+      return writeInternal(versionNumber, true);
+    }
+    else {
+      return writeInternal(VersionNumberSource::nextVersionNumber(), true);
+    }
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
-  bool ProcessArray<T>::write(VersionNumber newVersionNumber) {
-    return writeInternal(newVersionNumber, true);
-  }
-  
-/*********************************************************************************************************************/
-
-  template<class T>
-  bool ProcessArray<T>::writeDestructively() {
-    return writeDestructively(VersionNumberSource::nextVersionNumber());
-  }
-  
-/*********************************************************************************************************************/
-
-  template<class T>
-  bool ProcessArray<T>::writeDestructively(VersionNumber newVersionNumber) {
+  bool ProcessArray<T>::writeDestructively(ChimeraTK::VersionNumber versionNumber) {
     if (!_maySendDestructively) {
       throw std::runtime_error(
           "This process variable must not be sent destructively because the corresponding flag has not been set.");
     }
-    return writeInternal(newVersionNumber, false);
+    if(versionNumber.isValid()) {
+      return writeInternal(versionNumber, false);
+    }
+    else {
+      return writeInternal(VersionNumberSource::nextVersionNumber(), false);
+    }
   }
   
 /*********************************************************************************************************************/
