@@ -200,8 +200,7 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
-            TimeStampSource::SharedPtr(), VersionNumberSource::SharedPtr(),
-            sendNotificationListener);
+            TimeStampSource::SharedPtr(), sendNotificationListener);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     BOOST_CHECK(sendNotificationListener->count == 0);
@@ -303,12 +302,10 @@ namespace ChimeraTK {
 
   template<class T>
   void ProcessArrayTest<T>::testVersionNumbers() {
-    VersionNumberSource::SharedPtr versionNumberSource = boost::make_shared<
-        VersionNumberSource>();
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true,
-            TimeStampSource::SharedPtr(), versionNumberSource);
+            TimeStampSource::SharedPtr());
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // Initially, the version number should be zero.
@@ -333,7 +330,7 @@ namespace ChimeraTK {
     // When we explicitly use a greater version number, the receiver should be
     // updated again.
     sender->accessChannel(0)[0] = 3;
-    sender->writeDestructively(versionNumberSource->nextVersionNumber());
+    sender->writeDestructively(VersionNumberSource::nextVersionNumber());
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->accessChannel(0)[0] == 3);

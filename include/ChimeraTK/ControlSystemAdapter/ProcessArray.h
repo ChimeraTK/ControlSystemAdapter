@@ -74,8 +74,7 @@ namespace ChimeraTK {
      * send/receive process and are shared with the sender.
      */
     ProcessArray(InstanceType instanceType, const std::string& name, const std::string &unit,
-        const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers,
-        VersionNumberSource::SharedPtr versionNumberSource);
+        const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers);
 
     /**
      * Creates a process array that acts as a sender. A sender is intended
@@ -95,7 +94,6 @@ namespace ChimeraTK {
      */
     ProcessArray(InstanceType instanceType, bool maySendDestructively,
         TimeStampSource::SharedPtr timeStampSource,
-        VersionNumberSource::SharedPtr versionNumberSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
         ProcessArray::SharedPtr receiver);
 
@@ -365,12 +363,6 @@ namespace ChimeraTK {
     boost::shared_ptr<TimeStampSource> _timeStampSource;
 
     /**
-     * Version number source used for getting the next version number when one
-     * of the {@code set} methods is called without specifying a version number.
-     */
-    boost::shared_ptr<VersionNumberSource> _versionNumberSource;
-
-    /**
      * Listener that is notified when the process variable is sent.
      */
     boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
@@ -453,8 +445,6 @@ namespace ChimeraTK {
       const std::string &description = "", T initialValue = 0, std::size_t numberOfBuffers = 2,
       bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
-      VersionNumberSource::SharedPtr versionNumberSource =
-          VersionNumberSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener =
           ProcessVariableListener::SharedPtr());
 
@@ -505,8 +495,6 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, const std::string & name = "", const std::string &unit = "",
       const std::string &description = "", std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
-      VersionNumberSource::SharedPtr versionNumberSource =
-          VersionNumberSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener =
           ProcessVariableListener::SharedPtr());
 
@@ -516,15 +504,13 @@ namespace ChimeraTK {
 
   template<class T>
   ProcessArray<T>::ProcessArray(InstanceType instanceType, const std::string& name, const std::string &unit,
-      const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers,
-      VersionNumberSource::SharedPtr versionNumberSource)
+      const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers)
   : mtca4u::NDRegisterAccessor<T>(name, unit, description),
     _instanceType(instanceType),
     _vectorSize(initialValue.size()),
     _maySendDestructively(false),
     _sharedState(boost::make_shared<SharedState>(numberOfBuffers)),
-    _currentIndex(0),
-    _versionNumberSource(versionNumberSource)
+    _currentIndex(0)
   {
     // allocate and initialise buffer of the base class
     mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
@@ -566,7 +552,6 @@ namespace ChimeraTK {
   template<class T>
   ProcessArray<T>::ProcessArray(InstanceType instanceType, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
-      VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener,
       ProcessArray::SharedPtr receiver)
   : mtca4u::NDRegisterAccessor<T>(receiver->getName(), receiver->getUnit(), receiver->getDescription()),
@@ -577,7 +562,6 @@ namespace ChimeraTK {
     _currentIndex(1),
     _receiver(receiver),
     _timeStampSource(timeStampSource),
-    _versionNumberSource(versionNumberSource),
     _sendNotificationListener(sendNotificationListener)
   {
     // It would be better to do the validation before initializing, but this
@@ -672,7 +656,7 @@ namespace ChimeraTK {
       // We only use the incoming update if it has a higher version number
       // than the current value. This check is disabled when there is no
       // version number source.
-      if (!_versionNumberSource || (_sharedState->_buffers[nextIndex]).versionNumber > getVersionNumber()) {
+      if ((_sharedState->_buffers[nextIndex]).versionNumber > getVersionNumber()) {
         _sharedState->_emptyBufferQueue.push(_currentIndex);
         _currentIndex = nextIndex;
         return true;
@@ -776,13 +760,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool ProcessArray<T>::write() {
-    VersionNumber newVersionNumber;
-    if (_versionNumberSource) {
-      newVersionNumber = _versionNumberSource->nextVersionNumber();
-    } else {
-      newVersionNumber = 0;
-    }
-    return write(newVersionNumber);
+    return write(VersionNumberSource::nextVersionNumber());
   }
   
 /*********************************************************************************************************************/
@@ -796,13 +774,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool ProcessArray<T>::writeDestructively() {
-    VersionNumber newVersionNumber;
-    if (_versionNumberSource) {
-      newVersionNumber = _versionNumberSource->nextVersionNumber();
-    } else {
-      newVersionNumber = 0;
-    }
-    return writeDestructively(newVersionNumber);
+    return writeDestructively(VersionNumberSource::nextVersionNumber());
   }
   
 /*********************************************************************************************************************/
@@ -926,16 +898,13 @@ namespace ChimeraTK {
       std::size_t size, const std::string & name, const std::string &unit, const std::string &description, T initialValue,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
-      VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, unit, description, 
-        std::vector<T>(size, initialValue), numberOfBuffers,
-        versionNumberSource);
+        std::vector<T>(size, initialValue), numberOfBuffers);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::SENDER, maySendDestructively,
-        timeStampSource, versionNumberSource, sendNotificationListener,
-        receiver);
+        timeStampSource, sendNotificationListener, receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
@@ -948,15 +917,13 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, const std::string & name, const std::string &unit, const std::string &description,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
-      VersionNumberSource::SharedPtr versionNumberSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
     typename boost::shared_ptr<ProcessArray<T> > receiver = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::RECEIVER, name, unit, description, initialValue,
-        numberOfBuffers, versionNumberSource);
+        numberOfBuffers);
     typename ProcessArray<T>::SharedPtr sender = boost::make_shared<
         ProcessArray<T> >(ProcessArray<T>::SENDER, maySendDestructively,
-        timeStampSource, versionNumberSource, sendNotificationListener,
-        receiver);
+        timeStampSource, sendNotificationListener, receiver);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(sender, receiver);
   }
