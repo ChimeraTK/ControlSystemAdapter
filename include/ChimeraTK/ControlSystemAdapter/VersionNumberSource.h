@@ -1,7 +1,7 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_VERSION_NUMBER_SOURCE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_VERSION_NUMBER_SOURCE_H
 
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <boost/shared_ptr.hpp>
 
 #include "VersionNumber.h"
@@ -35,17 +35,7 @@ namespace ChimeraTK {
      * may safely be called by any thread without any synchronization.
      */
     inline VersionNumber nextVersionNumber() {
-      VersionNumber currentVersionNumber = _lastReturnedVersionNumber.load(
-          boost::memory_order_acquire);
-      // Don't call this variable nextVersionNumber (but nextVersionNr) because
-      // compilers might complain that it shadows the function name
-      VersionNumber nextVersionNr = currentVersionNumber + 1;
-      while (!_lastReturnedVersionNumber.compare_exchange_weak(
-          currentVersionNumber, nextVersionNr, boost::memory_order_acq_rel,
-          boost::memory_order_acquire)) {
-        nextVersionNr = currentVersionNumber + 1;
-      }
-      return nextVersionNr;
+      return ++_lastReturnedVersionNumber;
     }
 
   private:
@@ -53,7 +43,7 @@ namespace ChimeraTK {
      * Last version number that was returned by a call to
      * {@link nextVersionNumber()}.
      */
-    boost::atomic<VersionNumber> _lastReturnedVersionNumber;
+    std::atomic<VersionNumber::UnderlyingDataType> _lastReturnedVersionNumber;
 
   };
 
