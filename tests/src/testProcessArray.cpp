@@ -240,11 +240,14 @@ namespace ChimeraTK {
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    // If we send two values consecutively, they both should be received because
-    // the number of buffers is two.
+
+    // If we send three values consecutively, they all should be received because the queue length is two and there is
+    // the additional atomic triple buffer holding a third value
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER);
     sender->writeDestructively();
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 1);
+    sender->writeDestructively();
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 2);
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
@@ -256,15 +259,23 @@ namespace ChimeraTK {
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
+    BOOST_CHECK(receiver->readNonBlocking());
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 2);
+    }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());
-    // Now we try to send three values consecutively. This should result in the
-    // first value being dropped.
-    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 2);
-    sender->writeDestructively();
+
+    // Now we try to send four values consecutively. This should result in the last but one value being dropped. The
+    // latest value should be preserved, since it is in the atomic triple buffer
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 3);
     sender->writeDestructively();
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 4);
+    sender->writeDestructively();
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
+    sender->writeDestructively();
+    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 6);
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
@@ -276,8 +287,14 @@ namespace ChimeraTK {
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 4);
     }
+    BOOST_CHECK(receiver->readNonBlocking());
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 6);
+    }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());
+
     // When we send non-destructively, the value should also be preserved on the
     // sender side.
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
@@ -291,6 +308,7 @@ namespace ChimeraTK {
         i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 5);
     }
+
     // Calling writeDestructively() on a sender that has not the corresponding
     // flag set should result in an exception.
     senderReceiver =
@@ -308,9 +326,6 @@ namespace ChimeraTK {
             TimeStampSource::SharedPtr());
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    // Initially, the version number should be zero.
-    BOOST_CHECK(sender->getVersionNumber() == 0);
-    BOOST_CHECK(receiver->getVersionNumber() == 0);
     // After sending destructively and receiving a value, the version number on
     // the receiver should be greater.
     VersionNumber initialVersionNumber = receiver->getVersionNumber();
@@ -320,29 +335,34 @@ namespace ChimeraTK {
     VersionNumber versionNumber = receiver->getVersionNumber();
     BOOST_CHECK(versionNumber > initialVersionNumber);
     BOOST_CHECK(receiver->accessChannel(0)[0] == 1);
-    // When we send again specifying the same version number, there should be no
-    // update of the receiver.
+    // When we send again specifying the same version number, there should still be the update of the receiver.
     sender->accessChannel(0)[0] = 2;
     sender->writeDestructively(versionNumber);
-    BOOST_CHECK(!receiver->readNonBlocking());
+    BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(versionNumber == receiver->getVersionNumber());
-    BOOST_CHECK(receiver->accessChannel(0)[0] == 1);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 2);
     // When we explicitly use a greater version number, the receiver should be
     // updated again.
     sender->accessChannel(0)[0] = 3;
-    sender->writeDestructively(VersionNumberSource::nextVersionNumber());
+    sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->accessChannel(0)[0] == 3);
+    // Even when sending again an update with an older version number, the update should be seen by the receiver.
+    sender->accessChannel(0)[0] = 4;
+    sender->writeDestructively(versionNumber);
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(versionNumber == receiver->getVersionNumber());
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 4);
     // When we send non-destructively, the version number on the sender and the
     // receiver should match after sending and receiving.
     versionNumber = receiver->getVersionNumber();
-    sender->accessChannel(0)[0] = 4;
+    sender->accessChannel(0)[0] = 5;
     sender->write();
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
-    BOOST_CHECK(receiver->accessChannel(0)[0] == 4);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 5);
   }
 
   template<class T>
