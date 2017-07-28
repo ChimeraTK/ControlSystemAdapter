@@ -6,10 +6,8 @@ include(cmake/add_dependency.cmake)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 05)
-set(${PROJECT_NAME}_PATCH_VERSION 00)
-set(${PROJECT_NAME}_VERSION
-  ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
-set(${PROJECT_NAME}_SOVERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION})
+set(${PROJECT_NAME}_PATCH_VERSION 01)
+include(cmake/set_version_numbers.cmake)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -fPIC -Wextra -Wshadow
 #-Weffc++ -ansi -pedantic -Wuninitialized -std=c++11")
@@ -91,7 +89,7 @@ if(TESTING_IS_ENABLED)
 endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
 
 #change the install prefix to the source directory in case the user has not specified a destination 

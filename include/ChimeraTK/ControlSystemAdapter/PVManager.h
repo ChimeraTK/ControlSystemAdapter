@@ -363,14 +363,6 @@ namespace ChimeraTK {
     };
 
     /**
-     * Version number source used for all process variables that are created by
-     * all process-variable managers. The source is shared by all PV managers so
-     * that version numbers work as expected even when data is passed between
-     * process variables handled by different PV managers.
-     */
-    static VersionNumberSource::SharedPtr _versionNumberSource;
-
-    /**
      * Map storing the process variables.
      */
     ProcessVariableMap _processVariables;
@@ -452,7 +444,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
-            _versionNumberSource, sendNotificationListener);
+            sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -490,7 +482,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
-            _versionNumberSource, sendNotificationListener);
+            sendNotificationListener);
 
     _processVariables.insert(
         std::make_pair(processVariableName,

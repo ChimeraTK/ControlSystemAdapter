@@ -60,16 +60,16 @@ struct TypedPVHolder{
 	// floating point
         dataTypeConstant->accessData(0) = 1./sizeof(DataType);	  
       }
-      for (size_t i = 0; i < constantArray->get().size(); ++i){
-        constantArray->get()[i] = dataTypeConstant->accessData(0)*i*i;
+      for (size_t i = 0; i < constantArray->accessChannel(0).size(); ++i){
+        constantArray->accessChannel(0)[i] = dataTypeConstant->accessData(0)*i*i;
       }
     }
 
   void inputToOutput(){
-    fromDeviceScalar->set(*toDeviceScalar);
+    fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
     fromDeviceScalar->write();
-    for (size_t i = 0; i < fromDeviceArray->get().size() &&  i < toDeviceArray->get().size() ; ++i){
-      fromDeviceArray->get()[i] = toDeviceArray->get()[i];
+    for (size_t i = 0; i < fromDeviceArray->accessChannel(0).size() &&  i < toDeviceArray->accessChannel(0).size() ; ++i){
+      fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
     }
     fromDeviceArray->write();
   }

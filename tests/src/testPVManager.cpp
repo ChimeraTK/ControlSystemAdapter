@@ -302,13 +302,13 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
       int32In->accessData(0) = 0;
       int32Out->accessData(0) = 0;
-      floatArrayIn->set(vector<float>(10, 0.0));
-      floatArrayOut->set(vector<float>(10, 0.0));
+      floatArrayIn->accessChannel(0) = vector<float>(10, 0.0);
+      floatArrayOut->accessChannel(0) = vector<float>(10, 0.0);
       stopDeviceThread->accessData(0) = 0;
 
       while (stopDeviceThread->accessData(0) == 0) {
-        *int32In = *int32Out;
-        *floatArrayIn = *floatArrayOut;
+        int32In->accessChannel(0) = int32Out->accessChannel(0);
+        floatArrayIn->accessChannel(0) = floatArrayOut->accessChannel(0);
         int32In->write();
         floatArrayIn->write();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
@@ -365,9 +365,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     outboundProcessVariables.push_back(stopDeviceThread);
 
     int32Out->accessData(0) = 55;
-    floatArrayOut->get().at(0) = 1.0f;
-    floatArrayOut->get().at(1) = 2.0f;
-    floatArrayOut->get().at(2) = -1.3f;
+    floatArrayOut->accessChannel(0).at(0) = 1.0f;
+    floatArrayOut->accessChannel(0).at(1) = 2.0f;
+    floatArrayOut->accessChannel(0).at(2) = -1.3f;
 
     // Send the values, wait a moment for the other thread to send the updates
     // and then receive the new values.
@@ -376,14 +376,14 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     receiveAll(inboundProcessVariables);
 
     BOOST_CHECK(int32In->accessData(0) == 55);
-    BOOST_CHECK(floatArrayIn->get().at(0) == 1.0f);
-    BOOST_CHECK(floatArrayIn->get().at(1) == 2.0f);
-    BOOST_CHECK(floatArrayIn->get().at(2) == -1.3f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 1.0f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == 2.0f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(2) == -1.3f);
 
     int32Out->accessData(0) = -300;
-    floatArrayOut->get().at(0) = 15.0f;
-    floatArrayOut->get().at(1) = -7.2f;
-    floatArrayOut->get().at(9) = 120.0f;
+    floatArrayOut->accessChannel(0).at(0) = 15.0f;
+    floatArrayOut->accessChannel(0).at(1) = -7.2f;
+    floatArrayOut->accessChannel(0).at(9) = 120.0f;
 
     // Send the values, wait a moment for the other thread to send the updates
     // and then receive the new values.
@@ -392,9 +392,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     receiveAll(inboundProcessVariables);
 
     BOOST_CHECK(int32In->accessData(0) == -300);
-    BOOST_CHECK(floatArrayIn->get().at(0) == 15.0f);
-    BOOST_CHECK(floatArrayIn->get().at(1) == -7.2f);
-    BOOST_CHECK(floatArrayIn->get().at(9) == 120.0f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 15.0f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == -7.2f);
+    BOOST_CHECK(floatArrayIn->accessChannel(0).at(9) == 120.0f);
 
     stopDeviceThread->accessData(0) = 1;
     stopDeviceThread->write();
