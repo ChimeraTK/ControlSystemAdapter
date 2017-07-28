@@ -580,6 +580,7 @@ namespace ChimeraTK {
     auto theFuture = readAsync().getBoostFuture();
     auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
     if(status == boost::future_status::timeout) return false;
+
     return true;
 
   }
@@ -588,9 +589,11 @@ namespace ChimeraTK {
 
   template<class T>
   bool ProcessArray<T>::doReadTransferLatest() {
-    bool hasRead = false;
-    while(doReadTransferNonBlocking()) hasRead = true;
-    return hasRead;
+    // as long as there is more than one element on the queue, discard it
+    while(_sharedState->_fullBufferQueue.read_available() > 1) {
+      _sharedState->_fullBufferQueue.pop();
+    }
+    return this->doReadTransferNonBlocking();
   }
 
 /*********************************************************************************************************************/
@@ -598,6 +601,11 @@ namespace ChimeraTK {
   template<class T>
   mtca4u::TransferFuture& ProcessArray<T>::readAsync() {
 
+    // If we already have a still-active future, we can return it directly. It is not possible that this future is
+    // blocking and there is valid data to be read in the atomic triple buffer.
+    // This is only a preformance optimisation, we would generate the same future again.
+    if(mtca4u::TransferElement::hasActiveFuture) return mtca4u::TransferElement::activeFuture;
+    
     if (_instanceType != RECEIVER) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
@@ -623,7 +631,7 @@ namespace ChimeraTK {
         assert(status2 != boost::future_status::timeout);
       }
     }
-
+    
     // return the future
     mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(future, static_cast<mtca4u::TransferElement*>(this));
     mtca4u::TransferElement::hasActiveFuture = true;
