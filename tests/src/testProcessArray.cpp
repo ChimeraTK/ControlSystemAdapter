@@ -29,6 +29,7 @@ namespace ChimeraTK {
     static void testSynchronization();
     static void testVersionNumbers();
     static void testBlockingRead();
+    static void testReadLatest();
 
   private:
     static size_t const N_ELEMENTS = 12;
@@ -57,6 +58,7 @@ namespace ChimeraTK {
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSynchronization));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testVersionNumbers));
       add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testBlockingRead));
+      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testReadLatest));
     }
   };
 
@@ -403,6 +405,39 @@ namespace ChimeraTK {
       backgroundTask.join();
     }
   }
+/*
+  template<class T>
+  void ProcessArrayTest<T>::testReadLatest() {
+    std::cout << "testReadLatest 1" << std::endl;
+    auto senderReceiver = createSynchronizedProcessArray<T>(1);
+    auto sender = senderReceiver.first;
+    auto receiver = senderReceiver.second;
+
+    // readLatest with only one element in the queue should read that element
+    sender->accessData(0) = 42;
+    sender->write();
+    std::cout << "testReadLatest 2" << std::endl;
+    BOOST_CHECK(receiver->readLatest());
+    std::cout << "testReadLatest 3" << std::endl;
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
+    
+    // readLatest with no element in the queue will return false and not change the value
+    BOOST_CHECK(!receiver->readLatest());
+    std::cout << "testReadLatest 4" << std::endl;
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
+
+    // readLatest with two elements (queue is full) should return the second element
+    sender->accessData(0) = 66;
+    sender->write();
+    sender->accessData(0) = 77;
+    sender->write();
+    std::cout << "testReadLatest 5" << std::endl;
+    BOOST_CHECK(receiver->readLatest());
+    std::cout << "testReadLatest 6" << std::endl;
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
+    std::cout << "testReadLatest 7" << std::endl;
+  }
+*/
 }  //namespace ChimeraTK
 
 test_suite*
