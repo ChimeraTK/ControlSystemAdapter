@@ -405,7 +405,7 @@ namespace ChimeraTK {
       backgroundTask.join();
     }
   }
-/*
+
   template<class T>
   void ProcessArrayTest<T>::testReadLatest() {
     std::cout << "testReadLatest 1" << std::endl;
@@ -437,7 +437,7 @@ namespace ChimeraTK {
     BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
     std::cout << "testReadLatest 7" << std::endl;
   }
-*/
+
 }  //namespace ChimeraTK
 
 test_suite*

@@ -589,8 +589,10 @@ namespace ChimeraTK {
 
   template<class T>
   bool ProcessArray<T>::doReadTransferLatest() {
-    // as long as there is more than one element on the queue, discard it
-    while(_sharedState->_fullBufferQueue.read_available() > 1) {
+    // As long as there is more than one valid element on the queue, discard it.
+    // Due to our implementation there is always one unfulfilled future in the queue, so
+    // we must pop until there are two elements left in order not to flush out the newest valid value.
+    while(_sharedState->_fullBufferQueue.read_available() > 2) {
       _sharedState->_fullBufferQueue.pop();
     }
     return this->doReadTransferNonBlocking();
