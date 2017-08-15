@@ -28,21 +28,33 @@ namespace ChimeraTK {
      * listener is triggered every time after calling <code>receive</code> on
      * the process variable if the receive operation returned <code>true</code>.
      *
-     * If another listener has previously been registered for the named process
+     * If another listener has previously been registered for the process
      * variable, that listener is replaced with the new listener.
      */
+    void addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable,
+        ProcessVariableListener::SharedPtr receiveNotificationListener);
+
+    /** 
+     * @deprecated Use addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable, ProcessVariableListener::SharedPtr receiveNotificationListener) instead.
+    */
     void addReceiveNotificationListener(mtca4u::RegisterPath const & processVariableName,
         ProcessVariableListener::SharedPtr receiveNotificationListener);
+
 
     /**
      * Removes a receive notification listener that has previously been
      * registered with
      * {@link #addReceiveNotificationListener(mtca4u::RegisterPath const &, ProcessVariableListener::SharedPtr)}.
-     * If no listener is registered for the specified process variable name,
+     * If no listener is registered for the specified process variable,
      * this method does nothing.
      */
-    void removeReceiveNotificationListener(
-        mtca4u::RegisterPath const & processVariableName);
+    void removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable);
+
+    /**
+     * @deprecated Use removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable) instead.
+     */
+    void removeReceiveNotificationListener(mtca4u::RegisterPath const & processVariableName);
+
 
     /**
      * Runs receive on all process variables that have data pending. This method
