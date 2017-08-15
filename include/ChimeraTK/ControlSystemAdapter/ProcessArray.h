@@ -273,7 +273,6 @@ namespace ChimeraTK {
       * thread, so there are two threads which might consume elements and thus
       * an spsc_queue is not safe.
       */
-      //boost::lockfree::queue<std::size_t> _fullBufferQueue;
       boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
 
       /**
