@@ -8,9 +8,10 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
-#include <boost/unordered_map.hpp>
+#include <map>
 
 #include "ProcessArray.h"
+#include <mtca4u/RegisterPath.h>
 
 #include "PVManagerDecl.h"
 
@@ -56,8 +57,9 @@ namespace ChimeraTK {
     /**
      * Type alias for the process variable map. Useful for getting related types
      * (e.g. an iterator).
+     * @todo FIXME: This was an unordered_map of strings, but it was changed to register path. The register path does not have a hash, thus we fall back to std::map. Write a std::hash<RegisterPath> if you cant to improve the performance.
      */
-    typedef boost::unordered_map<std::string, ProcessVariableSharedPtrPair> ProcessVariableMap;
+    typedef std::map<mtca4u::RegisterPath, ProcessVariableSharedPtrPair> ProcessVariableMap;
 
     /**
      * Creates a new process array for transferring data from the device library
@@ -88,7 +90,7 @@ namespace ChimeraTK {
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createProcessArrayDeviceToControlSystem(
-        const std::string& processVariableName, const std::vector<T>& initialValue,
+        mtca4u::RegisterPath processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
         bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
@@ -121,7 +123,7 @@ namespace ChimeraTK {
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createProcessArrayControlSystemToDevice(
-        const std::string& processVariableName, const std::vector<T>& initialValue,
+        mtca4u::RegisterPath processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
         bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
 
@@ -141,7 +143,7 @@ namespace ChimeraTK {
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> getProcessArray(
-        const std::string& processVariableName) const;
+        mtca4u::RegisterPath processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created earlier
@@ -155,7 +157,7 @@ namespace ChimeraTK {
      * device library.
      */
     std::pair<ProcessVariable::SharedPtr, ProcessVariable::SharedPtr> getProcessVariable(
-        const std::string& processVariableName) const;
+        mtca4u::RegisterPath processVariableName) const;
 
     /**
      * Returns the map containing all process variables, using the names as
@@ -424,7 +426,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
     typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
-      const std::string& processVariableName, const std::vector<T>& initialValue,
+      mtca4u::RegisterPath processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
@@ -461,7 +463,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
     typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayControlSystemToDevice(
-      const std::string& processVariableName, const std::vector<T>& initialValue,
+      mtca4u::RegisterPath processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description, bool maySendDestructively,
       std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
@@ -499,7 +501,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> PVManager::getProcessArray(
-      const std::string& processVariableName) const {
+      mtca4u::RegisterPath processVariableName) const {
     ProcessVariableSharedPtrPair processVariable = getProcessVariable(
         processVariableName);
     if (processVariable.first && processVariable.second) {
