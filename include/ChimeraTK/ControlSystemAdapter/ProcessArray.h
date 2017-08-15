@@ -267,53 +267,13 @@ namespace ChimeraTK {
       std::atomic<Buffer*> _tripleBufferIndex;
       
       /**
-       * Define a special spsc_queue which allows to obtain the front element of the queue without popping it. This
-       * feature was added to later versions of the boost::lockfree::spsc_queue, but we like to be compatible with
-       * BOOST 1.54 (as used on Ubuntu 14.04 and SUSE 42.2). When this compatibility requirement has been dropped,
-       * th use of this class can simply be replaced by a boost::lockfree::spsc_queue.
-       */
-      template<typename X>
-      class spsc_queue : public boost::lockfree::spsc_queue<X> {
-        public:
-          using boost::lockfree::spsc_queue<X>::spsc_queue;
-          X& front() {
-            if(!frontValid) {
-              frontValid = true;
-              boost::lockfree::spsc_queue<X>::pop(frontElement);
-            }
-            return frontElement;
-          }
-          void pop(X &value) {
-            if(frontValid) {
-              frontValid = false;
-              value = frontElement;
-              return;
-            }
-            boost::lockfree::spsc_queue<X>::pop(value);
-          }
-          void pop() {
-            if(frontValid) {
-              frontValid = false;
-              return;
-            }
-            boost::lockfree::spsc_queue<X>::pop();
-          }
-          size_t read_available() {
-            return boost::lockfree::spsc_queue<X>::read_available() + ( frontValid ? 1 : 0 );
-          }
-        private:
-          bool frontValid{false};
-          X frontElement;
-      };
-      
-      /**
       * Queue holding the indices of the full buffers. Those are the buffers
       * that have been sent but not yet received. We do not use an spsc_queue
       * for this queue, because might want to take elements from the sending
       * thread, so there are two threads which might consume elements and thus
       * an spsc_queue is not safe.
       */
-      spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
+      boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
 
       /**
       * Queue holding the empty buffers. Those are the buffers that have been
