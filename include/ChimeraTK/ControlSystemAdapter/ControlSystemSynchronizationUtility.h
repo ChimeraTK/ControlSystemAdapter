@@ -1,7 +1,7 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_CONTROL_SYSTEM_SYNCHRONIZATION_UTILITY
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_CONTROL_SYSTEM_SYNCHRONIZATION_UTILITY
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "ControlSystemPVManager.h"
 
@@ -31,18 +31,18 @@ namespace ChimeraTK {
      * If another listener has previously been registered for the named process
      * variable, that listener is replaced with the new listener.
      */
-    void addReceiveNotificationListener(std::string const & processVariableName,
+    void addReceiveNotificationListener(mtca4u::RegisterPath const & processVariableName,
         ProcessVariableListener::SharedPtr receiveNotificationListener);
 
     /**
      * Removes a receive notification listener that has previously been
      * registered with
-     * {@link #addReceiveNotificationListener(std::string const &, ProcessVariableListener::SharedPtr)}.
+     * {@link #addReceiveNotificationListener(mtca4u::RegisterPath const &, ProcessVariableListener::SharedPtr)}.
      * If no listener is registered for the specified process variable name,
      * this method does nothing.
      */
     void removeReceiveNotificationListener(
-        std::string const & processVariableName);
+        mtca4u::RegisterPath const & processVariableName);
 
     /**
      * Runs receive on all process variables that have data pending. This method
@@ -124,7 +124,7 @@ namespace ChimeraTK {
      * Map storing the receive listeners. The maps uses the process variable
      * as the key and the corresponding receive listener as the value.
      */
-    boost::unordered_map<std::string, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
+    std::unordered_map<std::string, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
 
     // Disable copy construction and assignment.
     ControlSystemSynchronizationUtility(
@@ -143,8 +143,7 @@ namespace ChimeraTK {
       T processVariablesEnd) {
     for (T i = processVariablesBegin; i != processVariablesEnd; ++i) {
       if ((*i)->readNonBlocking()) {
-        boost::unordered_map<std::string, ProcessVariableListener::SharedPtr>::iterator listenerIterator =
-            _receiveNotificationListeners.find((*i)->getName());
+        auto listenerIterator = _receiveNotificationListeners.find((*i)->getName());
         if (listenerIterator != _receiveNotificationListeners.end()) {
           ProcessVariableListener::SharedPtr receiveListener(
               listenerIterator->second);

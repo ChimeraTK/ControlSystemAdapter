@@ -3,7 +3,6 @@
 
 #include <list>
 #include <map>
-#include <string>
 
 #include <boost/shared_ptr.hpp>
 
@@ -56,9 +55,9 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)}
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name. Throws a bad_cast exception if
      * there is a process scalar or array with the specified name but its type
@@ -66,14 +65,14 @@ namespace ChimeraTK {
      */
     template<class T>
     typename ProcessArray<T>::SharedPtr getProcessArray(
-        const std::string& processVariableName) const;
+        const mtca4u::RegisterPath& processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)},
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)},
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const std::string&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name.
      */
@@ -81,14 +80,14 @@ namespace ChimeraTK {
      * FIXME: It these should be links, but Doxygen can't resolve then, so we leave it normal to avoid
      * non-working links:
      *
-     * The {@link getProcessArray(const std:.string&)} methods should be preferred
+     * The {@link getProcessArray(const mtca4u::RegisterPath&)} methods should be preferred
      */
-    /** The \c getProcessScalar(const std::string&) and
-     * \c getProcessArray(const std:.string&) methods should be preferred
+    /** The \c getProcessScalar(const mtca4u::RegisterPath&) and
+     * \c getProcessArray(const mtca4u::RegisterPath&) methods should be preferred
      * if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(
-        const std::string& processVariableName) const;
+        const mtca4u::RegisterPath& processVariableName) const;
 
     /**
      * Returns a vector containing all process variables that are registered
@@ -140,7 +139,7 @@ namespace ChimeraTK {
 
   template<class T>
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
-      const std::string& processVariableName) const {
+      const mtca4u::RegisterPath& processVariableName) const {
     auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
     if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
     return pv;

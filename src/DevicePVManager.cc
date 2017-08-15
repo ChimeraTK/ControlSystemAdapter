@@ -9,7 +9,7 @@ namespace ChimeraTK {
   }
 
   ProcessVariable::SharedPtr DevicePVManager::getProcessVariable(
-      const std::string & processVariableName) const {
+      const mtca4u::RegisterPath & processVariableName) const {
     return _pvManager->getProcessVariable(processVariableName).second;
   }
 

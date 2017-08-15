@@ -73,7 +73,7 @@ namespace ChimeraTK {
      * This constructor creates the buffers and queues that are needed for the
      * send/receive process and are shared with the sender.
      */
-    ProcessArray(InstanceType instanceType, const std::string& name, const std::string &unit,
+    ProcessArray(InstanceType instanceType, const mtca4u::RegisterPath& name, const std::string &unit,
         const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers);
 
     /**
@@ -395,7 +395,7 @@ namespace ChimeraTK {
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      std::size_t size, const std::string & name = "", const std::string &unit = "",
+      std::size_t size, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
       const std::string &description = "", T initialValue = 0, std::size_t numberOfBuffers = 2,
       bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
@@ -446,7 +446,7 @@ namespace ChimeraTK {
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      const std::vector<T>& initialValue, const std::string & name = "", const std::string &unit = "",
+      const std::vector<T>& initialValue, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
       const std::string &description = "", std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener =
@@ -457,7 +457,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  ProcessArray<T>::ProcessArray(InstanceType instanceType, const std::string& name, const std::string &unit,
+  ProcessArray<T>::ProcessArray(InstanceType instanceType, const mtca4u::RegisterPath& name, const std::string &unit,
       const std::string &description, const std::vector<T>& initialValue, std::size_t numberOfBuffers)
   : mtca4u::NDRegisterAccessor<T>(name, unit, description),
     _instanceType(instanceType),
@@ -837,7 +837,7 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      std::size_t size, const std::string & name, const std::string &unit, const std::string &description, T initialValue,
+      std::size_t size, const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {
@@ -856,7 +856,7 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
-      const std::vector<T>& initialValue, const std::string & name, const std::string &unit, const std::string &description,
+      const std::vector<T>& initialValue, const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description,
       std::size_t numberOfBuffers, bool maySendDestructively,
       TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener) {

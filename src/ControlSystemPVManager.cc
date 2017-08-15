@@ -8,7 +8,7 @@ namespace ChimeraTK {
   }
 
   ProcessVariable::SharedPtr ControlSystemPVManager::getProcessVariable(
-      const std::string & processVariableName) const {
+      const mtca4u::RegisterPath & processVariableName) const {
     auto pv = _pvManager->getProcessVariable(processVariableName).first;
     if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
     return pv;
