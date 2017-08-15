@@ -41,7 +41,7 @@ namespace ChimeraTK {
 
       // create XML element for the variable and set name attribute
       xmlpp::Element *variable = rootElement->add_child("variable");
-      variable->set_attribute("name",_variableNames[i]);
+      variable->set_attribute("name",static_cast<std::string>(_variableNames[i]));
 
       // generate value XML tags and set type name as a string
       std::string dataTypeName{"unknown"};

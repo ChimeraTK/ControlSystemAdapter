@@ -3,7 +3,6 @@
 
 #include <list>
 #include <map>
-#include <string>
 
 #include <boost/shared_ptr.hpp>
 

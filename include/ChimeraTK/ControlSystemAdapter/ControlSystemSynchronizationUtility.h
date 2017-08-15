@@ -125,7 +125,6 @@ namespace ChimeraTK {
      * as the key and the corresponding receive listener as the value.
      */
     std::unordered_map<std::string, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
-    //    std::map<std::string, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
 
     // Disable copy construction and assignment.
     ControlSystemSynchronizationUtility(

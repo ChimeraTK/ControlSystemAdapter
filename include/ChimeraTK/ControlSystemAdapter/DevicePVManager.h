@@ -143,10 +143,10 @@ namespace ChimeraTK {
      * non-working links:
      *
      * The {@link getProcessScalar(const mtca4u::RegisterPath&)} and
-     * {@link getProcessArray(const std:.string&)} methods should be preferred
+     * {@link getProcessArray(const mtca4u::RegisterPath&)} methods should be preferred
      */
     /** The \c getProcessScalar(const mtca4u::RegisterPath&) and
-     * \c getProcessArray(const std:.string&) methods should be preferred
+     * \c getProcessArray(const mtca4u::RegisterPath&) methods should be preferred
      * if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(

@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <mtca4u/SupportedUserTypes.h>
+#include <mtca4u/RegisterPath.h>
 
 namespace xmlpp {
   class Element;
@@ -45,7 +46,7 @@ namespace ChimeraTK {
       /** Register a variable to be stored to and retrieved from the data storage. The returned value is the ID which
       *   must be passed to the other functions. */
       template<typename DataType>
-      size_t registerVariable(std::string const &name, size_t nElements);
+      size_t registerVariable(mtca4u::RegisterPath const &name, size_t nElements);
 
       /** Retrieve the current value for the variable with the given ID */
       template<typename DataType>
@@ -79,7 +80,7 @@ namespace ChimeraTK {
       std::string _filename;
 
       /** Vector of variable names. The index is the ID of the variable. */
-      std::vector<std::string> _variableNames;
+      std::vector<mtca4u::RegisterPath> _variableNames;
 
       /** Vector of data types. The index is the ID of the variable. */
       std::vector<std::type_info const *> _variableTypes;
@@ -96,7 +97,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<typename DataType>
-  size_t PersistentDataStorage::registerVariable(std::string const &name, size_t nElements) {
+  size_t PersistentDataStorage::registerVariable(mtca4u::RegisterPath const &name, size_t nElements) {
     // check if already existing
     auto position = std::find(_variableNames.begin(), _variableNames.end(), name);
     
