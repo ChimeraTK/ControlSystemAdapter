@@ -18,7 +18,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -pedantic -Wunini
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage")
 
 #boost as such is required for shared pointers e.g.
-FIND_PACKAGE(Boost REQUIRED)
+FIND_PACKAGE(Boost 1.58 REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 #boost chrono is needed for measuring time intervals.
