@@ -14,15 +14,30 @@ namespace ChimeraTK {
   void DeviceSynchronizationUtility::addReceiveNotificationListener(
       mtca4u::RegisterPath const & processVariableName,
       ProcessVariableListener::SharedPtr receiveNotificationListener) {
+    std::cout << "Use of deprecated function: Use addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable, ProcessVariableListener::SharedPtr receiveNotificationListener) instead of the version with processVariableName!" << std::endl;
     auto pv = _pvManager->getProcessVariable(processVariableName);
     _receiveNotificationListeners.erase(pv.get());
-    _receiveNotificationListeners.insert(std::make_pair(pv.get(), receiveNotificationListener));
+    addReceiveNotificationListener(pv, receiveNotificationListener);
+  }
+
+  void DeviceSynchronizationUtility::addReceiveNotificationListener(
+      ProcessVariable::SharedPtr const & processVariable,
+      ProcessVariableListener::SharedPtr receiveNotificationListener) {
+     _receiveNotificationListeners.erase(processVariable.get());
+    _receiveNotificationListeners.insert(std::make_pair(processVariable.get(), receiveNotificationListener));
   }
 
   void DeviceSynchronizationUtility::removeReceiveNotificationListener(
       mtca4u::RegisterPath const & processVariableName) {
+    std::cout << "Use of deprecated function: Use removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable) instead of the version with processVariableName!" << std::endl;
     auto pv = _pvManager->getProcessVariable(processVariableName);
-    _receiveNotificationListeners.erase(pv.get());
+    // althougt it's just one line: call the new interface so the old test covers both
+    removeReceiveNotificationListener(pv); // get the raw pointer
+  }
+
+  void DeviceSynchronizationUtility::removeReceiveNotificationListener(
+      ProcessVariable::SharedPtr const & processVariable) {
+    _receiveNotificationListeners.erase(processVariable.get()); // get the raw pointer
   }
 
   void DeviceSynchronizationUtility::receiveAll() {

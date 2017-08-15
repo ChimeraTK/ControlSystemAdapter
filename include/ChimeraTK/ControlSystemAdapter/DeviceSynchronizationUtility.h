@@ -31,6 +31,12 @@ namespace ChimeraTK {
      * If another listener has previously been registered for the named process
      * variable, that listener is replaced with the new listener.
      */
+    void addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable,
+        ProcessVariableListener::SharedPtr receiveNotificationListener);
+
+    /** 
+     * @deprecated Use addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable, ProcessVariableListener::SharedPtr receiveNotificationListener) instead.
+    */
     void addReceiveNotificationListener(mtca4u::RegisterPath const & processVariableName,
         ProcessVariableListener::SharedPtr receiveNotificationListener);
 
@@ -40,6 +46,11 @@ namespace ChimeraTK {
      * {@link #addReceiveNotificationListener(mtca4u::RegisterPath const &, ProcessVariableListener::SharedPtr)}.
      * If no listener is registered for the specified process variable name,
      * this method does nothing.
+     */
+    void removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable);
+
+    /**
+     * @deprecated Use removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable) instead.
      */
     void removeReceiveNotificationListener(
         mtca4u::RegisterPath const & processVariableName);
