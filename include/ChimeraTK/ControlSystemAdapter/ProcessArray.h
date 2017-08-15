@@ -627,9 +627,6 @@ namespace ChimeraTK {
       // if now the local buffer contains valid data, use that data first
       if(_tripleBufferIndex->_isValid) {
         future = boost::make_ready_future(static_cast<TransferFuture::Data*>(_tripleBufferIndex)).share();
-
-        auto status2 = future.wait_for(boost::chrono::duration<int, boost::centi>(0));
-        assert(status2 != boost::future_status::timeout);
       }
     }
     
