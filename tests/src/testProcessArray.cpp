@@ -79,13 +79,13 @@ namespace ChimeraTK {
         createSynchronizedProcessArray<T>(N_ELEMENTS);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-    BOOST_CHECK(sender->getName() == "");
+    BOOST_CHECK(sender->getName() == "/");
     for (typename std::vector<T>::iterator i = sender->accessChannel(0).begin();
         i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == 0);
     }
     BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
-    BOOST_CHECK(receiver->getName() == "");
+    BOOST_CHECK(receiver->getName() == "/");
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == 0);
@@ -99,13 +99,13 @@ namespace ChimeraTK {
         SOME_NUMBER, 5);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
-    BOOST_CHECK(sender->getName() == "test");
+    BOOST_CHECK(sender->getName() == "/test");
     for (typename std::vector<T>::iterator i = sender->accessChannel(0).begin();
         i != sender->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
-    BOOST_CHECK(receiver->getName() == "test");
+    BOOST_CHECK(receiver->getName() == "/test");
     for (typename std::vector<T>::const_iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
@@ -115,12 +115,12 @@ namespace ChimeraTK {
         5, false);
     sender = senderReceiver.first;
     receiver = senderReceiver.second;
-    BOOST_CHECK(sender->getName() == "test");
+    BOOST_CHECK(sender->getName() == "/test");
     BOOST_CHECK(sender->accessChannel(0).size() == 4);
     BOOST_CHECK(
         std::equal(sender->accessChannel(0).begin(), sender->accessChannel(0).end(),
             referenceVector.begin()));
-    BOOST_CHECK(receiver->getName() == "test");
+    BOOST_CHECK(receiver->getName() == "/test");
     BOOST_CHECK(receiver->accessChannel(0).size() == 4);
     BOOST_CHECK(
         std::equal(receiver->accessChannel(0).begin(), receiver->accessChannel(0).end(),
