@@ -220,14 +220,14 @@ BOOST_AUTO_TEST_SUITE( DeviceSynchronizationUtilityTestSuite )
     csFloatOut->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 1);
-    BOOST_CHECK(receiveNotificationListener->lastProcessVariable->getName() == "intOut");
+    BOOST_CHECK(receiveNotificationListener->lastProcessVariable->getName() == "/intOut");
 
     csIntOut->write();
     std::vector<ProcessVariable::SharedPtr> pvList(1);
     pvList[0] = devIntOut;
     syncUtil.receive(pvList);
     BOOST_CHECK(receiveNotificationListener->count == 2);
-    BOOST_CHECK(receiveNotificationListener->lastProcessVariable->getName() == "intOut");
+    BOOST_CHECK(receiveNotificationListener->lastProcessVariable->getName() == "/intOut");
 
     syncUtil.removeReceiveNotificationListener("intOut");
     csIntOut->write();
