@@ -54,35 +54,37 @@ static void testCreateProcessVariables(const string& name,
 
   shared_ptr<ProcessArray<T> > createdPV = devManager->createProcessArray<T>(
       deviceToControlSystem, name + "In", 1, "kindOfAUnit","any description");
-  BOOST_CHECK(createdPV->getName() == name + "In");
+  // Although process variables are/ can be created without a leading '/', the
+  // RegisterPath which is used assures that it is there. We have to test with '/'.
+  BOOST_CHECK(createdPV->getName() == "/"+name + "In");
   BOOST_CHECK(createdPV->getUnit() == "kindOfAUnit");
   BOOST_CHECK(createdPV->getDescription() == "any description");
 
   shared_ptr<ProcessArray<T> > devPV = devManager->getProcessArray<T>(
       name + "In");
-  BOOST_CHECK(devPV->getName() == name + "In");
+  BOOST_CHECK(devPV->getName() == "/"+name + "In");
   BOOST_CHECK(devPV->getUnit() == "kindOfAUnit");
   BOOST_CHECK(devPV->getDescription() == "any description");
 
   shared_ptr<ProcessArray<T> > csPV = csManager->getProcessArray<T>(
       name + "In");
-  BOOST_CHECK(csPV->getName() == name + "In");
+  BOOST_CHECK(csPV->getName() == "/"+name + "In");
   BOOST_CHECK(csPV->getUnit() == "kindOfAUnit");
   BOOST_CHECK(csPV->getDescription() == "any description");
 
   createdPV = devManager->createProcessArray<T>(controlSystemToDevice,
       name + "Out", 1, "anotherUnit","something");
-  BOOST_CHECK(createdPV->getName() == name + "Out");
+  BOOST_CHECK(createdPV->getName() == "/"+ name + "Out");
   BOOST_CHECK(createdPV->getUnit() == "anotherUnit");
   BOOST_CHECK(createdPV->getDescription() == "something");
 
   devPV = devManager->getProcessArray<T>(name + "Out");
-  BOOST_CHECK(devPV->getName() == name + "Out");
+  BOOST_CHECK(devPV->getName() == "/" + name + "Out");
   BOOST_CHECK(devPV->getUnit() == "anotherUnit");
   BOOST_CHECK(devPV->getDescription() == "something");
 
   csPV = csManager->getProcessArray<T>(name + "Out");
-  BOOST_CHECK(csPV->getName() == name + "Out");
+  BOOST_CHECK(csPV->getName() == "/" + name + "Out");
   BOOST_CHECK(csPV->getUnit() == "anotherUnit");
   BOOST_CHECK(csPV->getDescription() == "something");
 
@@ -93,23 +95,22 @@ static void testCreateProcessVariables(const string& name,
   string arrayName = name + "Array";
   shared_ptr<ProcessArray<T> > createdPA = devManager->createProcessArray<T>(
       deviceToControlSystem, arrayName + "In", 5);
-  BOOST_CHECK(createdPA->getName() == arrayName + "In");
+  BOOST_CHECK(createdPA->getName() == "/" + arrayName + "In");
   BOOST_CHECK(createdPA->getUnit() == "n./a.");
   BOOST_CHECK(createdPA->getDescription() == "");
-  BOOST_CHECK(createdPA->getName() == arrayName + "In");
   shared_ptr<ProcessArray<T> > devPA = devManager->getProcessArray<T>(
       arrayName + "In");
-  BOOST_CHECK(devPA->getName() == arrayName + "In");
+  BOOST_CHECK(devPA->getName() == "/" + arrayName + "In");
   shared_ptr<ProcessArray<T> > csPA = csManager->getProcessArray<T>(
       arrayName + "In");
-  BOOST_CHECK(csPA->getName() == arrayName + "In");
+  BOOST_CHECK(csPA->getName() == "/" + arrayName + "In");
   createdPA = devManager->createProcessArray<T>(controlSystemToDevice,
       arrayName + "Out", 5);
-  BOOST_CHECK(createdPA->getName() == arrayName + "Out");
+  BOOST_CHECK(createdPA->getName() == "/" + arrayName + "Out");
   devPA = devManager->getProcessArray<T>(arrayName + "Out");
-  BOOST_CHECK(devPA->getName() == arrayName + "Out");
+  BOOST_CHECK(devPA->getName() == "/" + arrayName + "Out");
   csPA = csManager->getProcessArray<T>(arrayName + "Out");
-  BOOST_CHECK(csPA->getName() == arrayName + "Out");
+  BOOST_CHECK(csPA->getName() == "/" + arrayName + "Out");
 
   BOOST_CHECK_THROW( devManager->createProcessArray<T>(
    static_cast<SynchronizationDirection>(-1),arrayName + "ShouldFail", 5),
@@ -200,21 +201,21 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         i != processVariables.end(); i++) {
       T pv = *i;
       const std::string& name = pv->getName();
-      if (name == "double") {
+      if (name == "/double") {
         BOOST_CHECK(pv->getValueType() == typeid(double));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
         BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
-      } else if (name == "int32") {
+      } else if (name == "/int32") {
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
         BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
-      } else if (name == "floatArray") {
+      } else if (name == "/floatArray") {
         BOOST_CHECK(pv->getValueType() == typeid(float));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
         BOOST_CHECK(pvc->isArray() == true);
@@ -236,21 +237,21 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         i != processVariables.end(); i++) {
       T pv = *i;
       const std::string& name = pv->getName();
-      if (name == "double") {
+      if (name == "/double") {
         BOOST_CHECK(pv->getValueType() == typeid(double));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
         BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
-      } else if (name == "int32") {
+      } else if (name == "/int32") {
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
         BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
-      } else if (name == "floatArray") {
+      } else if (name == "/floatArray") {
         BOOST_CHECK(pv->isArray() == true);
         boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
@@ -478,9 +479,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       ProcessVariable::SharedPtr pv = pvManager->nextNotification();
       if (pv) {
         const std::string& name = pv->getName();
-        if (name == "int32In") {
+        if (name == "/int32In") {
           ++int32NotificationCount;
-        } else if (name == "doubleIn") {
+        } else if (name == "/doubleIn") {
           ++doubleNotificationCount;
         } else {
           BOOST_FAIL("Unexpected notification.");
@@ -517,9 +518,9 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         ProcessVariable::SharedPtr pv = pvManager->nextNotification();
         if (pv) {
           const std::string& name = pv->getName();
-          if (name == "int32Out") {
+          if (name == "/int32Out") {
             ++int32NotificationCount;
-          } else if (name == "doubleOut") {
+          } else if (name == "/doubleOut") {
             ++doubleNotificationCount;
           } else {
             BOOST_FAIL("Unexpected notification.");
