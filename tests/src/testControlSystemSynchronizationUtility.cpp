@@ -241,8 +241,9 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     devFloatIn->write();
     syncUtil.receiveAll();
     BOOST_CHECK(receiveNotificationListener->count == 1);
+    // the pv name has a '/' because it is a register path
     BOOST_CHECK(
-        receiveNotificationListener->lastProcessVariable->getName() == "intIn");
+        receiveNotificationListener->lastProcessVariable->getName() == "/intIn");
 
     devIntIn->write();
     std::vector<ProcessVariable::SharedPtr> pvList(1);
@@ -250,7 +251,7 @@ BOOST_AUTO_TEST_SUITE( ControlSystemSynchronizationUtilityTestSuite )
     syncUtil.receive(pvList);
     BOOST_CHECK(receiveNotificationListener->count == 2);
     BOOST_CHECK(
-        receiveNotificationListener->lastProcessVariable->getName() == "intIn");
+        receiveNotificationListener->lastProcessVariable->getName() == "/intIn");
 
     syncUtil.removeReceiveNotificationListener("intIn");
     devIntIn->write();
