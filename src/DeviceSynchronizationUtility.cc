@@ -14,21 +14,22 @@ namespace ChimeraTK {
   void DeviceSynchronizationUtility::addReceiveNotificationListener(
       mtca4u::RegisterPath const & processVariableName,
       ProcessVariableListener::SharedPtr receiveNotificationListener) {
-    _receiveNotificationListeners.erase(processVariableName);
-    _receiveNotificationListeners.insert(
-        std::make_pair(processVariableName, receiveNotificationListener));
+    auto pv = _pvManager->getProcessVariable(processVariableName);
+    _receiveNotificationListeners.erase(pv.get());
+    _receiveNotificationListeners.insert(std::make_pair(pv.get(), receiveNotificationListener));
   }
 
   void DeviceSynchronizationUtility::removeReceiveNotificationListener(
       mtca4u::RegisterPath const & processVariableName) {
-    _receiveNotificationListeners.erase(processVariableName);
+    auto pv = _pvManager->getProcessVariable(processVariableName);
+    _receiveNotificationListeners.erase(pv.get());
   }
 
   void DeviceSynchronizationUtility::receiveAll() {
     ProcessVariable::SharedPtr pv;
     while ((pv = _pvManager->nextNotification())) {
       if (pv->readNonBlocking()) {
-        auto listenerIterator = _receiveNotificationListeners.find(pv->getName());
+        auto listenerIterator = _receiveNotificationListeners.find(pv.get());
         if (listenerIterator != _receiveNotificationListeners.end()) {
           ProcessVariableListener::SharedPtr receiveListener(
               listenerIterator->second);

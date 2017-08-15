@@ -124,7 +124,7 @@ namespace ChimeraTK {
      * Map storing the receive listeners. The maps uses the process variable
      * as the key and the corresponding receive listener as the value.
      */
-    std::unordered_map<std::string, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
+    std::unordered_map<ProcessVariable *, ProcessVariableListener::SharedPtr> _receiveNotificationListeners;
 
     // Disable copy construction and assignment.
     DeviceSynchronizationUtility(DeviceSynchronizationUtility const &);
@@ -142,7 +142,7 @@ namespace ChimeraTK {
       T processVariablesEnd) {
     for (T i = processVariablesBegin; i != processVariablesEnd; ++i) {
       if ((*i)->readNonBlocking()) {
-        auto listenerIterator = _receiveNotificationListeners.find((*i)->getName());
+        auto listenerIterator = _receiveNotificationListeners.find(i->get()); // find the raw pointer
         if (listenerIterator != _receiveNotificationListeners.end()) {
           ProcessVariableListener::SharedPtr receiveListener(
               listenerIterator->second);
