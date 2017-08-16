@@ -365,16 +365,16 @@ void AsyncReadTest::testMixedRead() {
   BOOST_CHECK( accessor.readNonBlocking() == false );
 
   // readAsync with data already present, then discard the future, with more data
-  senderAccessor = 15;
-  senderAccessor.write();
   senderAccessor = 16;
+  senderAccessor.write();
+  senderAccessor = 17;
   senderAccessor.write();
   future = &(accessor.readAsync());
   usleep(10000);
   accessor.read();
-  BOOST_CHECK( accessor == 15 );
-  accessor.read();
   BOOST_CHECK( accessor == 16 );
+  accessor.read();
+  BOOST_CHECK( accessor == 17 );
 
   BOOST_CHECK( accessor.readNonBlocking() == false );
 
@@ -383,17 +383,17 @@ void AsyncReadTest::testMixedRead() {
   usleep(10000);
   BOOST_CHECK(future->hasNewData() == false);
   
-  senderAccessor = 13;
+  senderAccessor = 18;
   senderAccessor.write();
-  senderAccessor = 14;
+  senderAccessor = 19;
   senderAccessor.write();
   usleep(10000);
 
   BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 13 );
+  BOOST_CHECK( accessor == 18 );
 
   BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 14 );
+  BOOST_CHECK( accessor == 19 );
 
   BOOST_CHECK( accessor.readNonBlocking() == false );
 
@@ -404,27 +404,27 @@ void AsyncReadTest::testMixedRead() {
 
   BOOST_CHECK( accessor.readNonBlocking() == false );
   
-  senderAccessor = 13;
+  senderAccessor = 20;
   senderAccessor.write();
-  senderAccessor = 14;
+  senderAccessor = 21;
   senderAccessor.write();
   usleep(10000);
 
   BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 13 );
+  BOOST_CHECK( accessor == 20 );
 
   BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 14 );
+  BOOST_CHECK( accessor == 21 );
 
   BOOST_CHECK( accessor.readNonBlocking() == false );
 
   // readAsync with data already present, then discard the future - readNonBlocking() version
-  senderAccessor = 15;
+  senderAccessor = 22;
   senderAccessor.write();
   future = &(accessor.readAsync());
   usleep(10000);
   BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 15 );
+  BOOST_CHECK( accessor == 22 );
 
   BOOST_CHECK( accessor.readNonBlocking() == false );
   
