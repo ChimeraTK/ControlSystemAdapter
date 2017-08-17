@@ -600,6 +600,7 @@ namespace ChimeraTK {
       // discard data by moving the buffer to the empty buffer queue
       TransferFuture::Data *discardedBuffer = theFuture.get();
       _sharedState->_fullBufferQueue.pop();
+      mtca4u::TransferElement::hasActiveFuture = false;
       _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
       theFuture = readAsync().getBoostFuture();
     }
