@@ -408,7 +408,6 @@ namespace ChimeraTK {
 
   template<class T>
   void ProcessArrayTest<T>::testReadLatest() {
-    std::cout << "testReadLatest 1" << std::endl;
     auto senderReceiver = createSynchronizedProcessArray<T>(1);
     auto sender = senderReceiver.first;
     auto receiver = senderReceiver.second;
@@ -416,14 +415,11 @@ namespace ChimeraTK {
     // readLatest with only one element in the queue should read that element
     sender->accessData(0) = 42;
     sender->write();
-    std::cout << "testReadLatest 2" << std::endl;
     BOOST_CHECK(receiver->readLatest());
-    std::cout << "testReadLatest 3" << std::endl;
     BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
     
     // readLatest with no element in the queue will return false and not change the value
     BOOST_CHECK(!receiver->readLatest());
-    std::cout << "testReadLatest 4" << std::endl;
     BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
 
     // readLatest with two elements (queue is full) should return the second element
@@ -431,11 +427,26 @@ namespace ChimeraTK {
     sender->write();
     sender->accessData(0) = 77;
     sender->write();
-    std::cout << "testReadLatest 5" << std::endl;
     BOOST_CHECK(receiver->readLatest());
-    std::cout << "testReadLatest 6" << std::endl;
     BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
-    std::cout << "testReadLatest 7" << std::endl;
+
+    // readLatest with three elements (queue is full and atomic buffer is filled) should return the third element
+    sender->accessData(0) = 33;
+    sender->write();
+    sender->accessData(0) = 44;
+    sender->write();
+    sender->accessData(0) = 55;
+    sender->write();
+    BOOST_CHECK(receiver->readLatest());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 55);
+
+    // readLatest with 20 elements (certain queue overflow) should still return the last element
+    for(int i=0; i<20; ++i) {
+      sender->accessData(0) = i;
+      sender->write();
+    }
+    BOOST_CHECK(receiver->readLatest());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 19);
   }
 
 }  //namespace ChimeraTK
