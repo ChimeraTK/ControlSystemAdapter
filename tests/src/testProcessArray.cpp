@@ -429,6 +429,8 @@ namespace ChimeraTK {
     sender->write();
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
+    BOOST_CHECK(!receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
 
     // readLatest with three elements (queue is full and atomic buffer is filled) should return the third element
     sender->accessData(0) = 33;
@@ -447,6 +449,14 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 19);
+
+    // redo last step to make sure no buffers are lost when having a queue overflow
+    for(int i=0; i<20; ++i) {
+      sender->accessData(0) = 100+i;
+      sender->write();
+    }
+    BOOST_CHECK(receiver->readLatest());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 119);
   }
 
 }  //namespace ChimeraTK
