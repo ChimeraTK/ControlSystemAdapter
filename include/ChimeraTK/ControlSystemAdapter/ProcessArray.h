@@ -578,7 +578,10 @@ namespace ChimeraTK {
     // Obtain future and check if a transfer is complete.
     auto theFuture = readAsync().getBoostFuture();
     auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
-    if(status == boost::future_status::timeout) return false;
+    if(status == boost::future_status::timeout) {
+      /// @todo FIXME: check triple buffer!?
+      return false;
+    }
 
     return true;
 
@@ -591,8 +594,30 @@ namespace ChimeraTK {
     // As long as there is more than one valid element on the queue, discard it.
     // Due to our implementation there is always one unfulfilled future in the queue, so
     // we must pop until there are two elements left in order not to flush out the newest valid value.
-    while(_sharedState->_fullBufferQueue.read_available() > 2) {
+    auto theFuture = readAsync().getBoostFuture();
+    while(    theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0)) != boost::future_status::timeout
+           && _sharedState->_fullBufferQueue.read_available() > 2                                                ) {
+      // discard data by moving the buffer to the empty buffer queue
+      TransferFuture::Data *discardedBuffer = theFuture.get();
       _sharedState->_fullBufferQueue.pop();
+      _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
+      theFuture = readAsync().getBoostFuture();
+    }
+    // check whether newer data is present in the atomic triple buffer, in which case we also need to discard the last
+    // valid element in the queue
+    // first update the triple buffer if it is not valid on our side
+    if(!(_tripleBufferIndex->_isValid)) {
+      _tripleBufferIndex = _sharedState->_tripleBufferIndex.exchange(_tripleBufferIndex);
+    }
+    // if it now contains a valid element, check if it is newer
+    if(_tripleBufferIndex->_isValid) {
+      VersionNumber tripleBufferVersion = _tripleBufferIndex->_versionNumber;
+      VersionNumber queueVersion = theFuture.get()->_versionNumber;
+      if(tripleBufferVersion > queueVersion) {
+        TransferFuture::Data *discardedBuffer = theFuture.get();
+        _sharedState->_fullBufferQueue.pop();
+        _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));
+      }
     }
     return this->doReadTransferNonBlocking();
   }
@@ -791,7 +816,6 @@ namespace ChimeraTK {
     Buffer *nextIndex;
     bool lostData = false;
     if(_sharedState->_emptyBufferQueue.pop(nextIndex)) {
-
       // Create a new promise first and push its future to the full buffer queue before fulfilling the current promise.
       // This makes sure that always at least one unfulfilled future is available for the receier to wait on.
       TransferFuture::PromiseType nextPromise;
