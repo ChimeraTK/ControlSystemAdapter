@@ -578,11 +578,7 @@ namespace ChimeraTK {
     // Obtain future and check if a transfer is complete.
     auto theFuture = readAsync().getBoostFuture();
     auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
-    if(status == boost::future_status::timeout) {
-      /// @todo FIXME: check triple buffer!?
-      return false;
-    }
-
+    if(status == boost::future_status::timeout) return false;
     return true;
 
   }
