@@ -297,6 +297,29 @@ namespace ChimeraTK {
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());
 
+    // Same as before but this time with more values
+    for(int i=0; i<10; ++i) {
+      sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + i);
+      sender->writeDestructively();
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 0);
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 1);
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
+        i != receiver->accessChannel(0).end(); ++i) {
+      BOOST_CHECK(*i == SOME_NUMBER + 9);
+    }
+    // We have received all values, so no more values should be available.
+    BOOST_CHECK(!receiver->readNonBlocking());
+
     // When we send non-destructively, the value should also be preserved on the
     // sender side.
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
@@ -365,6 +388,24 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
     BOOST_CHECK(receiver->accessChannel(0)[0] == 5);
+    
+    // provoke buffer overrun, read until the queue is empty (but triple buffer still has value) and put a new element
+    // into the queue
+    for(int i=0; i<10; ++i) {
+      sender->accessData(0) = 33+i;
+      sender->write();
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 33);
+    BOOST_CHECK(receiver->readNonBlocking());         // after this line the buffer should be empty
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 34);
+    sender->accessData(0) = 12;
+    sender->write();
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 12);
+    BOOST_CHECK(!(receiver->readNonBlocking()));
   }
 
   template<class T>
@@ -429,7 +470,7 @@ namespace ChimeraTK {
     sender->write();
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
-    BOOST_CHECK(!receiver->readNonBlocking());
+    BOOST_CHECK(!receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 77);
 
     // readLatest with three elements (queue is full and atomic buffer is filled) should return the third element
@@ -449,6 +490,7 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 19);
+    BOOST_CHECK(!(receiver->readNonBlocking()));
 
     // redo last step to make sure no buffers are lost when having a queue overflow
     for(int i=0; i<20; ++i) {
@@ -457,6 +499,25 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 119);
+    BOOST_CHECK(!(receiver->readNonBlocking()));
+    
+    // provoke buffer overrun, read until the queue is empty (but triple buffer still has value) and put a new element
+    // into the queue - which should then be read by readLatest
+    for(int i=0; i<10; ++i) {
+      sender->accessData(0) = 33+i;
+      sender->write();
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 33);
+    BOOST_CHECK(receiver->readNonBlocking());         // after this line the buffer should be empty
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 34);
+    sender->accessData(0) = 12;
+    sender->write();
+    BOOST_CHECK(receiver->readLatest());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 12);
+    BOOST_CHECK(!(receiver->readLatest()));
+    
+    
   }
 
 }  //namespace ChimeraTK
