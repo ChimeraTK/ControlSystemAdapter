@@ -194,6 +194,17 @@ namespace ChimeraTK {
       TimeStamp timeStamp;
       std::vector<T> value;
       bool _isValid{false};
+      
+      /**
+       * Extra version number used to sort the values within the process variable (so this version is not globally
+       * valid). This number is needed in addition to the globally valid _versionNumber defined in
+       * TransferFuture::Data, because the globally valid version numebr can be controlled by the application and
+       * values with an older version number might be written to this process variable later. That later data with
+       * the older version number shall still be considered as last data e.g. in the context of readLatest(), i.e.
+       * whatever has been written to the process variable last should be read with readLatest(), even if it has
+       * the older version number.
+       */
+      uint64_t _internalVersionNumber;
 
       /**
        * Default constructor. Has to be defined explicitly because we have an
@@ -239,6 +250,11 @@ namespace ChimeraTK {
      * on this process array.
      */
     bool _maySendDestructively;
+    
+    /**
+     * Last internal version number written. See Buffer::_internalVersionNumber for more details.
+     */
+    uint64_t _lastInternalVersionNumber{0};
                         
     /**
      * The state shared between the sender and the receiver
@@ -608,8 +624,8 @@ namespace ChimeraTK {
     }
     // if it now contains a valid element, check if it is newer
     if(_tripleBufferIndex->_isValid) {
-      VersionNumber tripleBufferVersion = _tripleBufferIndex->_versionNumber;
-      VersionNumber queueVersion = theFuture.get()->_versionNumber;
+      uint64_t tripleBufferVersion = _tripleBufferIndex->_internalVersionNumber;
+      uint64_t queueVersion = static_cast<Buffer*>(theFuture.get())->_internalVersionNumber;
       if(tripleBufferVersion > queueVersion) {
         TransferFuture::Data *discardedBuffer = theFuture.get();
         _sharedState->_fullBufferQueue.pop();
@@ -705,8 +721,8 @@ namespace ChimeraTK {
       useTripleBuffer = true;
     }
     else {  // queueHasData && tripleBufferHasData -> see the assert above
-      auto tripleBufferVersion = _tripleBufferIndex->_versionNumber;
-      VersionNumber queueVersion = future.get()->_versionNumber;
+      uint64_t tripleBufferVersion = _tripleBufferIndex->_internalVersionNumber;
+      uint64_t queueVersion = static_cast<Buffer*>(future.get())->_internalVersionNumber;
       if(tripleBufferVersion < queueVersion) {
         useTripleBuffer = true;
       }
@@ -799,8 +815,10 @@ namespace ChimeraTK {
     TimeStamp newTimeStamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
     _currentIndex->timeStamp = newTimeStamp;
     
-    // set the version number
+    // set the version numbers
     _currentIndex->_versionNumber = newVersionNumber;
+    _currentIndex->_internalVersionNumber = _lastInternalVersionNumber;
+    ++_lastInternalVersionNumber;
     
     // flag current data as valid
     _currentIndex->_isValid = true;
