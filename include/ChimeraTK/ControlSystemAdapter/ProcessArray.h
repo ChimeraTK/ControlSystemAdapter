@@ -600,9 +600,9 @@ namespace ChimeraTK {
       _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
       theFuture = readAsync().getBoostFuture();
     }
-    // check whether newer data is present in the atomic triple buffer, in which case we also need to discard the last
-    // valid element in the queue
-    // first update the triple buffer if it is not valid on our side
+    // Check whether data is present in the atomic triple buffer. If it is newer, we also need to discard the last
+    // valid element in the queue. If it is older, we need to discard the data in the triple buffer.
+    // First update the triple buffer if it is not valid on our side
     if(!(_tripleBufferIndex->_isValid)) {
       _tripleBufferIndex = _sharedState->_tripleBufferIndex.exchange(_tripleBufferIndex);
     }
@@ -614,6 +614,9 @@ namespace ChimeraTK {
         TransferFuture::Data *discardedBuffer = theFuture.get();
         _sharedState->_fullBufferQueue.pop();
         _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));
+      }
+      else {
+        _tripleBufferIndex->_isValid = false;
       }
     }
     return this->doReadTransferNonBlocking();
