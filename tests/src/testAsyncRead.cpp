@@ -263,6 +263,76 @@ void AsyncReadTest::testReadAny() {
     thread.join();
     BOOST_CHECK( a3 == 122 );
   }
+
+  // Test1 and then Test2 (order should be guaranteed) - this time write first to check if order is properly kept
+  {
+    s1 = 666;
+    s1.write();
+    s2 = 777;
+    s2.write();
+    // no point to use a thread here
+    auto r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a1.isSameRegister(r));
+    BOOST_CHECK(a1 == 666);
+    BOOST_CHECK(a2 == 123);
+
+    r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a2.isSameRegister(r));
+    BOOST_CHECK(a1 == 666);
+    BOOST_CHECK(a2 == 777);
+    
+    BOOST_CHECK(a1.readNonBlocking() == false);
+    BOOST_CHECK(a2.readNonBlocking() == false);
+    BOOST_CHECK(a3.readNonBlocking() == false);
+    BOOST_CHECK(a4.readNonBlocking() == false);
+  }
+
+  // In order: Test4, Test2, Test3 and Test1
+  {
+    s4 = 111;
+    s4.write();
+    s2 = 222;
+    s2.write();
+    s3 = 333;
+    s3.write();   
+    s1 = 444;
+    s1.write();
+
+    // no point to use a thread here
+    auto r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a4.isSameRegister(r));
+    BOOST_CHECK(a1 == 666);
+    BOOST_CHECK(a2 == 777);
+    BOOST_CHECK(a3 == 122);
+    BOOST_CHECK(a4 == 111);
+
+    r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a2.isSameRegister(r));
+    BOOST_CHECK(a1 == 666);
+    BOOST_CHECK(a2 == 222);
+    BOOST_CHECK(a3 == 122);
+    BOOST_CHECK(a4 == 111);
+
+    r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a3.isSameRegister(r));
+    BOOST_CHECK(a1 == 666);
+    BOOST_CHECK(a2 == 222);
+    BOOST_CHECK(a3 == 333);
+    BOOST_CHECK(a4 == 111);
+
+    r = TransferElement::readAny({a1,a2,a3,a4});
+    BOOST_CHECK(a1.isSameRegister(r));
+    BOOST_CHECK(a1 == 444);
+    BOOST_CHECK(a2 == 222);
+    BOOST_CHECK(a3 == 333);
+    BOOST_CHECK(a4 == 111);
+    
+    BOOST_CHECK(a1.readNonBlocking() == false);
+    BOOST_CHECK(a2.readNonBlocking() == false);
+    BOOST_CHECK(a3.readNonBlocking() == false);
+    BOOST_CHECK(a4.readNonBlocking() == false);
+
+  }
   
 }
 
