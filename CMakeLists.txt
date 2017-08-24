@@ -42,6 +42,9 @@ ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
   message("Boost unit_test_framework not found, disabling testing")
 ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 
+#turn on the rpath so libmtca4u-deviceaccess.so is found
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # DeviceAccess is needed due to the common interface classes
 add_dependency(mtca4u-deviceaccess 00.24 REQUIRED)
 
