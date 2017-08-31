@@ -148,7 +148,7 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using one of the <code>createProcessScalar...</code> or
-     * <code>createProcessArray...</code> methods. Returns a pointer to <code>null</code> if there is no process scalar or array
+     * <code>createProcessArray...</code> methods. Throws std::logic_error if there is no process scalar or array
      * with the specified name.
      *
      * A pair of two process variables is returned: The first member of the pair
@@ -504,28 +504,23 @@ namespace ChimeraTK {
       mtca4u::RegisterPath const & processVariableName) const {
     ProcessVariableSharedPtrPair processVariable = getProcessVariable(
         processVariableName);
-    if (processVariable.first && processVariable.second) {
-      typename ProcessArray<T>::SharedPtr csPV = boost::dynamic_pointer_cast<
-          ProcessArray<T>, ProcessVariable>(processVariable.first);
-      typename ProcessArray<T>::SharedPtr devPV = boost::dynamic_pointer_cast<
-          ProcessArray<T>, ProcessVariable>(processVariable.second);
-      if (!csPV || !devPV) {
-        struct bad_cast : std::bad_cast {
-          bad_cast(const std::string &what) : _what(what) {}
-          const char* what() const noexcept override {
-            return _what.c_str();
-          }
-          std::string _what;
-        };
-        throw bad_cast("PVManager::getProcessArray() called for variable '" + processVariableName +"' with type "
-                       +typeid(T).name()+" which is not the original type " + processVariable.first->getValueType().name()
-                       + " of this process variable.");
-      }
-      return std::make_pair(csPV, devPV);
-    } else {
-      return std::make_pair(typename ProcessArray<T>::SharedPtr(),
-          typename ProcessArray<T>::SharedPtr());
+    typename ProcessArray<T>::SharedPtr csPV = boost::dynamic_pointer_cast<
+      ProcessArray<T>, ProcessVariable>(processVariable.first);
+    typename ProcessArray<T>::SharedPtr devPV = boost::dynamic_pointer_cast<
+      ProcessArray<T>, ProcessVariable>(processVariable.second);
+    if (!csPV || !devPV) {
+      struct bad_cast : std::bad_cast {
+      bad_cast(const std::string &what) : _what(what) {}
+        const char* what() const noexcept override {
+          return _what.c_str();
+        }
+        std::string _what;
+      };
+      throw bad_cast("PVManager::getProcessArray() called for variable '" + processVariableName +"' with type "
+                     +typeid(T).name()+" which is not the original type " + processVariable.first->getValueType().name()
+                     + " of this process variable.");
     }
+    return std::make_pair(csPV, devPV);
   }
 
 }
