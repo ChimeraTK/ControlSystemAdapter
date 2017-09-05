@@ -99,7 +99,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase{
   // It guarantees that the main body has completed execution and has been run exactly one.
   static void runMainLoopOnce();
 
-  ReferenceTestApplication();
+  ReferenceTestApplication(std::string const & applicationName_ = "ReferenceTest");
   ~ReferenceTestApplication();
 
   /// Inherited from ApplicationBase
@@ -145,9 +145,9 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase{
 
 };
 
-inline ReferenceTestApplication::ReferenceTestApplication()
+inline ReferenceTestApplication::ReferenceTestApplication(std::string const & applicationName_)
   //initialise all process variables, using the factory
-  : ApplicationBase("ReferenceTest"){
+  : ApplicationBase(applicationName_){
 }
 
 inline void ReferenceTestApplication::initialise(){

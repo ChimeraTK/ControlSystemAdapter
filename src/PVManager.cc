@@ -31,8 +31,7 @@ namespace ChimeraTK {
     if (i != _processVariables.end()) {
       return i->second;
     } else {
-      return std::make_pair(ProcessVariable::SharedPtr(),
-          ProcessVariable::SharedPtr());
+      throw std::logic_error("ChimeraTK::ControlSystemAdapter: Error in PVManager. Unknown process variable '"+(processVariableName)+"'");
     }
   }
 
