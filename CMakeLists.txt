@@ -89,6 +89,7 @@ if(TESTING_IS_ENABLED)
       )
   ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
+  FILE(COPY tests/decoratorTest.map DESTINATION ${PROJECT_BINARY_DIR})
 endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
