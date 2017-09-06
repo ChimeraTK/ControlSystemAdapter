@@ -56,7 +56,7 @@ namespace ChimeraTK {
     }
 
     ChimeraTK::VersionNumber getVersionNumber() const override {
-      return _impl->getVersionNumber;
+      return _impl->getVersionNumber();
     }
 
     void doReadTransfer() override{
@@ -71,10 +71,31 @@ namespace ChimeraTK {
       return _impl->doReadTransferLatest();
     }
 
-    void postRead() override;
-    void preWrite() override;
+    void convertAndCopyFromImpl();
+    void convertAndCopyToImpl();
+    
+    void postRead() override{
+      _impl->postRead();
+      convertAndCopyFromImpl();
+    }
+    
+    void preWrite() override{
+      convertAndCopyToImpl();
+      _impl->preWrite();
+    }
+
+    void postWrite() override{
+      _impl->postWrite();
+    }
  
-    bool isArray() const override {
+    virtual bool write(ChimeraTK::VersionNumber versionNumber={}){
+      // don't call preWrite() here. It would trigger the preWrite on the impl, which is also
+      // happening when _impl()->write() is called.
+      convertAndCopyToImpl();
+      return _impl->write(versionNumber);
+    }
+
+      bool isArray() const override {
       return _impl->isArray();
     }
 
@@ -84,7 +105,7 @@ namespace ChimeraTK {
     }
 
     std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
-      return _impl->getHarwareAccessingElements();
+      return _impl->getHardwareAccessingElements();
     }
     
     void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement> e) override {
@@ -122,12 +143,12 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T, class IMPL_T>
-    void TypeChangingDecorator<T, IMPL_T>::postRead() {
+    void TypeChangingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
     //FIXME: copy the buffers
   }
 
   template<class T, class IMPL_T>
-    void TypeChangingDecorator<T, IMPL_T>::preWrite() {
+    void TypeChangingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
     //FIXME: copy the buffers
   }
 
