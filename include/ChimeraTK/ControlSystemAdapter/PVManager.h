@@ -510,7 +510,7 @@ namespace ChimeraTK {
       ProcessArray<T>, ProcessVariable>(processVariable.second);
     if (!csPV || !devPV) {
       struct bad_cast : std::bad_cast {
-      bad_cast(const std::string &what) : _what(what) {}
+      bad_cast(const std::string &description) : _what(description) {}
         const char* what() const noexcept override {
           return _what.c_str();
         }
