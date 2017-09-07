@@ -128,11 +128,6 @@ namespace ChimeraTK {
       typedef boost::mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
     };
 
-    typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
-      boost::numeric::def_overflow_handler, Round<double> > FromImplConverter;
-    typedef boost::numeric::converter<IMPL_T, T, boost::numeric::conversion_traits<IMPL_T, T>,
-      boost::numeric::def_overflow_handler, Round<double> > ToImplConverter;
-
   };
 
 /*********************************************************************************************************************/
@@ -163,6 +158,8 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   void TypeChangingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
+    typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
+      boost::numeric::def_overflow_handler, Round<double> > FromImplConverter;
     //fixme: are iterartors more efficient?
     for (size_t i = 0; i < this->buffer_2D.size(); ++i){
       for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
@@ -173,12 +170,50 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   void TypeChangingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
+    typedef boost::numeric::converter<IMPL_T, T, boost::numeric::conversion_traits<IMPL_T, T>,
+      boost::numeric::def_overflow_handler, Round<double> > ToImplConverter;
     for (size_t i = 0; i < this->buffer_2D.size(); ++i){
       for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
         _impl->accessChannel(i)[j] = ToImplConverter::convert(this->buffer_2D[i][j]);
       }
     }
   }
+
+  template<class T>
+    T stringToT(std::string const & input){
+    std::stringstream s;
+    s << input;
+    T t;
+    s >> t;
+    return t;
+  }
+
+  template<class T>
+    std::string T_ToString(T input){
+    std::stringstream s;
+    s << input;
+    std::string output;
+    s >> output;
+    return output;
+  }
+  
+  template<>
+  void TypeChangingDecorator<int, std::string>::convertAndCopyFromImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        this->buffer_2D[i][j] = stringToT<int>(_impl->accessChannel(i)[j]);
+      }
+    }
+  }
+  template<>
+  void TypeChangingDecorator<int, std::string>::convertAndCopyToImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        _impl->accessChannel(i)[j] = T_ToString(this->buffer_2D[i][j]);
+      }
+    }
+  }
+
 
 } // namespace ChimeraTK
 

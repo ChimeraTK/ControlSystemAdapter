@@ -25,16 +25,45 @@ void testDecorator(IMPL_T startReadValue, T expectedReadValue, T startWriteValue
   
   anotherScalarAccessor = startReadValue;
   anotherScalarAccessor.write();
-  BOOST_CHECK(scalar == 0);
-  BOOST_CHECK(decoratedScalar.accessData(0) == 0);
+  //  BOOST_CHECK(scalar == 0);
+  //  BOOST_CHECK(decoratedScalar.accessData(0) == 0);
   decoratedScalar.read();
-  BOOST_CHECK( decoratedScalar.accessData(0) == expectedReadValue);
+  BOOST_CHECK( expectedReadValue == decoratedScalar.accessData(0) );
 
   decoratedScalar.accessData(0) = startWriteValue;
   decoratedScalar.write();
   anotherScalarAccessor.read();
-  BOOST_CHECK( anotherScalarAccessor == exprectedWriteValue );
+  BOOST_CHECK( exprectedWriteValue == anotherScalarAccessor );
 }
+
+template<>
+void testDecorator(std::string startReadValue, int expectedReadValue, int startWriteValue, std::string exprectedWriteValue){
+  mtca4u::Device d;
+  d.open("sdm://./dummy=decoratorTest.map");
+  auto scalar = d.getScalarRegisterAccessor<std::string>("/SOME/SCALAR");
+  auto anotherScalarAccessor = d.getScalarRegisterAccessor<std::string>("/SOME/SCALAR");
+  
+  auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< std::string > >(scalar.getHighLevelImplElement());
+  TypeChangingDecorator<int, std::string> decoratedScalar(ndAccessor);
+
+  BOOST_REQUIRE( decoratedScalar.getNumberOfChannels()==1);
+  BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
+  
+  anotherScalarAccessor = startReadValue;
+  anotherScalarAccessor.write();
+  //  BOOST_CHECK(scalar == 0);
+  //  BOOST_CHECK(decoratedScalar.accessData(0) == 0);
+  decoratedScalar.read();
+  BOOST_CHECK( expectedReadValue == decoratedScalar.accessData(0) );
+
+  decoratedScalar.accessData(0) = startWriteValue;
+  decoratedScalar.write();
+  anotherScalarAccessor.read();
+  std::string readResponse = anotherScalarAccessor;
+  BOOST_CHECK( readResponse == exprectedWriteValue );
+}
+
+
 
 BOOST_AUTO_TEST_CASE( testAllDecorators ){
   testDecorator<int, int8_t>(12,12, 22, 22);
@@ -46,7 +75,7 @@ BOOST_AUTO_TEST_CASE( testAllDecorators ){
   // only use values which habe an exact representation in float/fixed point
   testDecorator<int, float>(18.5,19, 28, 28);
   testDecorator<int, double>(19.5,20, 29, 29);
-  //  testDecorator<int, string>();
+  testDecorator<int, std::string>(std::string("101"), 101, 102, std::string("102.000000"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
