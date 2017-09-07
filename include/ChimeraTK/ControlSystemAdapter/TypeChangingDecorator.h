@@ -118,6 +118,21 @@ namespace ChimeraTK {
 
   protected:
     boost::shared_ptr< mtca4u::NDRegisterAccessor<IMPL_T> > _impl;
+
+    template<class S>
+    struct Round {
+      static S nearbyint ( S s ){
+        return round(s);
+      }
+
+      typedef boost::mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
+    };
+
+    typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
+      boost::numeric::def_overflow_handler, Round<double> > FromImplConverter;
+    typedef boost::numeric::converter<IMPL_T, T, boost::numeric::conversion_traits<IMPL_T, T>,
+      boost::numeric::def_overflow_handler, Round<double> > ToImplConverter;
+
   };
 
 /*********************************************************************************************************************/
@@ -128,6 +143,10 @@ namespace ChimeraTK {
   TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > & impl) noexcept
     : _impl(impl)
   {
+    this->buffer_2D.resize(impl->getNumberOfChannels());
+      for (auto & channel : this->buffer_2D){
+      channel.resize(impl->getNumberOfSamples());
+    }
     // FIXME: resize the buffers
     // update the internal data buffer with the values from the impl
     postRead();
@@ -136,20 +155,29 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T, class IMPL_T>
-    TypeChangingDecorator<T, IMPL_T>::~TypeChangingDecorator() {
+  TypeChangingDecorator<T, IMPL_T>::~TypeChangingDecorator() {
     this->shutdown();
   }
     
 /*********************************************************************************************************************/
 
   template<class T, class IMPL_T>
-    void TypeChangingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
-    //FIXME: copy the buffers
+  void TypeChangingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
+    //fixme: are iterartors more efficient?
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        this->buffer_2D[i][j] = FromImplConverter::convert(_impl->accessChannel(i)[j]);
+      }
+    }
   }
 
   template<class T, class IMPL_T>
-    void TypeChangingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
-    //FIXME: copy the buffers
+  void TypeChangingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        _impl->accessChannel(i)[j] = ToImplConverter::convert(this->buffer_2D[i][j]);
+      }
+    }
   }
 
 } // namespace ChimeraTK
