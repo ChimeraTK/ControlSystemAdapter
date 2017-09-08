@@ -22,12 +22,17 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   auto anotherScalarAccessor = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
+  auto anotherImplTAccessor = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   
   auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(scalar.getHighLevelImplElement());
   TypeChangingDecorator<T, IMPL_T> decoratedScalar(ndAccessor);
 
   BOOST_REQUIRE( decoratedScalar.getNumberOfChannels()==1);
   BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
+
+  BOOST_CHECK( decoratedScalar.isReadable() );
+  BOOST_CHECK( decoratedScalar.isWriteable() );
+  BOOST_CHECK( !decoratedScalar.isReadOnly() );
   
   anotherScalarAccessor = startReadValue;
   anotherScalarAccessor.write();
@@ -41,6 +46,41 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   decoratedScalar.write();
   anotherScalarAccessor.read();
   BOOST_CHECK( test_close(anotherScalarAccessor, expectedWriteValue) );
+
+  // repeat the read / write tests with all different functions
+
+  // 1. The way a transfer group would call it:
+  anotherScalarAccessor = startReadValue+1;
+  anotherScalarAccessor.write();
+  for (auto & hwAccessor : decoratedScalar.getHardwareAccessingElements()){
+    hwAccessor->read();
+  }
+  // still nothing has changed on the user buffer
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue) ); 
+  decoratedScalar.postRead();
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue+1) );   
+
+  decoratedScalar.accessData(0) = startWriteValue + 1 ;
+  decoratedScalar.preWrite();
+  // nothing changed on the device yet
+  anotherScalarAccessor.read();
+  BOOST_CHECK( test_close(anotherScalarAccessor, startReadValue+1) );
+  for (auto & hwAccessor : decoratedScalar.getHardwareAccessingElements()){
+    hwAccessor->write();
+  }
+  decoratedScalar.postWrite();
+
+  anotherScalarAccessor.read();
+  BOOST_CHECK( test_close(anotherScalarAccessor, expectedWriteValue+1) );
+
+  // FIXME: We cannot test that the decorator is relaying doReadTransfer, doReadTransferLatest and
+  // do readTransferLatest correctly with the dummy backend because they all point to the same
+  // implementation. This we intentionally do not call them to indicate them uncovered.
+  // We would have to use the control system adapter implementations with the queues to test it.
+
+  BOOST_CHECK( decoratedScalar.isSameRegister( boost::dynamic_pointer_cast<const mtca4u::TransferElement>(anotherImplTAccessor.getHighLevelImplElement()) ) );
+
+  // OK, I give up. I would have to repeat all tests ever written for a decorator, incl. transfer group, persistentDataStorage and everything. All I can do is leave the stuff intentionally uncovered so a reviewer can find the places.
 }
 
 BOOST_AUTO_TEST_CASE( testAllDecorators ){
@@ -72,7 +112,56 @@ BOOST_AUTO_TEST_CASE( testAllDecorators ){
   testDecorator<float, double>(119.5,119.5, 129.6, 129.6);
   testDecorator<float, std::string>(101.1, 101.1, 102.2, 102.2);
   testDecorator<double, std::string>(201.1, 201.1, 202.2, 202.2);
+}
+
+BOOST_AUTO_TEST_CASE( testLoops ){
+  // Test loops for numeric data types. One type is enough because it's template code
+  // We don't have to test the string specialisations, arrays of strings are not allowed
+  mtca4u::Device d;
+  d.open("sdm://./dummy=decoratorTest.map");
+  auto twoD = d.getTwoDRegisterAccessor<double>("/SOME/TWO_D");
+  auto anotherAccessor = d.getTwoDRegisterAccessor<double>("/SOME/TWO_D");
+
+  anotherAccessor[0][0] = 100.0;
+  anotherAccessor[0][1] = 101.1;
+  anotherAccessor[1][0] = 110.0;
+  anotherAccessor[1][1] = 111.6;
+  anotherAccessor[2][0] = 120.0;
+  anotherAccessor[2][1] = 121.6;
+  anotherAccessor.write();
+
+  twoD.read();  
+  // device under test (dut)
+  auto impl = boost::dynamic_pointer_cast<NDRegisterAccessor< double > >(twoD.getHighLevelImplElement());
+  TypeChangingDecorator<int, double> dut( impl );
+
+  BOOST_REQUIRE( dut.getNumberOfChannels()==3);
+  BOOST_REQUIRE( dut.getNumberOfSamples()==2);
   
+  // check that constructor fills the buffers. Already is sufficuent as read test
+  BOOST_CHECK( dut.accessData(0,0) == 100);
+  BOOST_CHECK( dut.accessData(0,1) == 101);
+  BOOST_CHECK( dut.accessData(1,0) == 110);
+  BOOST_CHECK( dut.accessData(1,1) == 112);
+  BOOST_CHECK( dut.accessData(2,0) == 120);
+  BOOST_CHECK( dut.accessData(2,1) == 122);
+
+  dut.accessData(0,0) = 200;
+  dut.accessData(0,1) = 201;
+  dut.accessData(1,0) = 210;
+  dut.accessData(1,1) = 212;
+  dut.accessData(2,0) = 220;
+  dut.accessData(2,1) = 222;
+  dut.write();
+
+  anotherAccessor.read();
+
+  BOOST_CHECK( test_close( anotherAccessor[0][0], 200 ));
+  BOOST_CHECK( test_close( anotherAccessor[0][1], 201 ));
+  BOOST_CHECK( test_close( anotherAccessor[1][0], 210 ));
+  BOOST_CHECK( test_close( anotherAccessor[1][1], 212 ));
+  BOOST_CHECK( test_close( anotherAccessor[2][0], 220 ));
+  BOOST_CHECK( test_close( anotherAccessor[2][1], 222 ));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
