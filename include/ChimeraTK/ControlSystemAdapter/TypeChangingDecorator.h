@@ -213,6 +213,38 @@ namespace ChimeraTK {
       }
     }
   }
+  template<>
+  void TypeChangingDecorator<float, std::string>::convertAndCopyFromImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        this->buffer_2D[i][j] = stringToT<float>(_impl->accessChannel(i)[j]);
+      }
+    }
+  }
+  template<>
+  void TypeChangingDecorator<float, std::string>::convertAndCopyToImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        _impl->accessChannel(i)[j] = T_ToString(this->buffer_2D[i][j]);
+      }
+    }
+  }
+  template<>
+  void TypeChangingDecorator<double, std::string>::convertAndCopyFromImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        this->buffer_2D[i][j] = stringToT<double>(_impl->accessChannel(i)[j]);
+      }
+    }
+  }
+  template<>
+  void TypeChangingDecorator<double, std::string>::convertAndCopyToImpl() {
+    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+        _impl->accessChannel(i)[j] = T_ToString(this->buffer_2D[i][j]);
+      }
+    }
+  }
 
 
 } // namespace ChimeraTK
