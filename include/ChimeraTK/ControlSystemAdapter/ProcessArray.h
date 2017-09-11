@@ -720,7 +720,12 @@ namespace ChimeraTK {
     bool queueHasData = (status != boost::future_status::timeout);
 
     // If postRead() has been called, there should be new data somewhere
-    assert(queueHasData || tripleBufferHasData);
+    /// @todo FIXME find this problem and make an assert again!
+    //assert(queueHasData || tripleBufferHasData);
+    if(!(queueHasData || tripleBufferHasData)) {
+      std::cout << "ERROR: assert(queueHasData || tripleBufferHasData) failed! Waiting for new data..." << std::endl;
+      future.wait();
+    }
 
     // Determine whether to use the data from the queue or from the triple buffer. If in both places data is present,
     // use the older data (by the version number).
