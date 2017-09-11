@@ -71,8 +71,8 @@ namespace ChimeraTK {
       return _impl->doReadTransferLatest();
     }
 
-    void convertAndCopyFromImpl();
-    void convertAndCopyToImpl();
+    virtual void convertAndCopyFromImpl();
+    virtual void convertAndCopyToImpl();
     
     void postRead() override{
       _impl->postRead();
@@ -117,6 +117,23 @@ namespace ChimeraTK {
     }
 
   protected:
+    /** Internal exceptions to overload the what() function of the boost exceptions in order to fill in the variable name.
+     *  These exceptions are not part of the external interface and cannot be caught explicitly because they are protected.
+     *  Catch boost::numeric::bad_numeric_cast and derrivatives if you want to do error handling.
+     */
+    template<class BOOST_EXCEPTION_T>
+    struct BadNumericCastException: public BOOST_EXCEPTION_T{
+      BadNumericCastException(std::string variableName) :
+      errorMessage("Exception during type changing conversion in " + variableName + ": " + BOOST_EXCEPTION_T().what()){
+      }
+      std::string errorMessage;
+      virtual const char* what() const throw() override{
+        return errorMessage.c_str();
+      }
+    };
+
+
+    
     boost::shared_ptr< mtca4u::NDRegisterAccessor<IMPL_T> > _impl;
 
     template<class S>
@@ -136,7 +153,7 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > & impl) noexcept
-    : _impl(impl)
+    :  mtca4u::NDRegisterAccessor<T>(impl->getName(), impl->getUnit(), impl->getDescription()),  _impl(impl)
   {
     this->buffer_2D.resize(impl->getNumberOfChannels());
       for (auto & channel : this->buffer_2D){
@@ -161,10 +178,18 @@ namespace ChimeraTK {
     typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
       boost::numeric::def_overflow_handler, Round<double> > FromImplConverter;
     //fixme: are iterartors more efficient?
-    for (size_t i = 0; i < this->buffer_2D.size(); ++i){
-      for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
-        this->buffer_2D[i][j] = FromImplConverter::convert(_impl->accessChannel(i)[j]);
+    try{
+      for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+        for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+          this->buffer_2D[i][j] = FromImplConverter::convert(_impl->accessChannel(i)[j]);
+        }
       }
+    }catch(boost::numeric::positive_overflow &){
+      throw( BadNumericCastException<boost::numeric::positive_overflow>( this->getName() ) );
+    }catch(boost::numeric::negative_overflow &){
+      throw( BadNumericCastException<boost::numeric::negative_overflow>( this->getName() ) );
+    }catch(boost::numeric::bad_numeric_cast & boostException){
+      throw( BadNumericCastException<boost::numeric::bad_numeric_cast>( this->getName() ) );
     }
   }
 
@@ -246,6 +271,30 @@ namespace ChimeraTK {
     }
   }
 
+  //Does not do proper type conversion but directly assigns the data types (C-style direct conversion).
+  //Probably the only useful screnario is the conversion int/uint if negative data should be
+  //displayed as the last half of the dynamic range, or vice versa. (e.g. 0xFFFFFFFF <-> -1).
+  template<class T, class IMPL_T>
+  class TypeChangingDirectCastDecorator : public TypeChangingDecorator<T, IMPL_T> {
+    using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
+
+    void convertAndCopyFromImpl() override {
+      //fixme: are iterartors more efficient?
+      for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+        for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+          this->buffer_2D[i][j] = this->_impl->accessChannel(i)[j];
+        }
+      }
+    }
+    
+    void convertAndCopyToImpl() override {
+      for (size_t i = 0; i < this->buffer_2D.size(); ++i){
+        for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
+          this->_impl->accessChannel(i)[j] = this->buffer_2D[i][j];
+        }
+      }
+    }
+  };
 
 } // namespace ChimeraTK
 

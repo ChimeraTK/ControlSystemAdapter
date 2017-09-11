@@ -30,6 +30,8 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_REQUIRE( decoratedScalar.getNumberOfChannels()==1);
   BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
 
+  BOOST_CHECK( decoratedScalar.getName() == "/SOME/SCALAR" );
+  
   BOOST_CHECK( decoratedScalar.isReadable() );
   BOOST_CHECK( decoratedScalar.isWriteable() );
   BOOST_CHECK( !decoratedScalar.isReadOnly() );
@@ -83,7 +85,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // OK, I give up. I would have to repeat all tests ever written for a decorator, incl. transfer group, persistentDataStorage and everything. All I can do is leave the stuff intentionally uncovered so a reviewer can find the places.
 }
 
-BOOST_AUTO_TEST_CASE( testAllDecorators ){
+BOOST_AUTO_TEST_CASE( testAllDecoratorConversions ){
   testDecorator<int, int8_t>(12,12, 22, 22);
   testDecorator<int, uint8_t>(13,13, 23, 23);
   testDecorator<int, int16_t>(14,14, 24, 24);
@@ -163,6 +165,57 @@ BOOST_AUTO_TEST_CASE( testLoops ){
   BOOST_CHECK( test_close( anotherAccessor[2][0], 220 ));
   BOOST_CHECK( test_close( anotherAccessor[2][1], 222 ));
 }
+
+#define CHECK_THROW_PRINT( command , exception_type)           \
+try{ \
+    command;\
+    BOOST_ERROR( std::string(# command) + " did not throw as excepted." ); \
+  }catch( exception_type & e){\
+  std::cout << "** For manually checking the exeption message of " << # command <<":\n"\
+            << "   " << e.what() << std::endl;                              \
+  }\
+
+
+BOOST_AUTO_TEST_CASE( testRangeChecks ){
+  // Just a few tests where the type changing decorator with conversion should throw
+  // where the direct cast decorator changes the interpretation
+  mtca4u::Device d;
+  d.open("sdm://./dummy=decoratorTest.map");
+  auto myInt = d.getScalarRegisterAccessor<int32_t>("/SOME/INT");
+  auto myIntDummy = d.getScalarRegisterAccessor<int32_t>("/SOME/INT"); // the second accessor for the test
+  auto myUInt = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
+  auto myUIntDummy = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
+  
+  auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< int32_t > >(myInt.getHighLevelImplElement());
+  std::cout << "the name is " << intNDAccessor->getName() << std::endl;
+  TypeChangingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
+  TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
+  
+  auto uintNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< uint32_t > >(myUInt.getHighLevelImplElement());
+  TypeChangingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
+  TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
+
+  // the bit content is the same, but the interpretation is different.
+  myIntDummy = 0xFFFFFFFF;
+  myIntDummy.write();
+  myUIntDummy = 0xFFFFFFFF;
+  myUIntDummy.write();
+  
+  CHECK_THROW_PRINT( u2i.read(), boost::numeric::negative_overflow );
+  CHECK_THROW_PRINT( i2u.read(), boost::numeric::positive_overflow );
+  BOOST_CHECK_NO_THROW( directI2u.read() );
+  BOOST_CHECK_NO_THROW( directU2i.read() );
+  BOOST_CHECK( directU2i.accessData(0) == 0xFFFFFFFF );
+  BOOST_CHECK( directI2u.accessData(0) == -1 );
+  
+  i2u.accessData(0) = 0xFFFFFFFE;
+  u2i.accessData(0) = 0xFFFFFFFE;
+
+  CHECK_THROW_PRINT( i2u.write(), boost::numeric::negative_overflow );
+  CHECK_THROW_PRINT( u2i.write(), boost::numeric::positive_overflow );
+}
+
+
 
 BOOST_AUTO_TEST_SUITE_END()
 
