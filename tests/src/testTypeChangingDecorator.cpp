@@ -25,7 +25,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   auto anotherImplTAccessor = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   
   auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(scalar.getHighLevelImplElement());
-  TypeChangingDecorator<T, IMPL_T> decoratedScalar(ndAccessor);
+  TypeChangingRangeCheckingDecorator<T, IMPL_T> decoratedScalar(ndAccessor);
 
   BOOST_REQUIRE( decoratedScalar.getNumberOfChannels()==1);
   BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
@@ -132,15 +132,15 @@ BOOST_AUTO_TEST_CASE( testLoops ){
   anotherAccessor[2][1] = 121.6;
   anotherAccessor.write();
 
-  twoD.read();  
   // device under test (dut)
   auto impl = boost::dynamic_pointer_cast<NDRegisterAccessor< double > >(twoD.getHighLevelImplElement());
-  TypeChangingDecorator<int, double> dut( impl );
+  TypeChangingRangeCheckingDecorator<int, double> dut( impl );
 
   BOOST_REQUIRE( dut.getNumberOfChannels()==3);
   BOOST_REQUIRE( dut.getNumberOfSamples()==2);
-  
-  // check that constructor fills the buffers. Already is sufficuent as read test
+
+  dut.read();
+
   BOOST_CHECK( dut.accessData(0,0) == 100);
   BOOST_CHECK( dut.accessData(0,1) == 101);
   BOOST_CHECK( dut.accessData(1,0) == 110);
@@ -187,12 +187,11 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
   auto myUIntDummy = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
   
   auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< int32_t > >(myInt.getHighLevelImplElement());
-  std::cout << "the name is " << intNDAccessor->getName() << std::endl;
-  TypeChangingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
+  TypeChangingRangeCheckingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
   TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
   
   auto uintNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< uint32_t > >(myUInt.getHighLevelImplElement());
-  TypeChangingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
+  TypeChangingRangeCheckingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
   TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
 
   // the bit content is the same, but the interpretation is different.
@@ -215,7 +214,25 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
   CHECK_THROW_PRINT( u2i.write(), boost::numeric::positive_overflow );
 }
 
+BOOST_AUTO_TEST_CASE( testFactory ){
+  mtca4u::Device d;
+  d.open("sdm://./dummy=decoratorTest.map");
+  auto scalar = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
+  mtca4u::TransferElement & transferElement = scalar;
 
+  auto decoratedScalar = getDecorator<int>(transferElement);
+  BOOST_CHECK( decoratedScalar );
+  // factory must detect the type of scalar and create the correct decorator
+  auto castedScalar = boost::dynamic_pointer_cast< TypeChangingRangeCheckingDecorator< int, double> >( decoratedScalar) ;
+  BOOST_CHECK( castedScalar );
+
+  auto decoratedDirectConvertingScalar = getDecorator<int>(transferElement, DecoratorType::C_style_conversion);
+  BOOST_CHECK( decoratedDirectConvertingScalar );
+
+  auto castedDCScalar = boost::dynamic_pointer_cast< TypeChangingDirectCastDecorator< int, double> >( decoratedDirectConvertingScalar) ;
+  BOOST_CHECK( castedDCScalar );
+  
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 
