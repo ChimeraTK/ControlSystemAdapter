@@ -163,6 +163,7 @@ namespace ChimeraTK {
     using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
   };
 
+  /** The actual partial implementation for strings as impl type **/
   template<class T>
     class TypeChangingStringImplDecorator<T, std::string >: public TypeChangingDecorator<T, std::string>{
   public:
@@ -182,7 +183,12 @@ namespace ChimeraTK {
       }
     }
   };
-  
+
+  /** This decorator uses the boost numeric converter which performs two tasks:
+   *
+   *  - a range check (throws boost::numeric::bad_numeric_cast if out of range)
+   *  - the rounding floating point -> int is done mathematically (not just cut off the bits)
+   */
   template<class T, class IMPL_T>
   class TypeChangingRangeCheckingDecorator: public TypeChangingStringImplDecorator<T, IMPL_T>{
   public:
@@ -274,13 +280,15 @@ namespace ChimeraTK {
     }
   }
 
-  //Does not do proper type conversion but directly assigns the data types (C-style direct conversion).
-  //Probably the only useful screnario is the conversion int/uint if negative data should be
-  //displayed as the last half of the dynamic range, or vice versa. (e.g. 0xFFFFFFFF <-> -1).
+  /** This decorator does not do mathematical rounding and range checking, but
+   *  directly assigns the data types (C-style direct conversion).
+   *  Probably the only useful screnario is the conversion int/uint if negative data should be
+   *  displayed as the last half of the dynamic range, or vice versa. (e.g. 0xFFFFFFFF <-> -1).
+   */
   template<class T, class IMPL_T>
-  class TypeChangingDirectCastDecorator : public TypeChangingDecorator<T, IMPL_T> {
+  class TypeChangingDirectCastDecorator : public TypeChangingStringImplDecorator<T, IMPL_T> {
   public:
-    using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
+    using TypeChangingStringImplDecorator<T, IMPL_T>::TypeChangingStringImplDecorator;
 
     void convertAndCopyFromImpl() override {
       //fixme: are iterartors more efficient?
@@ -303,6 +311,8 @@ namespace ChimeraTK {
     }
   };
 
+  /** Partial template specialisation for strings as impl type.
+   */
   template<class T>
   class TypeChangingDirectCastDecorator<T, std::string>: public TypeChangingStringImplDecorator<T, std::string>{
   public:
