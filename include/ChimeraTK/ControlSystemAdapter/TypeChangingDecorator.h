@@ -344,10 +344,8 @@ namespace ChimeraTK {
             createdDecorator.reset( new TypeChangingDirectCastDecorator< UserType, TargetImplType> (
               boost::dynamic_pointer_cast< mtca4u::NDRegisterAccessor<TargetImplType> >( theImpl ) )  );
           }else{
-            std::cout << "whoopsy" << std::endl;
+            throw mtca4u::NotImplementedException("TypeChangingDecorator with range limitation is not implemented yet.");
           }
-          
-          
           std::cout << "UserType id: " << typeid(UserType).name() << ", TargetType id is " << typeid(TargetImplType).name() << std::endl;
    }
 

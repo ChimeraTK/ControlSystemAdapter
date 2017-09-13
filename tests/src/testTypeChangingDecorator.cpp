@@ -7,6 +7,7 @@ using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
 #include <mtca4u/Device.h>
+#include <mtca4u/TransferGroup.h>
 
 // always test close for floating point values. Don't rely on exact binary representations
 bool test_close(double a, double b, double tolerance = 0.0001){
@@ -116,7 +117,8 @@ BOOST_AUTO_TEST_CASE( testAllDecoratorConversions ){
   testDecorator<double, std::string>(201.1, 201.1, 202.2, 202.2);
 }
 
-BOOST_AUTO_TEST_CASE( testLoops ){
+template<template<typename, typename> class DECORATOR_TYPE>
+void loopTest(){
   // Test loops for numeric data types. One type is enough because it's template code
   // We don't have to test the string specialisations, arrays of strings are not allowed
   mtca4u::Device d;
@@ -134,7 +136,7 @@ BOOST_AUTO_TEST_CASE( testLoops ){
 
   // device under test (dut)
   auto impl = boost::dynamic_pointer_cast<NDRegisterAccessor< double > >(twoD.getHighLevelImplElement());
-  TypeChangingRangeCheckingDecorator<int, double> dut( impl );
+  DECORATOR_TYPE<int, double> dut( impl );
 
   BOOST_REQUIRE( dut.getNumberOfChannels()==3);
   BOOST_REQUIRE( dut.getNumberOfSamples()==2);
@@ -166,6 +168,11 @@ BOOST_AUTO_TEST_CASE( testLoops ){
   BOOST_CHECK( test_close( anotherAccessor[2][1], 222 ));
 }
 
+BOOST_AUTO_TEST_CASE( testLoops ){
+  loopTest<TypeChangingRangeCheckingDecorator>();
+  loopTest<TypeChangingDirectCastDecorator>();
+}
+  
 #define CHECK_THROW_PRINT( command , exception_type)           \
 try{ \
     command;\
@@ -214,6 +221,37 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
   CHECK_THROW_PRINT( u2i.write(), boost::numeric::positive_overflow );
 }
 
+BOOST_AUTO_TEST_CASE( testTransferGroup ){
+  mtca4u::Device d;
+  d.open("sdm://./dummy=decoratorTest.map");
+  auto partial0 = d.getScalarRegisterAccessor<double>("/SOME/ARRAY");
+  auto partial1 = d.getScalarRegisterAccessor<double>("/SOME/ARRAY",1);
+
+  auto wholeArray = d.getOneDRegisterAccessor<double>("/SOME/ARRAY");
+  wholeArray[0]=12345;
+  wholeArray[1]=12346;
+  wholeArray.write();
+  
+  auto decorated0 = getDecorator<int>(partial0);
+  auto decorated1 = getDecorator<int>(partial1);
+
+  TransferGroup group;
+  group.addAccessor(*decorated0);
+  group.addAccessor(*decorated1);
+  group.read();
+  BOOST_CHECK( decorated0->accessData(0) == 12345 );
+  BOOST_CHECK( decorated1->accessData(0) == 12346 );
+  
+  decorated0->accessData(0)=4321;
+  decorated1->accessData(0)=4322;
+  group.write();
+
+  wholeArray.read();
+  std::cout << "whole Array " << wholeArray[0] << " " << wholeArray[1] << std::endl;
+  BOOST_CHECK( test_close( wholeArray[0], 4321) );
+  BOOST_CHECK( test_close( wholeArray[1], 4322) );
+}
+
 BOOST_AUTO_TEST_CASE( testFactory ){
   mtca4u::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
@@ -232,6 +270,9 @@ BOOST_AUTO_TEST_CASE( testFactory ){
   auto castedDCScalar = boost::dynamic_pointer_cast< TypeChangingDirectCastDecorator< int, double> >( decoratedDirectConvertingScalar) ;
   BOOST_CHECK( castedDCScalar );
   
+
+  // fixme: at the moment we are throwing if a limiting decorator is requested
+  CHECK_THROW_PRINT(  getDecorator<int>(transferElement, DecoratorType::limiting), mtca4u::NotImplementedException );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
