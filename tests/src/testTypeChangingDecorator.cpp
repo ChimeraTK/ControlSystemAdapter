@@ -17,7 +17,7 @@ bool test_close(double a, double b, double tolerance = 0.0001){
 BOOST_AUTO_TEST_SUITE( TypeChangingDecoratorTestSuite )
 
 // the startReadValue and expectedWriteValue are from the register in the dummy device, which is 32 bit fixed point singed with 16 fractional bits, thus we talk to it as double from the test
-template<class T, class IMPL_T>
+template<class T, class IMPL_T, template<typename, typename> class DECORATOR_TYPE = TypeChangingRangeCheckingDecorator>
 void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue, double expectedWriteValue){
   mtca4u::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
@@ -26,7 +26,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   auto anotherImplTAccessor = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   
   auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(scalar.getHighLevelImplElement());
-  TypeChangingRangeCheckingDecorator<T, IMPL_T> decoratedScalar(ndAccessor);
+  DECORATOR_TYPE<T, IMPL_T> decoratedScalar(ndAccessor);
 
   BOOST_REQUIRE( decoratedScalar.getNumberOfChannels()==1);
   BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
@@ -115,6 +115,13 @@ BOOST_AUTO_TEST_CASE( testAllDecoratorConversions ){
   testDecorator<float, double>(119.5,119.5, 129.6, 129.6);
   testDecorator<float, std::string>(101.1, 101.1, 102.2, 102.2);
   testDecorator<double, std::string>(201.1, 201.1, 202.2, 202.2);
+
+  testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
+  testDecorator<float, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
+  testDecorator<double, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
+  testDecorator<int, float, TypeChangingDirectCastDecorator>(218.5,218, 228, 228);
+  testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 229.6, 229);
+
 }
 
 template<template<typename, typename> class DECORATOR_TYPE>
