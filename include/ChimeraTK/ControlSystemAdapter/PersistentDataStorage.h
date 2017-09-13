@@ -7,6 +7,7 @@
 #include <typeinfo>
 #include <vector>
 #include <map>
+#include <boost/thread.hpp>
 #include <mtca4u/SupportedUserTypes.h>
 #include <mtca4u/RegisterPath.h>
 
@@ -91,6 +92,11 @@ namespace ChimeraTK {
 
       /** boost::fusion::map of the data type to the DataMap holding the values for the type */
       mtca4u::TemplateUserTypeMap<DataMap> _dataMap;
+
+      /** */
+      boost::thread writerThread;
+
+      void writerThreadFunction();
       
   };
 

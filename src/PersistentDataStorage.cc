@@ -20,12 +20,29 @@ namespace ChimeraTK {
     _filename = applicationName+".persist";
     _applicationName = applicationName;
     readFromFile();
+
+    writerThread = boost::thread([this]{this->writerThreadFunction();});
   }
 
   /*********************************************************************************************************************/
       
   PersistentDataStorage::~PersistentDataStorage() {
+    writerThread.interrupt();
+    writerThread.join();
     writeToFile();
+  }
+
+  /*********************************************************************************************************************/
+      
+  void PersistentDataStorage::writerThreadFunction() {
+    while(true) {
+      for(int i=0; i<30; ++i) {
+        sleep(1);
+        boost::this_thread::interruption_point();
+      }
+      /// @todo FIXME make the variable access proper for a multi-threaded environment!!!
+      writeToFile();
+    }
   }
 
   /*********************************************************************************************************************/
