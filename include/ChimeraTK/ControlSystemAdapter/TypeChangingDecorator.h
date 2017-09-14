@@ -344,19 +344,14 @@ namespace ChimeraTK {
           if(typeid(TargetImplType) != theImpl->getValueType() ) return;
           
           if (wantedDecoratorType == DecoratorType::range_checking){
-            std::cout << "creating TypeChangingRangeCheckingDecorator " << typeid(UserType).name()
-                      << " " <<  typeid(TargetImplType).name() << std::endl;
             createdDecorator.reset( new TypeChangingRangeCheckingDecorator< UserType, TargetImplType> (
               boost::dynamic_pointer_cast< mtca4u::NDRegisterAccessor<TargetImplType> >( theImpl ) ) );
           }else if( wantedDecoratorType == DecoratorType::C_style_conversion){
-            std::cout << "creating TypeChangingDirectCastDecorator " << typeid(UserType).name()
-                      << " " <<  typeid(TargetImplType).name() << std::endl;
             createdDecorator.reset( new TypeChangingDirectCastDecorator< UserType, TargetImplType> (
               boost::dynamic_pointer_cast< mtca4u::NDRegisterAccessor<TargetImplType> >( theImpl ) )  );
           }else{
             throw mtca4u::NotImplementedException("TypeChangingDecorator with range limitation is not implemented yet.");
           }
-          std::cout << "UserType id: " << typeid(UserType).name() << ", TargetType id is " << typeid(TargetImplType).name() << std::endl;
    }
 
   };
