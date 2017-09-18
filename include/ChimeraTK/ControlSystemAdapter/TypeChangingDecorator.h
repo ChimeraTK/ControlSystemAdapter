@@ -70,52 +70,52 @@ namespace ChimeraTK {
 
     TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > const & impl) noexcept;
 
-    bool isReadable() const override {
+    virtual bool isReadable() const override {
       return _impl->isReadable();
     }
 
-    bool isWriteable() const override {
+    virtual bool isWriteable() const override {
       return _impl->isWriteable();
     }
 
-    bool isReadOnly() const override {
+    virtual bool isReadOnly() const override {
       return _impl->isReadOnly();
     }
   
-    mtca4u::TimeStamp getTimeStamp() const override {
+    virtual mtca4u::TimeStamp getTimeStamp() const override {
       return _impl->getTimeStamp();
     }
 
-    ChimeraTK::VersionNumber getVersionNumber() const override {
+    virtual ChimeraTK::VersionNumber getVersionNumber() const override {
       return _impl->getVersionNumber();
     }
 
-    void doReadTransfer() override{
+    virtual void doReadTransfer() override{
       _impl->doReadTransfer();
     }
 
-    bool doReadTransferNonBlocking() override{
+    virtual bool doReadTransferNonBlocking() override{
       return _impl->doReadTransferNonBlocking();
     }
 
-    bool doReadTransferLatest() override{
+    virtual bool doReadTransferLatest() override{
       return _impl->doReadTransferLatest();
     }
 
     virtual void convertAndCopyFromImpl() = 0;
     virtual void convertAndCopyToImpl() = 0;
     
-    void postRead() override{
+    virtual void postRead() override{
       _impl->postRead();
       convertAndCopyFromImpl();
     }
     
-    void preWrite() override{
+    virtual void preWrite() override{
       convertAndCopyToImpl();
       _impl->preWrite();
     }
 
-    void postWrite() override{
+    virtual void postWrite() override{
       _impl->postWrite();
     }
  
@@ -126,25 +126,33 @@ namespace ChimeraTK {
       return _impl->write(versionNumber);
     }
 
-      bool isArray() const override {
+    virtual bool isArray() const override {
       return _impl->isArray();
     }
 
     /// @todo FIXME: can we unite stuff in a transfer group? Compare with impl?
-    bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const override {
+    virtual bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const override {
       return _impl->isSameRegister(e);
     }
 
-    std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
+    virtual std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
       return _impl->getHardwareAccessingElements();
     }
     
-    void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement> e) override {
+    virtual void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement> e) override {
       _impl->replaceTransferElement(e);
     }
     
-    void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override{
+    virtual void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override{
       _impl->setPersistentDataStorage(storage);
+    }
+
+    virtual unsigned int getNInputQueueElements() const override {
+      return _impl->getNInputQueueElements();
+    }
+
+    virtual mtca4u::FixedPointConverter getFixedPointConverter() const override {
+      return _impl->getFixedPointConverter();
     }
 
   protected:
