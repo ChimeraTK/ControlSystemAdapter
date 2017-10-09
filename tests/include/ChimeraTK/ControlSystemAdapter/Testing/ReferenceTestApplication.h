@@ -48,22 +48,22 @@ struct TypedPVHolder{
     constantArray( processVariableManager->createProcessArray<DataType>(
                         ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY",10) )
   {
-      if (std::numeric_limits<DataType>::is_integer){
-	if (std::numeric_limits<DataType>::is_signed){
-	  // signed int
-          dataTypeConstant->accessData(0) = static_cast<DataType>(-sizeof(DataType));
-	}else{
-	  // unsigned int
-          dataTypeConstant->accessData(0) = sizeof(DataType);
-	}
+    if (std::numeric_limits<DataType>::is_integer){
+      if (std::numeric_limits<DataType>::is_signed){
+        // signed int
+        dataTypeConstant->accessData(0) = static_cast<DataType>(-sizeof(DataType));
       }else{
-	// floating point
-        dataTypeConstant->accessData(0) = 1./sizeof(DataType);	  
+        // unsigned int
+        dataTypeConstant->accessData(0) = sizeof(DataType);
       }
-      for (size_t i = 0; i < constantArray->accessChannel(0).size(); ++i){
-        constantArray->accessChannel(0)[i] = dataTypeConstant->accessData(0)*i*i;
-      }
+    }else{
+      // floating point
+      dataTypeConstant->accessData(0) = 1./sizeof(DataType);
     }
+    for (size_t i = 0; i < constantArray->accessChannel(0).size(); ++i){
+      constantArray->accessChannel(0)[i] = dataTypeConstant->accessData(0)*i*i;
+    }
+  }
 
   void inputToOutput(){
     fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
@@ -192,10 +192,10 @@ inline void ReferenceTestApplication::mainLoop(){
       mainLoopExecutionRequested() = false;
       initalisationForManualLoopControlFinished() = true;
       do{
-	mainLoopMutex().unlock();
-	boost::this_thread::sleep_for( boost::chrono::microseconds(10) );
-	mainLoopMutex().lock();      
-      }	while( !mainLoopExecutionRequested() );
+        mainLoopMutex().unlock();
+        boost::this_thread::sleep_for( boost::chrono::microseconds(10) );
+        mainLoopMutex().lock();
+      } while( !mainLoopExecutionRequested() );
     }else{
       boost::this_thread::sleep_for( boost::chrono::milliseconds(100) );
     }
