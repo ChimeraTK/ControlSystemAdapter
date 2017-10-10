@@ -191,8 +191,28 @@ namespace ChimeraTK {
      */
     struct Buffer : public TransferFuture::Data {
 
-      TimeStamp timeStamp;
+      /**
+       * Default constructor. Has to be defined explicitly because we delete our copy constructor.
+       */
+      Buffer()
+      : TransferFuture::Data({})
+      {}
+
+      /**
+       * Delete all copy and move constructors and assignment operators. In C++11, elements of a std::vector no longer
+       * have to be copy-constructable if the size of the vector is fixed and specified in the constructor.
+       */
+      Buffer(const Buffer &other) = delete;
+      Buffer& operator=(const Buffer &other) = delete;
+      Buffer(Buffer &&other) = delete;
+      Buffer& operator=(Buffer &&other) = delete;
+      
+      /** The actual data contained in this buffer. */
       std::vector<T> value;
+      
+      /** Flag whether this buffer currently contains valid data. This flag is used only for the atomic triple buffer
+       *  and not set for buffers on the queues (since the queue the buffer is in already tells whether it contains
+       *  valid data or not). */
       bool _isValid{false};
       
       /**
@@ -206,32 +226,8 @@ namespace ChimeraTK {
        */
       uint64_t _internalVersionNumber;
 
-      /**
-       * Default constructor. Has to be defined explicitly because we have an
-       * non-default copy constructor.
-       */
-      Buffer()
-      : TransferFuture::Data({})
-      {}
-
-      /**
-       * Copy constructor. Some STL implementations need the copy constructor
-       * while initializing the vector that stores the buffers: They do not
-       * default construct each element but only default construct the first
-       * element and then copy it. In this case, this copy constructor will
-       * work perfectly fine. It would even work if the value pointer was
-       * already initialized with a vector, however we might have a serious
-       * performance problem if that happened. Therefore, we use an assertion
-       * to check that the copy constructor is never used once the buffer has
-       * been initialized with a vector.
-       */
-      Buffer(Buffer const & other)
-      : timeStamp(other.timeStamp),
-        value(other.value ? new std::vector<T>(*(other.value)) : 0),
-        TransferFuture::Data(other._versionNumber)
-      {
-        assert(!(other.value));
-      }
+      /** Time stamp associated with this buffer */
+      TimeStamp timeStamp;
 
     };
 
