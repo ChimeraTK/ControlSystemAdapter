@@ -408,7 +408,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", T initialValue = 0, std::size_t numberOfBuffers = 2,
+      const std::string &description = "", T initialValue = T(), std::size_t numberOfBuffers = 2,
       bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener =
