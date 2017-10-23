@@ -271,19 +271,19 @@ namespace ChimeraTK {
       std::vector<Buffer> _buffers;
       
       /**
-       * Special atomic triple buffer to be filled when the queue runs over (i.e. all normal buffers are full).
-       * After construction, buffer 2 is owned by the sender, 3 by the shared state and 4 by the receiver. A buffer is
-       * considered containing valid data if its version number is valid. Default constructed version numbers are
-       * invalid, so all buffers are flagged as invalid upon construction.
+       * Special atomic triple buffer to be filled when the queue runs over
+       * (i.e. all normal buffers are full). After construction, buffer 2 is
+       * owned by the sender, 3 by the shared state and 4 by the receiver. A
+       * buffer is considered containing valid data if its _isValid flag is
+       * set. The buffer's default constructor sets _isValid to false.
        */
       std::atomic<Buffer*> _tripleBufferIndex;
       
       /**
       * Queue holding the indices of the full buffers. Those are the buffers
-      * that have been sent but not yet received. We do not use an spsc_queue
-      * for this queue, because might want to take elements from the sending
-      * thread, so there are two threads which might consume elements and thus
-      * an spsc_queue is not safe.
+      * that have been sent but not yet received. We can use an spsc_queue for
+      * this queue because it is only filled by the sending process array and
+      * only consumed by the receiving process array.
       */
       boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
 
@@ -319,7 +319,10 @@ namespace ChimeraTK {
     Buffer *_currentIndex;
     
     /**
-     * Index into the _tripleBuffer array that is currently owned by this instance.
+     * Index into the _buffers array that is currently owned by this instance.
+     * The _tripleBufferIndex is different from the _currentIndex because it is
+     * only used as a fallback when a value cannot be transferred through the
+     * _fullBufferQueue because the _emptyBufferQueue is empty.
      */
     Buffer *_tripleBufferIndex;
 
