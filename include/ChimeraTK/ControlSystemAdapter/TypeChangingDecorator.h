@@ -60,7 +60,7 @@ namespace ChimeraTK {
   class DecoratorTypeAccessor : public mtca4u::NDRegisterAccessor<T>{
   public:
     using mtca4u::NDRegisterAccessor<T>::NDRegisterAccessor;
-    virtual DecoratorType getDecoratorType() = 0;
+    virtual DecoratorType getDecoratorType() const = 0;
   };
   
   /**
@@ -76,7 +76,7 @@ namespace ChimeraTK {
    *
    */
   template<class T, class IMPL_T>
-  class TypeChangingDecorator : public mtca4u::NDRegisterAccessor<T> {
+  class TypeChangingDecorator : public DecoratorTypeAccessor<T> {
 
   public:
 
@@ -218,6 +218,9 @@ namespace ChimeraTK {
     virtual ~TypeChangingRangeCheckingDecorator(){
       this->shutdown();
     }
+    virtual DecoratorType getDecoratorType() const override{
+      return DecoratorType::range_checking;
+    }
   private:
     /** Internal exceptions to overload the what() function of the boost exceptions in order to fill in the variable name.
      *  These exceptions are not part of the external interface and cannot be caught explicitly because they are protected.
@@ -250,6 +253,9 @@ namespace ChimeraTK {
     virtual ~TypeChangingRangeCheckingDecorator(){
       this->shutdown();
     }
+    virtual DecoratorType getDecoratorType() const override{
+      return DecoratorType::range_checking;
+    }
   };
 
     
@@ -259,7 +265,7 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > const & impl) noexcept
-    :  mtca4u::NDRegisterAccessor<T>(impl->getName(), impl->getUnit(), impl->getDescription()),  _impl(impl)
+    :  DecoratorTypeAccessor<T>(impl->getName(), impl->getUnit(), impl->getDescription()),  _impl(impl)
   {
     this->buffer_2D.resize(impl->getNumberOfChannels());
       for (auto & channel : this->buffer_2D){
@@ -309,6 +315,9 @@ namespace ChimeraTK {
   class TypeChangingDirectCastDecorator : public TypeChangingStringImplDecorator<T, IMPL_T> {
   public:
     using TypeChangingStringImplDecorator<T, IMPL_T>::TypeChangingStringImplDecorator;
+    virtual DecoratorType getDecoratorType() const override{
+      return DecoratorType::C_style_conversion;
+    }
 
     void convertAndCopyFromImpl() override {
       //fixme: are iterartors more efficient?
@@ -345,6 +354,9 @@ namespace ChimeraTK {
     }
     virtual ~TypeChangingDirectCastDecorator(){
       this->shutdown();
+    }
+    virtual DecoratorType getDecoratorType() const override{
+      return DecoratorType::C_style_conversion;
     }
   };
 
@@ -386,6 +398,7 @@ namespace ChimeraTK {
   // the factory function. You don't have to care about the IMPL_Type when requesting a decorator
   template<class UserType>
   boost::shared_ptr< mtca4u::NDRegisterAccessor< UserType > >  getDecorator( mtca4u::TransferElement & transferElement, DecoratorType decoratorType =  DecoratorType::range_checking ){
+
     // check if there already is a decorator for the transfer element
     auto decoratorMapEntry = getGlobalDecoratorMap().find( transferElement.getHighLevelImplElement() );
     if (decoratorMapEntry != getGlobalDecoratorMap().end()){
@@ -410,6 +423,7 @@ namespace ChimeraTK {
     
     DecoratorFactory< UserType > factory( transferElement.getHighLevelImplElement(), decoratorType );
     boost::fusion::for_each(mtca4u::userTypeMap(), factory);
+    getGlobalDecoratorMap()[transferElement.getHighLevelImplElement()]=factory.createdDecorator;
     return factory.createdDecorator;
   }  
   

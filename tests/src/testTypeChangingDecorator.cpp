@@ -254,7 +254,6 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
   group.write();
 
   wholeArray.read();
-  std::cout << "whole Array " << wholeArray[0] << " " << wholeArray[1] << std::endl;
   BOOST_CHECK( test_close( wholeArray[0], 4321) );
   BOOST_CHECK( test_close( wholeArray[1], 4322) );
 }
@@ -271,15 +270,25 @@ BOOST_AUTO_TEST_CASE( testFactory ){
   auto castedScalar = boost::dynamic_pointer_cast< TypeChangingRangeCheckingDecorator< int, double> >( decoratedScalar) ;
   BOOST_CHECK( castedScalar );
 
-  auto decoratedDirectConvertingScalar = getDecorator<int>(transferElement, DecoratorType::C_style_conversion);
+  // if there already is a decorator you cannot create another one with a different user type
+  // or decorator type
+  CHECK_THROW_PRINT( getDecorator<int>(transferElement, DecoratorType::C_style_conversion), std::logic_error);
+  CHECK_THROW_PRINT( getDecorator<short>(transferElement), std::logic_error);
+  // but you can get the same decorator again if you ask for it
+  auto sameDecorator = getDecorator<int>(transferElement);
+  BOOST_CHECK( sameDecorator.get() == decoratedScalar.get() );
+  
+  // Test for direct convertion decorator type 
+  // we have to use a different transfer element for this to work
+  auto scalar2 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
+  auto decoratedDirectConvertingScalar = getDecorator<int>(scalar2, DecoratorType::C_style_conversion);
   BOOST_CHECK( decoratedDirectConvertingScalar );
-
   auto castedDCScalar = boost::dynamic_pointer_cast< TypeChangingDirectCastDecorator< int, double> >( decoratedDirectConvertingScalar) ;
   BOOST_CHECK( castedDCScalar );
   
-
   // fixme: at the moment we are throwing if a limiting decorator is requested
-  CHECK_THROW_PRINT(  getDecorator<int>(transferElement, DecoratorType::limiting), mtca4u::NotImplementedException );
+  auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
+  CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), mtca4u::NotImplementedException );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
