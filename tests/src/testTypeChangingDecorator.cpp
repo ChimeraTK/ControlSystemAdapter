@@ -78,7 +78,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   // FIXME: We cannot test that the decorator is relaying doReadTransfer, doReadTransferLatest and
   // do readTransferLatest correctly with the dummy backend because they all point to the same
-  // implementation. This we intentionally do not call them to indicate them uncovered.
+  // implementation. Thus we intentionally do not call them to indicate them uncovered.
   // We would have to use the control system adapter implementations with the queues to test it.
 
   BOOST_CHECK( decoratedScalar.isSameRegister( boost::dynamic_pointer_cast<const mtca4u::TransferElement>(anotherImplTAccessor.getHighLevelImplElement()) ) );

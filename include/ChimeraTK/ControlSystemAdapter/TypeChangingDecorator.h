@@ -51,6 +51,18 @@ namespace ChimeraTK {
     typedef boost::mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
   };
 
+  enum class DecoratorType{ range_checking, limiting, C_style_conversion};
+
+  // An intermediate base class which is only typed on the user type and has a function to
+  // provide the decorator type. It is needed to have something to cast to when the
+  // IMPL_T has already been abstracted away (the implementations are all templated to two parameters)
+  template<class T>
+  class DecoratorTypeAccessor : public mtca4u::NDRegisterAccessor<T>{
+  public:
+    using mtca4u::NDRegisterAccessor<T>::NDRegisterAccessor;
+    virtual DecoratorType getDecoratorType() = 0;
+  };
+  
   /**
    * Strictly this is not a real decorator. It provides an NDRegisterAccessor of a 
    * different template type and accesses the original one as "backend" under the hood.
@@ -336,7 +348,13 @@ namespace ChimeraTK {
     }
   };
 
-  enum class DecoratorType{ range_checking, limiting, C_style_conversion};
+  /** Quasi singleton to have a unique, global map across UserType templated factories.
+   *  We need it to loop up if a decorator has already been created for the transfer element,
+   *  and return this if so. Multiple decorators for the same transfer element don't work.
+   */
+  std::map< boost::shared_ptr<mtca4u::TransferElement>,
+            boost::shared_ptr<mtca4u::TransferElement> > & getGlobalDecoratorMap();
+  
   template<class UserType>
   class DecoratorFactory{
   public:
@@ -368,6 +386,28 @@ namespace ChimeraTK {
   // the factory function. You don't have to care about the IMPL_Type when requesting a decorator
   template<class UserType>
   boost::shared_ptr< mtca4u::NDRegisterAccessor< UserType > >  getDecorator( mtca4u::TransferElement & transferElement, DecoratorType decoratorType =  DecoratorType::range_checking ){
+    // check if there already is a decorator for the transfer element
+    auto decoratorMapEntry = getGlobalDecoratorMap().find( transferElement.getHighLevelImplElement() );
+    if (decoratorMapEntry != getGlobalDecoratorMap().end()){
+      // There already is a decorator for this transfer element
+      // The decorator has to have a matching type, otherwise we can only throw
+      auto castedType = boost::dynamic_pointer_cast< DecoratorTypeAccessor< UserType > >(decoratorMapEntry->second);
+      if (castedType){// User type matches,  but the decorator type also has to match
+        if (castedType->getDecoratorType() == decoratorType){
+          // decorator matches, return it
+          return castedType;
+        }else{
+        // sorry there is a decorator, but it's the wrong user type
+        throw std::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
+                               transferElement.getName() +" already exists as a different decorator type.");          
+        }
+      }else{
+        // sorry there is a decorator, but it's the wrong user type
+        throw std::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
+                               transferElement.getName() +" already exists with a different user type.");
+      }
+    }
+    
     DecoratorFactory< UserType > factory( transferElement.getHighLevelImplElement(), decoratorType );
     boost::fusion::for_each(mtca4u::userTypeMap(), factory);
     return factory.createdDecorator;
