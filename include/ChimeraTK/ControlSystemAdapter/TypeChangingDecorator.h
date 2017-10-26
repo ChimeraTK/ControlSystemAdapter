@@ -1,57 +1,39 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 
-//#include <vector>
-//#include <utility>
-//#include <limits>
-//#include <stdexcept>
-//#include <typeinfo>
-//
-//#include <boost/smart_ptr.hpp>
-//#include <boost/shared_ptr.hpp>
-//#include <boost/weak_ptr.hpp>
-//#include <boost/lockfree/queue.hpp>
-//#include <boost/lockfree/spsc_queue.hpp>
-//#include <boost/thread/future.hpp>
-//
 #include <mtca4u/NDRegisterAccessor.h>
-//#include <mtca4u/VersionNumber.h>
-//
-//#include "ProcessVariableListener.h"
-//#include "TimeStampSource.h"
-//#include "PersistentDataStorage.h"
 #include <boost/fusion/include/for_each.hpp>
 #include <mtca4u/SupportedUserTypes.h>
 
 namespace ChimeraTK {
-  template<class T>
-    T stringToT(std::string const & input){
-    std::stringstream s;
-    s << input;
-    T t;
-    s >> t;
-    return t;
-  }
-
-  template<class T>
-    std::string T_ToString(T input){
-    std::stringstream s;
-    s << input;
-    std::string output;
-    s >> output;
-    return output;
-  }
-  
-  template<class S>
-  struct Round {
-    static S nearbyint ( S s ){
-      return round(s);
-    }
-    
-    typedef boost::mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
-  };
-
+  /** There are three types of TypeChanging decorators which do different data conversions
+   *  from the user data type to the implementation data type.
+   *  
+   *  \li range_checking This decorator checks the limits and throws an exception of the range is exceeced (for instance if you cast a negative integer to an unsiged int, or 500 to int8_t).
+   *      This decorator does proper rounding from floating point types t o integer (e.g. 6.7 to 7).
+   *  \li limiting This decorator limits the data to the maximum possible in the target data type (for instance 500 will result in 127 in int8_t and  255 in uint8_t, -200 will be -128 in int8t, 0 in uint8_t).
+   *      This decorator also does correct rounding from floating point to integer type.
+   *  \li C_style_conversion This decorator does a direct cast like an assigment in C/C++ does it. For instance 500 (=0x1f4) will result in 0xf4 for an 8 bit integer, which is interpreted as 244 in uint8_t and -12 in int8_t. Digits after the decimal point are cut when converting a floating point value to an integer type. This decorator can be useful to display unsigned integers which use the full dynamic range in a control system which only supports signed data types (the user has to correctly interpret the 'wrong' representation), of for bit fields where it is acceptable to lose the higher bits.
+   */
   enum class DecoratorType{ range_checking, limiting, C_style_conversion};
+
+  /** The factory function for type changing decorators.
+   * 
+   *  TypeChanging decorators take a transfer element (usually NDRegisterAccessor<ImplType>) and wraps it in an NDRegisterAccessor<UserType>.
+   *  It automatically performs the right type conversion (configurable as argument of the factory function).
+   *  The decorator has it's own buffer of type UserType and synchronises it in the preWrite() and postRead() functions with the implementation.
+   *  You don't have to care about the implementation type of the transfer element.
+   *  The factory will automatically create the correct decorator.
+   *
+   *  @param transferElement The TransferElement to be decorated. It can either be an NDRegisterAccessor (usually the case) or and NDRegisterAccessorBridge (but here the user already picks the type he wants).
+   *  @param decoratorType The type of decorator you want (see description of DecoratorType)
+   */
+  template<class UserType>
+  boost::shared_ptr< mtca4u::NDRegisterAccessor< UserType > >  getDecorator( mtca4u::TransferElement & transferElement, DecoratorType decoratorType =  DecoratorType::range_checking );
+
+  //===================================================================================================================================================
+  //Everything from here are implementation details. The exact identity of the decorator should not matter to the user, it would break the abstraction.
+  //===================================================================================================================================================  
 
   // An intermediate base class which is only typed on the user type and has a function to
   // provide the decorator type. It is needed to have something to cast to when the
@@ -183,6 +165,37 @@ namespace ChimeraTK {
     using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
   };
 
+  /// A sub-namespace in order not to expose the classes to the ChimeraTK namespace
+  namespace csa_helpers{
+    
+    template<class T>
+      T stringToT(std::string const & input){
+      std::stringstream s;
+      s << input;
+      T t;
+      s >> t;
+      return t;
+    }
+    
+    template<class T>
+      std::string T_ToString(T input){
+      std::stringstream s;
+      s << input;
+      std::string output;
+      s >> output;
+      return output;
+    }
+    
+    template<class S>
+      struct Round {
+        static S nearbyint ( S s ){
+          return round(s);
+        }
+        
+        typedef boost::mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
+      };
+  }// namespace csa_helpers
+
   /** The actual partial implementation for strings as impl type **/
   template<class T>
     class TypeChangingStringImplDecorator<T, std::string >: public TypeChangingDecorator<T, std::string>{
@@ -191,14 +204,14 @@ namespace ChimeraTK {
     virtual void convertAndCopyFromImpl(){
       for (size_t i = 0; i < this->buffer_2D.size(); ++i){
         for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
-          this->buffer_2D[i][j] = stringToT<T>(this->_impl->accessChannel(i)[j]);
+          this->buffer_2D[i][j] = csa_helpers::stringToT<T>(this->_impl->accessChannel(i)[j]);
         }
       }
     }
     virtual void convertAndCopyToImpl(){
       for (size_t i = 0; i < this->buffer_2D.size(); ++i){
         for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
-          this->_impl->accessChannel(i)[j] = T_ToString(this->buffer_2D[i][j]);
+          this->_impl->accessChannel(i)[j] = csa_helpers::T_ToString(this->buffer_2D[i][j]);
         }
       }
     }
@@ -278,7 +291,7 @@ namespace ChimeraTK {
   template<class T, class IMPL_T>
   void TypeChangingRangeCheckingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
     typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
-      boost::numeric::def_overflow_handler, Round<double> > FromImplConverter;
+      boost::numeric::def_overflow_handler, csa_helpers::Round<double> > FromImplConverter;
     //fixme: are iterartors more efficient?
     try{
       for (size_t i = 0; i < this->buffer_2D.size(); ++i){
@@ -298,7 +311,7 @@ namespace ChimeraTK {
   template<class T, class IMPL_T>
   void TypeChangingRangeCheckingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
     typedef boost::numeric::converter<IMPL_T, T, boost::numeric::conversion_traits<IMPL_T, T>,
-      boost::numeric::def_overflow_handler, Round<double> > ToImplConverter;
+      boost::numeric::def_overflow_handler, csa_helpers::Round<double> > ToImplConverter;
     for (size_t i = 0; i < this->buffer_2D.size(); ++i){
       for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
         this->_impl->accessChannel(i)[j] = ToImplConverter::convert(this->buffer_2D[i][j]);
@@ -395,9 +408,9 @@ namespace ChimeraTK {
   };
 
 
-  // the factory function. You don't have to care about the IMPL_Type when requesting a decorator
+  // the factory function. You don't have to care about the IMPL_Type when requesting a decorator. Implementation, declared at the top of this file
   template<class UserType>
-  boost::shared_ptr< mtca4u::NDRegisterAccessor< UserType > >  getDecorator( mtca4u::TransferElement & transferElement, DecoratorType decoratorType =  DecoratorType::range_checking ){
+  boost::shared_ptr< mtca4u::NDRegisterAccessor< UserType > >  getDecorator( mtca4u::TransferElement & transferElement, DecoratorType decoratorType){
 
     // check if there already is a decorator for the transfer element
     auto decoratorMapEntry = getGlobalDecoratorMap().find( transferElement.getHighLevelImplElement() );
