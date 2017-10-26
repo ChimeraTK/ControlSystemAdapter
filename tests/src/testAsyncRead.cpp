@@ -72,19 +72,24 @@ void AsyncReadTest::testAsyncRead() {
   senderAccessor = 5;
   senderAccessor.write();
   future = &(accessor.readAsync());
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   future->wait();
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   BOOST_CHECK( accessor == 5 );
   
   senderAccessor = 6;
   senderAccessor.write();
   future = &(accessor.readAsync());
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   future->wait();
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   BOOST_CHECK( accessor == 6 );
 
   // check that future's wait() function won't return before the read is complete
   for(int i=0; i<5; ++i) {
     senderAccessor = 42+i;
     future = &(accessor.readAsync());
+    BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
     std::atomic<bool> flag;
     flag = false;
     std::thread thread([&future, &flag] { future->wait(); flag = true; });
@@ -93,21 +98,26 @@ void AsyncReadTest::testAsyncRead() {
     senderAccessor.write();
     thread.join();
     BOOST_CHECK( accessor == 42+i );
+    BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   }
   
   // check that obtaining the same future multiple times works properly
   senderAccessor = 666;
   for(int i=0; i<5; ++i) {
     future = &(accessor.readAsync());
+    BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
     BOOST_CHECK( accessor == 46 );    // still the old value from the last test part
   }
   senderAccessor.write();
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   future->wait();
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   BOOST_CHECK( accessor == 666 );
   
   // now try another asynchronous transfer
   senderAccessor = 999;
   future = &(accessor.readAsync());
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   std::atomic<bool> flag;
   flag = false;
   std::thread thread([&future, &flag] { future->wait(); flag = true; });
@@ -115,6 +125,7 @@ void AsyncReadTest::testAsyncRead() {
   BOOST_CHECK(flag == false);
   senderAccessor.write();
   thread.join();
+  BOOST_CHECK(&(future->getTransferElement()) == receiver.get());
   BOOST_CHECK( accessor == 999 );
 
 }
@@ -272,12 +283,12 @@ void AsyncReadTest::testReadAny() {
     s2.write();
     // no point to use a thread here
     auto r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a1.isSameRegister(r));
+    BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 123);
 
     r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a2.isSameRegister(r));
+    BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
     
@@ -300,28 +311,28 @@ void AsyncReadTest::testReadAny() {
 
     // no point to use a thread here
     auto r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a4.isSameRegister(r));
+    BOOST_CHECK(a4.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
     r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a2.isSameRegister(r));
+    BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
     r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a3.isSameRegister(r));
+    BOOST_CHECK(a3.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 333);
     BOOST_CHECK(a4 == 111);
 
     r = TransferElement::readAny({a1,a2,a3,a4});
-    BOOST_CHECK(a1.isSameRegister(r));
+    BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 444);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 333);

@@ -191,8 +191,28 @@ namespace ChimeraTK {
      */
     struct Buffer : public TransferFuture::Data {
 
-      TimeStamp timeStamp;
+      /**
+       * Default constructor. Has to be defined explicitly because we delete our copy constructor.
+       */
+      Buffer()
+      : TransferFuture::Data({})
+      {}
+
+      /**
+       * Delete all copy and move constructors and assignment operators. In C++11, elements of a std::vector no longer
+       * have to be copy-constructable if the size of the vector is fixed and specified in the constructor.
+       */
+      Buffer(const Buffer &other) = delete;
+      Buffer& operator=(const Buffer &other) = delete;
+      Buffer(Buffer &&other) = delete;
+      Buffer& operator=(Buffer &&other) = delete;
+      
+      /** The actual data contained in this buffer. */
       std::vector<T> value;
+      
+      /** Flag whether this buffer currently contains valid data. This flag is used only for the atomic triple buffer
+       *  and not set for buffers on the queues (since the queue the buffer is in already tells whether it contains
+       *  valid data or not). */
       bool _isValid{false};
       
       /**
@@ -206,32 +226,8 @@ namespace ChimeraTK {
        */
       uint64_t _internalVersionNumber;
 
-      /**
-       * Default constructor. Has to be defined explicitly because we have an
-       * non-default copy constructor.
-       */
-      Buffer()
-      : TransferFuture::Data({})
-      {}
-
-      /**
-       * Copy constructor. Some STL implementations need the copy constructor
-       * while initializing the vector that stores the buffers: They do not
-       * default construct each element but only default construct the first
-       * element and then copy it. In this case, this copy constructor will
-       * work perfectly fine. It would even work if the value pointer was
-       * already initialized with a vector, however we might have a serious
-       * performance problem if that happened. Therefore, we use an assertion
-       * to check that the copy constructor is never used once the buffer has
-       * been initialized with a vector.
-       */
-      Buffer(Buffer const & other)
-      : timeStamp(other.timeStamp),
-        value(other.value ? new std::vector<T>(*(other.value)) : 0),
-        TransferFuture::Data(other._versionNumber)
-      {
-        assert(!(other.value));
-      }
+      /** Time stamp associated with this buffer */
+      TimeStamp timeStamp;
 
     };
 
@@ -275,19 +271,19 @@ namespace ChimeraTK {
       std::vector<Buffer> _buffers;
       
       /**
-       * Special atomic triple buffer to be filled when the queue runs over (i.e. all normal buffers are full).
-       * After construction, buffer 2 is owned by the sender, 3 by the shared state and 4 by the receiver. A buffer is
-       * considered containing valid data if its version number is valid. Default constructed version numbers are
-       * invalid, so all buffers are flagged as invalid upon construction.
+       * Special atomic triple buffer to be filled when the queue runs over
+       * (i.e. all normal buffers are full). After construction, buffer 2 is
+       * owned by the sender, 3 by the shared state and 4 by the receiver. A
+       * buffer is considered containing valid data if its _isValid flag is
+       * set. The buffer's default constructor sets _isValid to false.
        */
       std::atomic<Buffer*> _tripleBufferIndex;
       
       /**
       * Queue holding the indices of the full buffers. Those are the buffers
-      * that have been sent but not yet received. We do not use an spsc_queue
-      * for this queue, because might want to take elements from the sending
-      * thread, so there are two threads which might consume elements and thus
-      * an spsc_queue is not safe.
+      * that have been sent but not yet received. We can use an spsc_queue for
+      * this queue because it is only filled by the sending process array and
+      * only consumed by the receiving process array.
       */
       boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
 
@@ -323,7 +319,10 @@ namespace ChimeraTK {
     Buffer *_currentIndex;
     
     /**
-     * Index into the _tripleBuffer array that is currently owned by this instance.
+     * Index into the _buffers array that is currently owned by this instance.
+     * The _tripleBufferIndex is different from the _currentIndex because it is
+     * only used as a fallback when a value cannot be transferred through the
+     * _fullBufferQueue because the _emptyBufferQueue is empty.
      */
     Buffer *_tripleBufferIndex;
 
@@ -412,7 +411,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", T initialValue = 0, std::size_t numberOfBuffers = 2,
+      const std::string &description = "", T initialValue = T(), std::size_t numberOfBuffers = 2,
       bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener =
