@@ -14,8 +14,6 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/thread/future.hpp>
 
-#include <mtca4u/VersionNumber.h>
-
 #include "ProcessArray.h"
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
@@ -176,6 +174,7 @@ namespace ChimeraTK {
         const std::string &description, bool allowPersistentDataStorage,
         typename ProcessArray<T>::SharedPtr receiver,
         typename ProcessArray<T>::SharedPtr sender,
+        TimeStampSource::SharedPtr timeStampSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
         TimeStamp initialTimeStamp, VersionNumber initialVersionNumber);
 
@@ -185,7 +184,7 @@ namespace ChimeraTK {
       return _timeStamp;
     }
 
-    ChimeraTK::VersionNumber getVersionNumber() const override {
+    VersionNumber getVersionNumber() const override {
       return _versionNumber;
     }
 
@@ -275,7 +274,7 @@ namespace ChimeraTK {
      * Process array to which send values. When this process array is written,
      * we actually write to the sender.
      */
-    typename ProcessArray<T>::SharedPtr _sender;
+    typename UnidirectionalProcessArray<T>::SharedPtr _sender;
 
     /**
      * Listener that is notified when this process array is sent.
@@ -287,7 +286,12 @@ namespace ChimeraTK {
      * write, the time stamp from the receiver or the sender is supposed to be
      * used. This is why we store a separate copy of the time stamp.
      */
-    mtca4u::TimeStamp _timeStamp;
+    TimeStamp _timeStamp;
+
+    /**
+     * Time stamp source used when this process array is written.
+     */
+    TimeStampSource::SharedPtr _timeStampSource;
 
     /**
      * Unique ID identifying the pair to which this process array belongs.
@@ -314,25 +318,38 @@ namespace ChimeraTK {
       const std::string &description, bool allowPersistentDataStorage,
       typename ProcessArray<T>::SharedPtr receiver,
       typename ProcessArray<T>::SharedPtr sender,
+      TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener,
       TimeStamp initialTimeStamp, VersionNumber initialVersionNumber) :
       ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit,
           description), _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(
-          receiver), _sender(sender), _sendNotificationListener(
-          sendNotificationListener), _timeStamp(initialTimeStamp), _uniqueId(
-          uniqueId), _versionNumber(initialVersionNumber) {
+          receiver), _sender(
+          boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)), _sendNotificationListener(
+          sendNotificationListener), _timeStamp(initialTimeStamp), _timeStampSource(
+          timeStampSource), _uniqueId(uniqueId), _versionNumber(
+          initialVersionNumber) {
+    // If the passed sender was not null but the class variable is, the dynamic
+    // cast failed.
+    if (sender && !_sender) {
+      throw std::runtime_error(
+          "The passed sender must be an instance of UnidirectionalProcessArray.");
+    }
     if (!receiver->isReadable()) {
       throw std::runtime_error("The passed receiver must be readable.");
     }
     if (!sender->isWriteable()) {
       throw std::runtime_error("The passed sender must be writable.");
     }
+    // Allocate and initialize the buffer of the base class we copy the value
+    // from the receiver because the calling code should already have take care
+    // of initializing that value.
+    mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+    mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->accessChannel(0);
   }
 
   template<class T>
   BidirectionalProcessArray<T>::~BidirectionalProcessArray() {
-    // The actual destruction logic is in the underlying process variables
-    // which are destructed automatically when there is no reference any longer.
+    this->shutdown();
   }
     
 /*********************************************************************************************************************/
@@ -376,7 +393,7 @@ namespace ChimeraTK {
     // more) bidirectional process variables "play ping-pong" (see issue #2 for
     // the full discussion).
     if (_receiver->getVersionNumber() > _versionNumber) {
-      _sender->accessChannel(0).swap(_receiver->accessChannel(0));
+      this->accessChannel(0).swap(_receiver->accessChannel(0));
       // After receiving, our new time stamp and version number are the ones
       // that we got from the receiver.
       _timeStamp = _receiver->getTimeStamp();
@@ -396,11 +413,20 @@ namespace ChimeraTK {
   template<class T>
   bool BidirectionalProcessArray<T>::write(
       ChimeraTK::VersionNumber versionNumber) {
-    bool lostData = _sender->write(versionNumber);
+    // We have to copy our current value to the sender. We cannot swap it
+    // because this would mean that we would lose the current value.
+    _sender->accessChannel(0) = this->accessChannel(0);
+    // We need a new time stamp.
+    TimeStamp newTimeStamp =
+        _timeStampSource ?
+            _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
+    // We already copied the value, so the sender does not have to copy the
+    // value again.
+    bool lostData = _sender->writeDestructively(newTimeStamp, versionNumber);
     // After sending the new value, our current time stamp and version number
     // are the one from the sender.
-    _timeStamp = _sender->getTimeStamp();
-    _versionNumber = _sender->getVersionNumber();
+    _timeStamp = newTimeStamp;
+    _versionNumber = versionNumber;
     // If we have a persistent data-storage, we have to update it.
     if (_persistentDataStorage) {
       _persistentDataStorage->updateValue(_persistentDataStorageID,
@@ -462,11 +488,14 @@ namespace ChimeraTK {
       ProcessVariableListener::SharedPtr sendNotificationListener1,
       ProcessVariableListener::SharedPtr sendNotificationListener2) {
     auto senderReceiver1 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, false, timeStampSource1);
+        description, initialValue, numberOfBuffers, true);
     auto senderReceiver2 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, false, timeStampSource2);
-    mtca4u::TimeStamp timeStamp = senderReceiver2.first->getTimeStamp();
-    VersionNumber versionNumber = senderReceiver2.first->getVersionNumber();
+        description, initialValue, numberOfBuffers, true);
+    // We create a default-constructed time-stamp and version number because we
+    // want to be sure that initially both sides have the same time stamp and
+    // version number.
+    TimeStamp timeStamp;
+    VersionNumber versionNumber;
     // The unique ID has to be the same for both process arrays that belong to
     // the pair, but it has to be different from the one used by all other
     // process arrays. We simply use the unique ID used by the second
@@ -475,11 +504,13 @@ namespace ChimeraTK {
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv1 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
-            sendNotificationListener1, timeStamp, versionNumber);
+            timeStampSource1, sendNotificationListener1, timeStamp,
+            versionNumber);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
-            sendNotificationListener2, timeStamp, versionNumber);
+            timeStampSource2, sendNotificationListener2, timeStamp,
+            versionNumber);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(pv1, pv2);
   }
@@ -499,8 +530,11 @@ namespace ChimeraTK {
         unit, description, numberOfBuffers, false, timeStampSource1);
     auto senderReceiver2 = createSynchronizedProcessArray(initialValue, name,
         unit, description, numberOfBuffers, false, timeStampSource2);
-    mtca4u::TimeStamp timeStamp = senderReceiver2.first->getTimeStamp();
-    VersionNumber versionNumber = senderReceiver2.first->getVersionNumber();
+    // We create a default-constructed time-stamp and version number because we
+    // want to be sure that initially both sides have the same time stamp and
+    // version number.
+    TimeStamp timeStamp;
+    VersionNumber versionNumber;
     // The unique ID has to be the same for both process arrays that belong to
     // the pair, but it has to be different from the one used by all other
     // process arrays. We simply use the unique ID used by the second
@@ -509,11 +543,13 @@ namespace ChimeraTK {
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv1 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
-            sendNotificationListener1, timeStamp, versionNumber);
+            timeStampSource1, sendNotificationListener1, timeStamp,
+            versionNumber);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
-            sendNotificationListener2, timeStamp, versionNumber);
+            timeStampSource2, sendNotificationListener2, timeStamp,
+            versionNumber);
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(pv1, pv2);
   }

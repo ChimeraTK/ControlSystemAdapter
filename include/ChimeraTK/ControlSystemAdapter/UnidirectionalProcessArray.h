@@ -114,10 +114,36 @@ namespace ChimeraTK {
      * undefined. Therefore, this method must only be used if this process
      * variable is not read (on the sender side) after sending it.
      *
+     * The time-stamp of the sent value is retrieved from the time-stamp source.
+     *
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
     bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}) override; /// @todo FIXME this function must be present in TransferElement already!
+
+    /**
+     * Sends the current value to the receiver. Returns <code>true</code> if an
+     * empty buffer was available and <code>false</code> if no empty buffer was
+     * available and thus a previously sent value has been dropped in order to
+     * send the current value.
+     *
+     * The specified version number is passed to the receiver. If the receiver
+     * has a value with a version number greater than or equal to the specified
+     * version number, it silently discards this update.
+     *
+     * This version of the send operation moves the current value from the
+     * sender to the receiver without copying it. This means that after calling
+     * this method, the sender's value, time stamp, and version number are
+     * undefined. Therefore, this method must only be used if this process
+     * variable is not read (on the sender side) after sending it.
+     *
+     * The time-stamp source of this process array is ignored and the passed
+     * time stamp is used instead.
+     *
+     * Throws an exception if this process variable is not a sender or if this
+     * process variable does not allow destructive sending.
+     */
+    bool writeDestructively(ChimeraTK::TimeStamp timeStamp, ChimeraTK::VersionNumber versionNumber);
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override ;
 
@@ -294,7 +320,8 @@ namespace ChimeraTK {
      *
      * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
      */
-    bool writeInternal(VersionNumber newVersionNumber, bool shouldCopy);
+    bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
+        bool shouldCopy);
 
   };
 
@@ -706,7 +733,10 @@ namespace ChimeraTK {
   template<class T>
   bool UnidirectionalProcessArray<T>::write(
       ChimeraTK::VersionNumber versionNumber) {
-    return writeInternal(versionNumber, true);
+    return writeInternal(
+        _timeStampSource ?
+            _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
+        versionNumber, true);
   }
 
 /*********************************************************************************************************************/
@@ -718,9 +748,26 @@ namespace ChimeraTK {
       throw std::runtime_error(
           "This process variable must not be sent destructively because the corresponding flag has not been set.");
     }
-    return writeInternal(versionNumber, false);
+    return writeInternal(
+        _timeStampSource ?
+            _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
+        versionNumber, false);
   }
   
+  /*********************************************************************************************************************/
+
+    template<class T>
+    bool UnidirectionalProcessArray<T>::writeDestructively(
+        ChimeraTK::TimeStamp timeStamp,
+        ChimeraTK::VersionNumber versionNumber) {
+      if (!_maySendDestructively) {
+        throw std::runtime_error(
+            "This process variable must not be sent destructively because the corresponding flag has not been set.");
+      }
+      return writeInternal(timeStamp, versionNumber,
+          false);
+    }
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -742,7 +789,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::writeInternal(
-      VersionNumber newVersionNumber, bool shouldCopy) {
+      TimeStamp newTimeStamp, VersionNumber newVersionNumber, bool shouldCopy) {
     if(!this->isWriteable()) {
       throw std::logic_error(
           "Send operation is only allowed for a sender process variable. Variable name: "+this->getName());
@@ -770,7 +817,6 @@ namespace ChimeraTK {
     }
     
     // Before sending the value, we have to set the associated time-stamp.
-    TimeStamp newTimeStamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
     _currentIndex->timeStamp = newTimeStamp;
     
     // set the version numbers
