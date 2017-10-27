@@ -113,7 +113,7 @@ namespace ChimeraTK {
       _impl->postWrite();
     }
  
-    virtual bool write(ChimeraTK::VersionNumber versionNumber={}){
+    virtual bool write(ChimeraTK::VersionNumber versionNumber={}) override {
       // don't call preWrite() here. It would trigger the preWrite on the impl, which is also
       // happening when _impl()->write() is called.
       convertAndCopyToImpl();
