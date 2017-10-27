@@ -280,10 +280,9 @@ namespace ChimeraTK {
       std::atomic<Buffer*> _tripleBufferIndex;
       
       /**
-      * Queue holding the indices of the full buffers. Those are the buffers
-      * that have been sent but not yet received. We can use an spsc_queue for
-      * this queue because it is only filled by the sending process array and
-      * only consumed by the receiving process array.
+      * Queue holding the indices of the full buffers. Those are the buffers that have been sent but not yet received.
+      * We have to use an spsc_queue because the standard boost::lockfree::queue cannot hold futures (as they are not
+      * trivially assignable/destructable).
       */
       boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
 
@@ -292,18 +291,9 @@ namespace ChimeraTK {
       * returned to the sender by the receiver.
       */
       boost::lockfree::spsc_queue<Buffer*> _emptyBufferQueue;
-
-      /**
-      * Queue holding futures for notification. The receiver can obtain a future from this queue when the
-      * _fullBufferQueue is empty and wait on it until new data has been sent.
-      * 
-      * We are using a shared future, since the spsc_queue expects a copy-constructable data type. Since the data
-      * type is not particularly expensive to copy, this should have no performance impact.
-      */
-      //boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _notificationQueue;
     
       /**
-      * The promise corresponding to the unfulfilled future in the _notificationQueue.
+      * The promise corresponding to the unfulfilled future in the _fullBufferQueue.
       * This promise is basically only used by the sender. Only in the destructor of the receiver it is used to
       * shutdown properly, thus it must be in the shared state.
       */
