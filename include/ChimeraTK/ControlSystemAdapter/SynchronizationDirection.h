@@ -18,7 +18,12 @@ namespace ChimeraTK {
     /**
      * Synchronize from the device library to the control system.
      */
-    deviceToControlSystem
+    deviceToControlSystem,
+
+    /**
+     * Synchronize in both directions.
+     */
+    bidirectional
 
   };
 

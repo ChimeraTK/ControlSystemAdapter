@@ -29,12 +29,6 @@ namespace ChimeraTK {
    * receiver).
    *
    * This class is not thread-safe and should only be used from a single thread.
-   *
-   * If no version number source is specified when creating an instance of this
-   * class, version number checks are disabled. This means that a receive
-   * operation will always proceed, regardless of the version number of the new
-   * value. The version number of the process array without a version number
-   * source will always stay at zero.
    */
   template<class T>
   class UnidirectionalProcessArray : public ProcessArray<T> {
@@ -130,7 +124,7 @@ namespace ChimeraTK {
     /** Return a unique ID of this process variable, which will be indentical for the receiver and sender side of the
      *  same variable but different for any other process variable within the same process. The unique ID will not be
      *  persistent accross executions of the process. */
-    size_t getUniqueId() const {
+    size_t getUniqueId() const override {
       return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
     }
 
@@ -760,6 +754,13 @@ namespace ChimeraTK {
       throw std::runtime_error(
           "Cannot run receive operation because the size of the vector belonging to the current buffer has been "
           "modified. Variable name: "+this->getName());
+    }
+    // A version should never be send with a version number that is equal to or
+    // even less than the last version number used. Such an attempt indicates
+    // that there is a problem in the logic attempting the write operation.
+    if (newVersionNumber <= getVersionNumber()) {
+      throw std::runtime_error(
+          "The version number passed to write is less than or equal to the last version number used.");
     }
 
     // First update the persistent data storage, if any was associated. This cannot be done after sending, since the

@@ -62,6 +62,35 @@ namespace ChimeraTK {
     typedef std::map<mtca4u::RegisterPath, ProcessVariableSharedPtrPair> ProcessVariableMap;
 
     /**
+     * Creates a new process array for transferring data between the device
+     * library and the control system in both directions and registers it with
+     * the PV manager. Creating a process array with a name that is already used
+     * for a different process array is an error and causes an
+     * \c std::invalid_argument exception to be thrown.
+     *
+     * The array's size is set to the number of elements stored in the vector
+     * provided for initialization and all elements are initialized with the
+     * values provided by this vector.
+     *
+     * The number of buffers (the minimum and default value is two) is the max.
+     * number of values that can be queued in the transfer queue. Specifying a
+     * larger number make loss of data less likely but increases the memory
+     * footprint.
+     *
+     * Two process arrays are created: one for the control system and one for
+     * the device library. The pair that is returned has a reference to the
+     * instance intended for the control system as its first and a reference to
+     * the instance intended for the device library as its second member.
+     */
+    template<class T>
+    std::pair<typename ProcessArray<T>::SharedPtr,
+        typename ProcessArray<T>::SharedPtr> createBidirectionalProcessArray(
+        mtca4u::RegisterPath const & processVariableName,
+        const std::vector<T>& initialValue, const std::string& unit =
+            mtca4u::TransferElement::unitNotSet,
+        const std::string& description = "", std::size_t numberOfBuffers = 2);
+
+    /**
      * Creates a new process array for transferring data from the device library
      * to the control system and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
@@ -422,6 +451,51 @@ namespace ChimeraTK {
    */
   std::pair<boost::shared_ptr<ControlSystemPVManager>,
       boost::shared_ptr<DevicePVManager> > createPVManager();
+
+  template<class T>
+  std::pair<typename ProcessArray<T>::SharedPtr,
+      typename ProcessArray<T>::SharedPtr> PVManager::createBidirectionalProcessArray(
+      mtca4u::RegisterPath const & processVariableName,
+      const std::vector<T>& initialValue, const std::string& unit,
+      const std::string& description, std::size_t numberOfBuffers) {
+    if (_processVariables.find(processVariableName)
+        != _processVariables.end()) {
+      throw std::invalid_argument(
+          "Process variable with name " + processVariableName
+              + " already exists.");
+    }
+
+    // We do not use a time-stamp source for process variables that are
+    // synchronized from the control system to the device.
+    boost::shared_ptr<TimeStampSource> timeStampSource1;
+    boost::shared_ptr<TimeStampSource> timeStampSource2 = boost::make_shared<
+        TimeStampSourceImpl>(shared_from_this());
+    boost::shared_ptr<ProcessVariableListener> sendNotificationListener1 =
+        boost::make_shared<ControlSystemSendNotificationListenerImpl>(
+            shared_from_this());
+    boost::shared_ptr<ProcessVariableListener> sendNotificationListener2 =
+        boost::make_shared<DeviceSendNotificationListenerImpl>(
+            shared_from_this());
+
+    typename std::pair<typename ProcessArray<T>::SharedPtr,
+        typename ProcessArray<T>::SharedPtr> processVariables =
+        createBidirectionalSynchronizedProcessArray<T>(initialValue,
+            processVariableName, unit, description, numberOfBuffers,
+            timeStampSource1, timeStampSource2, sendNotificationListener1,
+            sendNotificationListener2);
+
+    _processVariables.insert(
+        std::make_pair(processVariableName,
+            std::make_pair(processVariables.first, processVariables.second)));
+
+    // Increase notification queue size by one to make space for this process
+    // variable. We can use the unsafe variant because calls to this method have
+    // to be synchronized anyway.
+    _controlSystemNotificationQueue.reserve_unsafe(1);
+    _deviceNotificationQueue.reserve_unsafe(1);
+
+    return std::make_pair(processVariables.first, processVariables.second);
+  }
 
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,

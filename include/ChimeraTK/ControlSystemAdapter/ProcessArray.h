@@ -30,13 +30,6 @@ namespace ChimeraTK {
    * ProcessArrays.
    *
    * This class is not thread-safe and should only be used from a single thread.
-   *
-   * TODO This comment might not belong here:
-   * If no version number source is specified when creating an instance of this
-   * class, version number checks are disabled. This means that a receive
-   * operation will always proceed, regardless of the version number of the new
-   * value. The version number of the process array without a version number
-   * source will always stay at zero.
    */
   template<class T>
   class ProcessArray : public mtca4u::NDRegisterAccessor<T> {
@@ -116,6 +109,11 @@ namespace ChimeraTK {
      */
     virtual bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}) = 0; /// @todo FIXME this function must be present in TransferElement already!
 
+    /** Return a unique ID of this process variable, which will be indentical for the receiver and sender side of the
+     *  same variable but different for any other process variable within the same process. The unique ID will not be
+     *  persistent accross executions of the process. */
+    virtual size_t getUniqueId() const = 0;
+
     const std::type_info& getValueType() const override {
       return typeid(T);
     }
@@ -171,5 +169,8 @@ namespace ChimeraTK {
 // after the declaration of ProcessArray because the code in
 // UnidirectionalProcessArray.h depends on it.
 #include "UnidirectionalProcessArray.h"
+// The BidirectionalProcessArray depends on the UnidirectionalProcessArray, so
+// its header has to be included second.
+#include "BidirectionalProcessArray.h"
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H

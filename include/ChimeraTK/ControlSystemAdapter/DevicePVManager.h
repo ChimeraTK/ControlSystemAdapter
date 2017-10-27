@@ -236,6 +236,14 @@ namespace ChimeraTK {
         return _pvManager->createProcessArrayDeviceToControlSystem<T>(
             processVariableName, std::vector<T>(size, initialValue), unit, description,
             maySendDestructively, numberOfBuffers).second;
+      case bidirectional:
+        if (maySendDestructively) {
+          throw std::logic_error(
+              "A bidirectional process variable cannot be sent destructively.");
+        }
+        return _pvManager->createBidirectionalProcessArray<T>(
+            processVariableName, std::vector<T>(size, initialValue), unit,
+            description, numberOfBuffers).second;
       default:
         throw std::invalid_argument("invalid SynchronizationDirection");
     }
@@ -255,6 +263,14 @@ namespace ChimeraTK {
       case deviceToControlSystem:
         return _pvManager->createProcessArrayDeviceToControlSystem<T>(
             processVariableName, initialValue, unit, description, maySendDestructively,
+            numberOfBuffers).second;
+      case bidirectional:
+        if (maySendDestructively) {
+          throw std::logic_error(
+              "A bidirectional process variable cannot be sent destructively.");
+        }
+        return _pvManager->createBidirectionalProcessArray<T>(
+            processVariableName, initialValue, unit, description,
             numberOfBuffers).second;
       default:
         throw std::invalid_argument("invalid SynchronizationDirection");
