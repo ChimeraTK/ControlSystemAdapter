@@ -153,13 +153,13 @@ namespace ChimeraTK {
     /* The two createBidirectionalSynchronizedProcessArray functions have to be
        friends so that they can access the private _partner field. */
     friend std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
+        typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray<>(
         const std::vector<T>&, const mtca4u::RegisterPath &,
         const std::string &, const std::string &, std::size_t,
         TimeStampSource::SharedPtr, TimeStampSource::SharedPtr,
         ProcessVariableListener::SharedPtr, ProcessVariableListener::SharedPtr);
     friend std::pair<typename ProcessArray<T>::SharedPtr,
-        typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
+        typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray<>(
         std::size_t, const mtca4u::RegisterPath &, const std::string &,
         const std::string &, T, std::size_t, TimeStampSource::SharedPtr,
         TimeStampSource::SharedPtr, ProcessVariableListener::SharedPtr,
