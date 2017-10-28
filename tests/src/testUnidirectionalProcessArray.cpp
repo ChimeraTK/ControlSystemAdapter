@@ -18,7 +18,7 @@ namespace ChimeraTK {
    * It is templated to be tested with all data types.
    */
   template<class T>
-  class ProcessArrayTest {
+  class UnidirectionalProcessArrayTest {
   public:
     static void testConstructors();
     static void testGet();
@@ -45,25 +45,25 @@ namespace ChimeraTK {
    * The boost test suite which executes the ProcessArrayTest.
    */
   template<class T>
-  class ProcessArrayTestSuite: public test_suite {
+  class UnidirectionalProcessArrayTestSuite: public test_suite {
   public:
-    ProcessArrayTestSuite() :
-        test_suite("ProcessArray test suite") {
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testConstructors));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testGet));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSet));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSwap));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSendNotification));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testTimeStampSource));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testSynchronization));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testVersionNumbers));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testBlockingRead));
-      add(BOOST_TEST_CASE(&ProcessArrayTest<T>::testReadLatest));
+    UnidirectionalProcessArrayTestSuite() :
+        test_suite("UnidirectionalProcessArray test suite") {
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testConstructors));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testGet));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testSet));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testSwap));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testSendNotification));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testTimeStampSource));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testSynchronization));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testVersionNumbers));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testBlockingRead));
+      add(BOOST_TEST_CASE(&UnidirectionalProcessArrayTest<T>::testReadLatest));
     }
   };
 
   template<class T>
-  void ProcessArrayTest<T>::testConstructors() {
+  void UnidirectionalProcessArrayTest<T>::testConstructors() {
 
     std::vector<T> referenceVector;
     referenceVector.push_back(0);
@@ -128,7 +128,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testGet() {
+  void UnidirectionalProcessArrayTest<T>::testGet() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
@@ -148,7 +148,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testSet() {
+  void UnidirectionalProcessArrayTest<T>::testSet() {
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
         senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
@@ -168,7 +168,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testSwap() {
+  void UnidirectionalProcessArrayTest<T>::testSwap() {
 
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
@@ -196,7 +196,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testSendNotification() {
+  void UnidirectionalProcessArrayTest<T>::testSendNotification() {
     boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
         boost::make_shared<CountingProcessVariableListener>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
@@ -215,7 +215,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testTimeStampSource() {
+  void UnidirectionalProcessArrayTest<T>::testTimeStampSource() {
     TimeStampSource::SharedPtr timeStampSource(
         boost::make_shared<CountingTimeStampSource>());
     typename std::pair<typename ProcessArray<T>::SharedPtr,
@@ -236,7 +236,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testSynchronization() {
+  void UnidirectionalProcessArrayTest<T>::testSynchronization() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
@@ -344,7 +344,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testVersionNumbers() {
+  void UnidirectionalProcessArrayTest<T>::testVersionNumbers() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true,
@@ -409,7 +409,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testBlockingRead() {
+  void UnidirectionalProcessArrayTest<T>::testBlockingRead() {
     auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
     auto sender = senderReceiver.first;
     auto receiver = senderReceiver.second;
@@ -448,7 +448,7 @@ namespace ChimeraTK {
   }
 
   template<class T>
-  void ProcessArrayTest<T>::testReadLatest() {
+  void UnidirectionalProcessArrayTest<T>::testReadLatest() {
     auto senderReceiver = createSynchronizedProcessArray<T>(1);
     auto sender = senderReceiver.first;
     auto receiver = senderReceiver.second;
@@ -524,24 +524,24 @@ namespace ChimeraTK {
 
 test_suite*
 init_unit_test_suite(int /*argc*/, char* /*argv*/[]) {
-  framework::master_test_suite().p_name.value = "ProcessArray test suite";
+  framework::master_test_suite().p_name.value = "UnidirectionalProcessArray test suite";
 
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<int32_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<int32_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<uint32_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<uint32_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<int16_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<int16_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<uint16_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<uint16_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<int8_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<int8_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<uint8_t>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<uint8_t>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<double>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<double>);
   framework::master_test_suite().add(
-      new ChimeraTK::ProcessArrayTestSuite<float>);
+      new ChimeraTK::UnidirectionalProcessArrayTestSuite<float>);
 
   return NULL;
 }
