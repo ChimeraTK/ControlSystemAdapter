@@ -529,9 +529,9 @@ namespace ChimeraTK {
       ProcessVariableListener::SharedPtr sendNotificationListener1,
       ProcessVariableListener::SharedPtr sendNotificationListener2) {
     auto senderReceiver1 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, false, timeStampSource1);
+        unit, description, numberOfBuffers, true, timeStampSource1);
     auto senderReceiver2 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, false, timeStampSource2);
+        unit, description, numberOfBuffers, true, timeStampSource2);
     // We create a default-constructed time-stamp and version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
