@@ -511,6 +511,8 @@ namespace ChimeraTK {
             description, false, senderReceiver1.second, senderReceiver2.first,
             timeStampSource2, sendNotificationListener2, timeStamp,
             versionNumber);
+    pv1->_partner = pv2;
+    pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(pv1, pv2);
   }
@@ -550,6 +552,8 @@ namespace ChimeraTK {
             description, false, senderReceiver1.second, senderReceiver2.first,
             timeStampSource2, sendNotificationListener2, timeStamp,
             versionNumber);
+    pv1->_partner = pv2;
+    pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr>(pv1, pv2);
   }
