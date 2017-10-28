@@ -748,5 +748,72 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
         intAcs->getTimeStamp().seconds < intBcs->getTimeStamp().seconds);
   }
 
+  struct TestDeviceCallable5 {
+    shared_ptr<DevicePVManager> pvManager;
+
+    void operator()() {
+      auto biDouble = pvManager->getProcessArray<double>("biDouble");
+      auto stopDeviceThread = pvManager->getProcessArray<int8_t>(
+          "stopDeviceThread");
+
+      while (stopDeviceThread->accessData(0) == 0) {
+        if (biDouble->readNonBlocking()) {
+          double &value = biDouble->accessData(0);
+          if (value > 5.0) {
+            value = 5.0;
+            biDouble->write();
+          } else if (value < -5.0) {
+            value = -5.0;
+            biDouble->write();
+          }
+        }
+        // On each iteration, we set the current time-stamp. This should ensure
+        // that all PVs receive the same time-stamp.
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+        stopDeviceThread->readNonBlocking();
+      }
+    }
+  };
+
+  static shared_ptr<ControlSystemPVManager> initTestDeviceLib5() {
+    auto pvManagers = createPVManager();
+    auto csManager = pvManagers.first;
+    auto devManager = pvManagers.second;
+
+    devManager->createProcessArray<double>(bidirectional, "biDouble", 1);
+    devManager->createProcessArray<int8_t>(controlSystemToDevice,
+        "stopDeviceThread", 1);
+
+    TestDeviceCallable5 callable;
+    callable.pvManager = devManager;
+
+    // Start device thread.
+    boost::thread deviceThread(callable);
+
+    return csManager;
+  }
+
+  BOOST_AUTO_TEST_CASE( bidirectionalProcessVariable ) {
+    auto pvManager = initTestDeviceLib5();
+    auto biDouble = pvManager->getProcessArray<double>("biDouble");
+    auto stopDeviceThread = pvManager->getProcessArray<int8_t>(
+        "stopDeviceThread");
+    biDouble->accessData(0) = 2.0;
+    biDouble->write();
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    // The value is in the allowed range, so we do not expect an update.
+    BOOST_CHECK(!biDouble->readNonBlocking());
+    // Now we write a value that is out of range.
+    biDouble->accessData(0) = 25.0;
+    biDouble->write();
+    // We expect the value to be limited to 5.0.
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    BOOST_CHECK(biDouble->readNonBlocking());
+    BOOST_CHECK(biDouble->accessData(0) == 5.0);
+    // Stop the device thread.
+    stopDeviceThread->accessData(0) = 1;
+    stopDeviceThread->write();
+  }
+
   // After you finished all test you have to end the test suite.
   BOOST_AUTO_TEST_SUITE_END()
