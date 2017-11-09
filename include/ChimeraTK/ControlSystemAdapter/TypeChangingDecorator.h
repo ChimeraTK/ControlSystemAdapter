@@ -4,6 +4,7 @@
 #include <mtca4u/NDRegisterAccessor.h>
 #include <boost/fusion/include/for_each.hpp>
 #include <mtca4u/SupportedUserTypes.h>
+#include "TransferFutureDecorator.h"
 
 namespace ChimeraTK {
   /** There are three types of TypeChanging decorators which do different data conversions
@@ -149,9 +150,14 @@ namespace ChimeraTK {
       return _impl->getFixedPointConverter();
     }
 
+    virtual TransferFuture& readAsync() override;
+
   protected:
     
     boost::shared_ptr< mtca4u::NDRegisterAccessor<IMPL_T> > _impl;
+    TransferFutureDecorator<T, IMPL_T> _activeDecoratedFuture;
+
+    friend TransferFutureDecorator<T, IMPL_T>;
   };
 
   /** This class is intended as a base class and intentionally does not call shutdown in the destructor in order not to shadow the 
@@ -285,7 +291,20 @@ namespace ChimeraTK {
       channel.resize(impl->getNumberOfSamples());
     }
   }
-  
+
+  template<class T, class IMPL_T>
+  TransferFuture& TypeChangingDecorator<T, IMPL_T>::readAsync(){
+    ChimeraTK::ExperimentalFeatures::check("asynchronous read");
+    if(this->hasActiveFuture) return _activeDecoratedFuture;  // the last future given out by this fuction is still active
+    //no active future. Call readAsync on the decorated transfer element, then decorate the
+    // future it returns
+    auto & originalFuture =  _impl->readAsync();
+    _activeDecoratedFuture.reset(&originalFuture, this);
+    this->hasActiveFuture=true;
+
+    return _activeDecoratedFuture;
+  }
+    
 /*********************************************************************************************************************/
 
   template<class T, class IMPL_T>

@@ -9,9 +9,32 @@ using namespace ChimeraTK;
 #include <mtca4u/Device.h>
 #include <mtca4u/TransferGroup.h>
 
+//function which can be called many times but only call enable() the first time
+void enableExperimental(){
+  static bool isEnabled(false);
+  if (!isEnabled){
+    ChimeraTK::ExperimentalFeatures::enable();// still experimental.
+    isEnabled = true;
+  }
+}
+
 // always test close for floating point values. Don't rely on exact binary representations
 bool test_close(double a, double b, double tolerance = 0.0001){
-  return (std::fabs(a - b) < tolerance );
+  if (std::fabs(a - b) < tolerance ){
+    return true;
+  }else{
+    std::cout << a << " - " << b << " is not < " << tolerance << std::endl;
+    return false;
+  }
+}
+
+bool test_not_close(double a, double b, double tolerance = 0.0001){
+  if (std::fabs(a - b) > tolerance ){
+    return true;
+  }else{
+    std::cout << a << " - " << b << " is not > " << tolerance << std::endl;
+    return false;
+  }
 }
 
 BOOST_AUTO_TEST_SUITE( TypeChangingDecoratorTestSuite )
@@ -40,7 +63,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   anotherScalarAccessor = startReadValue;
   anotherScalarAccessor.write();
   // check that the values are different at start so we know the test is sensitive
-  BOOST_CHECK( !test_close(decoratedScalar.accessData(0), expectedReadValue) );
+  BOOST_CHECK( test_not_close(decoratedScalar.accessData(0), expectedReadValue) );
   decoratedScalar.read();
   // internal precision of the register is 16 fractional bits fixed point
   BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue) );
@@ -76,6 +99,20 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   anotherScalarAccessor.read();
   BOOST_CHECK( test_close(anotherScalarAccessor, expectedWriteValue+1) );
 
+  //test asynchronouy reading. Check that the modification is arriving in the decorator's buffer
+  enableExperimental();
+    
+  // just to check that the test is not producing false positives by accident
+  assert( fabs(startReadValue+2 - (expectedWriteValue+1)) > 0.001 );
+  anotherScalarAccessor = startReadValue+2;
+  anotherScalarAccessor.write();
+  
+  auto & future = decoratedScalar.readAsync();
+  // nothing must change on the user buffer yet
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue+1) );
+  future.wait(); // this calls the post-reads correctly
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue+2) );
+  
   // FIXME: We cannot test that the decorator is relaying doReadTransfer, doReadTransferLatest and
   // do readTransferLatest correctly with the dummy backend because they all point to the same
   // implementation. Thus we intentionally do not call them to indicate them uncovered.
@@ -97,7 +134,7 @@ BOOST_AUTO_TEST_CASE( testAllDecoratorConversions ){
   testDecorator<int, float>(18.4,18, 28, 28);
   testDecorator<int, double>(19.5,20, 29, 29);
   testDecorator<int, double>(19.4,19, 29, 29);
-  testDecorator<int, std::string>(101, 101, 102, 102);
+  testDecorator<int, std::string>(101, 101, 112, 112);
 
   testDecorator<float, int8_t>(112,112, -122.4, -122);
   testDecorator<float, int8_t>(112,112, -122.5, -123);
@@ -113,14 +150,14 @@ BOOST_AUTO_TEST_CASE( testAllDecoratorConversions ){
   testDecorator<float, uint32_t>(117,117, 127.5, 128);
   testDecorator<float, float>(118.5,118.5, 128.6, 128.6);
   testDecorator<float, double>(119.5,119.5, 129.6, 129.6);
-  testDecorator<float, std::string>(101.1, 101.1, 102.2, 102.2);
-  testDecorator<double, std::string>(201.1, 201.1, 202.2, 202.2);
+  testDecorator<float, std::string>(101.1, 101.1, 112.2, 112.2);
+  testDecorator<double, std::string>(201.1, 201.1, 212.2, 212.2);
 
-  testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
-  testDecorator<float, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
-  testDecorator<double, std::string, TypeChangingDirectCastDecorator>(201, 201, 202, 202);
+  testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201, 212, 212);
+  testDecorator<float, std::string, TypeChangingDirectCastDecorator>(202, 202, 213, 213);
+  testDecorator<double, std::string, TypeChangingDirectCastDecorator>(203, 203, 214, 214);
   testDecorator<int, float, TypeChangingDirectCastDecorator>(218.5,218, 228, 228);
-  testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 229.6, 229);
+  testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 239.6, 239);
 
 }
 
