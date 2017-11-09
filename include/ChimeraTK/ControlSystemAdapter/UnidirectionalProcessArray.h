@@ -641,7 +641,7 @@ namespace ChimeraTK {
     }
     
     // return the future
-    mtca4u::TransferElement::activeFuture = mtca4u::TransferFuture(future, static_cast<mtca4u::TransferElement*>(this));
+    mtca4u::TransferElement::activeFuture.reset(future, static_cast<mtca4u::TransferElement*>(this));
     mtca4u::TransferElement::hasActiveFuture = true;
     return mtca4u::TransferElement::activeFuture;
 

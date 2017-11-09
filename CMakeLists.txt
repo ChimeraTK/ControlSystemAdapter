@@ -6,7 +6,7 @@ include(cmake/add_dependency.cmake)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 09)
-set(${PROJECT_NAME}_PATCH_VERSION 00)
+set(${PROJECT_NAME}_PATCH_VERSION 01)
 include(cmake/set_version_numbers.cmake)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -fPIC -Wextra -Wshadow
@@ -46,7 +46,7 @@ ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(mtca4u-deviceaccess 00.26 REQUIRED)
+add_dependency(mtca4u-deviceaccess 00.28 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
