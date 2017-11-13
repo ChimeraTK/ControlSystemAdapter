@@ -65,7 +65,7 @@ namespace ChimeraTK {
      * values without copying but losing them on the sender side.
      *
      * The optional send-notification listener is notified every time the
-     * sender's {@link ProcessArray::write()} method is called. It can be
+     * sender's ProcessArray::write() method is called. It can be
      * used to queue a request for the receiver's
      * readNonBlocking() method to be called. The process
      * variable passed to the listener is the receiver and not the sender.
@@ -336,7 +336,7 @@ namespace ChimeraTK {
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
-   * {@link ProcessArray::write()} method. The receiver can be updated with these
+   * ProcessArray::write() method. The receiver can be updated with these
    * changes by calling its readNonBlocking() method.
    *
    * The synchronization is implemented in a thread-safe manner, so that the
@@ -347,7 +347,7 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::write()} can be called
+   * number specifies, how many times ProcessArray::write() can be called
    * in a row without losing data when readNonBlocking() is not
    * called in between.
    *
@@ -362,7 +362,7 @@ namespace ChimeraTK {
    * system-time when the value is sent is used.
    *
    * The optional send-notification listener is notified every time the sender's
-   * {@link ProcessArray::write()} method is called. It can be used to queue a
+   * ProcessArray::write() method is called. It can be used to queue a
    * request for the receiver's readNonBlocking() method to be
    * called.  The process variable passed to the listener is the receiver and
    * not the sender.
@@ -385,7 +385,7 @@ namespace ChimeraTK {
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
-   * {@link ProcessArray::write()} method. The receiver can be updated with these
+   * ProcessArray::write() method. The receiver can be updated with these
    * changes by calling its readNonBlocking() method.
    *
    * The synchronization is implemented in a thread-safe manner, so that the
@@ -396,7 +396,7 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::write()} can be called
+   * number specifies, how many times ProcessArray::write() can be called
    * in a row without losing data when readNonBlocking() is not
    * called in between.
    *
@@ -411,7 +411,7 @@ namespace ChimeraTK {
    * system-time when the value is sent is used.
    *
    * The optional send-notification listener is notified every time the sender's
-   * {@link ProcessArray::write()} method is called. It can be used to queue a
+   * ProcessArray::write() method is called. It can be used to queue a
    * request for the receiver's readNonBlocking() method to be
    * called.  The process variable passed to the listener is the receiver and
    * not the sender.

@@ -34,7 +34,7 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::write()} can be
+   * number specifies, how many times ProcessArray::write() can be
    * called in a row without losing data when readNonBlocking() is not called in
    * between. The specified number of buffers is used for each direction.
    *
@@ -47,7 +47,7 @@ namespace ChimeraTK {
    * the second returned process array.
    *
    * The optional send-notification listeners are notified every time one of the
-   * process array's {@link ProcessArray::write()} method is called. These
+   * process array's ProcessArray::write() method is called. These
    * listeners can be used to queue a request for the receiver's
    * readNonBlocking() method to be called.  The process variable passed to the
    * listener is the receiver and not the sender. The first listener is notified
@@ -90,7 +90,7 @@ namespace ChimeraTK {
    *
    * The number of buffers specifies how many buffers are allocated for the
    * send / receive mechanism. The minimum number (and default) is two. This
-   * number specifies, how many times {@link ProcessArray::write()} can be
+   * number specifies, how many times ProcessArray::write() can be
    * called in a row without losing data when readNonBlocking() is not called in
    * between. The specified number of buffers is used for each direction.
    *
@@ -100,7 +100,7 @@ namespace ChimeraTK {
    * system-time when the value is sent is used.
    *
    * The optional send-notification listeners are notified every time one of the
-   * process array's {@link ProcessArray::write()} method is called. These
+   * process array's ProcessArray::write() method is called. These
    * listeners can be used to queue a request for the receiver's
    * readNonBlocking() method to be called.  The process variable passed to the
    * listener is the receiver and not the sender. The first listener is notified
