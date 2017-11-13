@@ -572,6 +572,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
+
     // As long as there is more than one valid element on the queue, discard it.
     // Due to our implementation there is always one unfulfilled future in the queue, so
     // we must pop until there are two elements left in order not to flush out the newest valid value.
@@ -651,6 +652,7 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArray<T>::postRead() {
+
     mtca4u::TransferElement::hasActiveFuture = false;
 
     // We have to check that the vector that we currently own still has the
@@ -676,12 +678,7 @@ namespace ChimeraTK {
     bool queueHasData = (status != boost::future_status::timeout);
 
     // If postRead() has been called, there should be new data somewhere
-    /// @todo FIXME find this problem and make an assert again!
-    //assert(queueHasData || tripleBufferHasData);
-    if(!(queueHasData || tripleBufferHasData)) {
-      std::cout << "ERROR: assert(queueHasData || tripleBufferHasData) failed! Waiting for new data..." << std::endl;
-      future.wait();
-    }
+    assert(queueHasData || tripleBufferHasData);
 
     // Determine whether to use the data from the queue or from the triple buffer. If in both places data is present,
     // use the older data (by the version number).
