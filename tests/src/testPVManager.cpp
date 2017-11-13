@@ -794,6 +794,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
   }
 
   BOOST_AUTO_TEST_CASE( bidirectionalProcessVariable ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
     auto pvManager = initTestDeviceLib5();
     auto biDouble = pvManager->getProcessArray<double>("biDouble");
     auto stopDeviceThread = pvManager->getProcessArray<int8_t>(

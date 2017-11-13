@@ -14,6 +14,8 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/thread/future.hpp>
 
+#include <mtca4u/ExperimentalFeatures.h>
+
 #include "ProcessArray.h"
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
@@ -61,6 +63,10 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
+   * 
+   * Note: biderectional process arrays are still experimental, so experimental
+   * features must be enable when using this function (see
+   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
@@ -116,6 +122,10 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
+   * 
+   * Note: biderectional process arrays are still experimental, so experimental
+   * features must be enable when using this function (see
+   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr,
@@ -137,6 +147,10 @@ namespace ChimeraTK {
    * directions.
    *
    * This class is not thread-safe and should only be used from a single thread.
+   * 
+   * Note: biderectional process arrays are still experimental, so experimental
+   * features must be enable when using this class (see
+   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   class BidirectionalProcessArray : public ProcessArray<T> {
@@ -320,14 +334,18 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr sender,
       TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener,
-      TimeStamp initialTimeStamp, VersionNumber initialVersionNumber) :
-      ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit,
-          description), _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(
-          receiver), _sender(
-          boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)), _sendNotificationListener(
-          sendNotificationListener), _timeStamp(initialTimeStamp), _timeStampSource(
-          timeStampSource), _uniqueId(uniqueId), _versionNumber(
-          initialVersionNumber) {
+      TimeStamp initialTimeStamp, VersionNumber initialVersionNumber)
+  : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description),
+    _allowPersistentDataStorage(allowPersistentDataStorage),
+    _receiver(receiver),
+    _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
+    _sendNotificationListener(sendNotificationListener),
+    _timeStamp(initialTimeStamp),
+    _timeStampSource(timeStampSource),
+    _uniqueId(uniqueId),
+    _versionNumber(initialVersionNumber)
+  {
+    ChimeraTK::ExperimentalFeatures::check("BidirectionalProcessArray");
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
     if (sender && !_sender) {
