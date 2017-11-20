@@ -22,7 +22,7 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
-  
+
   /**
    * Implementation of the process array that transports data in a single
    * direction. This implementation is used for both sides (sender and
@@ -93,7 +93,7 @@ namespace ChimeraTK {
     bool doReadTransferLatest() override;
 
     mtca4u::TransferFuture& readAsync() override;
-    
+
     void postRead() override;
 
     bool write(ChimeraTK::VersionNumber versionNumber={}) override;
@@ -542,12 +542,12 @@ namespace ChimeraTK {
     }
     this->shutdown();
   }
-    
+
 /*********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
-    
+
     // Obtain future and wait until transfer is complete. Do not yet call postRead(), so do not call
     // TransferFuture::wait().
     readAsync().getBoostFuture().wait();
@@ -617,17 +617,17 @@ namespace ChimeraTK {
     // blocking and there is valid data to be read in the atomic triple buffer.
     // This is only a preformance optimisation, we would generate the same future again.
     if(mtca4u::TransferElement::hasActiveFuture) return mtca4u::TransferElement::activeFuture;
-    
+
     if (!this->isReadable()) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
-    
+
     // Obtain future from queue but do not pop it yet, since we need to determine first whether to use it nor not.
     // The future will only be popped from the queue in postRead(). This makes sure that subsequent calls to this
     // function even if the future has not yet been used still result in the correct behaviour.
     assert(_sharedState->_fullBufferQueue.read_available() > 0);   // guaranteed by our logic
     TransferFuture::PlainFutureType future = _sharedState->_fullBufferQueue.front();
-    
+
     // if the future blocks, check for data in the tripple buffer
     auto status = future.wait_for(boost::chrono::duration<int, boost::centi>(0));
     if(status == boost::future_status::timeout) {
@@ -640,14 +640,14 @@ namespace ChimeraTK {
         future = boost::make_ready_future(static_cast<TransferFuture::Data*>(_tripleBufferIndex)).share();
       }
     }
-    
+
     // return the future
     mtca4u::TransferElement::activeFuture.reset(future, static_cast<mtca4u::TransferElement*>(this));
     mtca4u::TransferElement::hasActiveFuture = true;
     return mtca4u::TransferElement::activeFuture;
 
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -662,15 +662,15 @@ namespace ChimeraTK {
       throw std::runtime_error("Cannot run read operation because the size of the vector belonging to the current"
                                 " buffer has been modified.");
     }
-    
+
     // If local buffer of triple buffer is invalid, swap with shared buffer first
     if(!(_tripleBufferIndex->_isValid)) {
       _tripleBufferIndex = _sharedState->_tripleBufferIndex.exchange(_tripleBufferIndex);
     }
-    
+
     // Determine version number of data in the triple buffer
     bool tripleBufferHasData = _tripleBufferIndex->_isValid;
-    
+
     // Determine version number of data in the queue
     assert(_sharedState->_fullBufferQueue.read_available() > 0);   // guaranteed by our logic
     TransferFuture::PlainFutureType future = _sharedState->_fullBufferQueue.front();
@@ -750,7 +750,7 @@ namespace ChimeraTK {
             _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
         versionNumber, false);
   }
-  
+
   /*********************************************************************************************************************/
 
     template<class T>
@@ -781,7 +781,7 @@ namespace ChimeraTK {
         write();
     }
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -812,18 +812,18 @@ namespace ChimeraTK {
     if(_persistentDataStorage) {
       _persistentDataStorage->updateValue(_persistentDataStorageID, mtca4u::NDRegisterAccessor<T>::buffer_2D[0]);
     }
-    
+
     // Before sending the value, we have to set the associated time-stamp.
     _currentIndex->timeStamp = newTimeStamp;
-    
+
     // set the version numbers
     _currentIndex->_versionNumber = newVersionNumber;
     _currentIndex->_internalVersionNumber = _lastInternalVersionNumber;
     ++_lastInternalVersionNumber;
-    
+
     // flag current data as valid
     _currentIndex->_isValid = true;
-    
+
     // set the data by copying or swapping
     if(shouldCopy) {
       _currentIndex->value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
@@ -854,14 +854,14 @@ namespace ChimeraTK {
         _tripleBufferIndex->_isValid = false;
       }
     }
-    
+
     // change current index to the new empty buffer
     if(shouldCopy) {
       nextIndex->timeStamp = newTimeStamp;
       nextIndex->_versionNumber = newVersionNumber;
     }
     _currentIndex = nextIndex;
-    
+
     // notify send notification listener, if present
     if(_sendNotificationListener) {
       _sendNotificationListener->notify(_receiver);
