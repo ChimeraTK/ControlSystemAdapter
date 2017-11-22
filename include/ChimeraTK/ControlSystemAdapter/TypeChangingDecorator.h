@@ -51,8 +51,6 @@ namespace ChimeraTK {
    *
    * This is the base class which has pure virtual convertAndCopyFromImpl and convertAndCopyToImpl functions.
    * Apart from this it implements all decorating functions which just pass through to the impl.
-   * It intentionally does not call shutdown in the constructor in order not to shadow the
-   * shutdown detection for the child classes, so it is not forgotten there.
    *
    * This class is not thread-safe and should only be used from a single thread.
    *
@@ -94,6 +92,10 @@ namespace ChimeraTK {
 
     bool doReadTransferLatest() override{
       return _impl->doReadTransferLatest();
+    }
+
+    ChimeraTK::TransferFuture& readAsync() override {
+      return _impl->readAsync();
     }
 
     virtual void convertAndCopyFromImpl() = 0;
@@ -154,8 +156,7 @@ namespace ChimeraTK {
     boost::shared_ptr< mtca4u::NDRegisterAccessor<IMPL_T> > _impl;
   };
 
-  /** This class is intended as a base class and intentionally does not call shutdown in the destructor in order not to shadow the
-   *  shutdown detection for the child classes, so it is not forgotten there.
+  /** This class is intended as a base class.
    *  It provides only partial template specialisations for the string stuff. Don't directly instantiate this class. The factory would
    *  fail when looping over all implementation types.
    */
@@ -228,9 +229,6 @@ namespace ChimeraTK {
     using TypeChangingStringImplDecorator<T, IMPL_T>::TypeChangingStringImplDecorator;
     virtual void convertAndCopyFromImpl();
     virtual void convertAndCopyToImpl();
-    virtual ~TypeChangingRangeCheckingDecorator(){
-      this->shutdown();
-    }
     DecoratorType getDecoratorType() const override{
       return DecoratorType::range_checking;
     }
@@ -262,9 +260,6 @@ namespace ChimeraTK {
     }
     virtual void convertAndCopyToImpl(){
       TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl();
-    }
-    virtual ~TypeChangingRangeCheckingDecorator(){
-      this->shutdown();
     }
     DecoratorType getDecoratorType() const override{
       return DecoratorType::range_checking;
@@ -348,9 +343,6 @@ namespace ChimeraTK {
         }
       }
     }
-    ~TypeChangingDirectCastDecorator(){
-      this->shutdown();
-    }
   };
 
   /** Partial template specialisation for strings as impl type.
@@ -364,9 +356,6 @@ namespace ChimeraTK {
     }
     virtual void convertAndCopyToImpl(){
       TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl();
-    }
-    virtual ~TypeChangingDirectCastDecorator(){
-      this->shutdown();
     }
     DecoratorType getDecoratorType() const override{
       return DecoratorType::C_style_conversion;

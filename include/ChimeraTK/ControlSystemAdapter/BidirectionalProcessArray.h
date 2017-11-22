@@ -22,7 +22,7 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
-  
+
   /**
    * Creates a bidirectional synchronized process array. A bidirectional
    * synchronized process array works as a pair of two process arrays, where
@@ -63,7 +63,7 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
-   * 
+   *
    * Note: biderectional process arrays are still experimental, so experimental
    * features must be enable when using this function (see
    * ChimeraTK::ExperimentalFeatures in DeviceAccess).
@@ -122,7 +122,7 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
-   * 
+   *
    * Note: biderectional process arrays are still experimental, so experimental
    * features must be enable when using this function (see
    * ChimeraTK::ExperimentalFeatures in DeviceAccess).
@@ -147,7 +147,7 @@ namespace ChimeraTK {
    * directions.
    *
    * This class is not thread-safe and should only be used from a single thread.
-   * 
+   *
    * Note: biderectional process arrays are still experimental, so experimental
    * features must be enable when using this class (see
    * ChimeraTK::ExperimentalFeatures in DeviceAccess).
@@ -192,8 +192,6 @@ namespace ChimeraTK {
         ProcessVariableListener::SharedPtr sendNotificationListener,
         TimeStamp initialTimeStamp, VersionNumber initialVersionNumber);
 
-    ~BidirectionalProcessArray();
-
     TimeStamp getTimeStamp() const override {
       return _timeStamp;
     }
@@ -209,7 +207,7 @@ namespace ChimeraTK {
     bool doReadTransferLatest() override;
 
     mtca4u::TransferFuture& readAsync() override;
-    
+
     void postRead() override;
 
     bool write(ChimeraTK::VersionNumber versionNumber={}) override;
@@ -365,11 +363,6 @@ namespace ChimeraTK {
     mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->accessChannel(0);
   }
 
-  template<class T>
-  BidirectionalProcessArray<T>::~BidirectionalProcessArray() {
-    this->shutdown();
-  }
-    
 /*********************************************************************************************************************/
 
   template<class T>
@@ -397,7 +390,7 @@ namespace ChimeraTK {
   mtca4u::TransferFuture& BidirectionalProcessArray<T>::readAsync() {
     return _receiver->readAsync();
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -467,7 +460,7 @@ namespace ChimeraTK {
     throw std::runtime_error(
         "This process variable must not be sent destructively because it is a bidirectional process variable.");
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -491,7 +484,7 @@ namespace ChimeraTK {
       write();
     }
   }
-  
+
 /*********************************************************************************************************************/
 /*** Implementations of non-member functions below this line *********************************************************/
 /*********************************************************************************************************************/
