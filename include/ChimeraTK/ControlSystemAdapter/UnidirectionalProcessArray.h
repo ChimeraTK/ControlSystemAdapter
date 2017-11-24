@@ -90,7 +90,7 @@ namespace ChimeraTK {
 
     bool doReadTransferLatest() override;
 
-    mtca4u::TransferFuture& readAsync() override;
+    mtca4u::TransferFuture readAsync() override;
 
     void postRead() override;
 
@@ -150,6 +150,14 @@ namespace ChimeraTK {
      *  persistent accross executions of the process. */
     size_t getUniqueId() const override {
       return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
+    }
+
+    bool asyncTransferActive() override {
+      return hasActiveFuture;
+    }
+
+    void clearAsyncTransferActive() override {
+      hasActiveFuture = false;
     }
 
   private:
@@ -308,6 +316,11 @@ namespace ChimeraTK {
      * The last future returned by readAsync
      */
     mtca4u::TransferFuture activeFuture;
+
+    /**
+     * Flag whether acviteFuture is valid
+     */
+    bool hasActiveFuture{false};
 
     /**
      * Variable ID for the persistent data storage
@@ -531,13 +544,8 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-
-    // Obtain future and check if a transfer is complete.
-    auto theFuture = readAsync().getBoostFuture();
-    auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
-    if(status == boost::future_status::timeout) return false;
-    return true;
-
+    bool ret = readAsync().hasNewData();
+    return ret;
   }
 
 /*********************************************************************************************************************/
@@ -554,7 +562,7 @@ namespace ChimeraTK {
       // discard data by moving the buffer to the empty buffer queue
       TransferFuture::Data *discardedBuffer = theFuture.get();
       _sharedState->_fullBufferQueue.pop();
-      mtca4u::TransferElement::hasActiveFuture = false;
+      hasActiveFuture = false;
       _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
       theFuture = readAsync().getBoostFuture();
     }
@@ -583,12 +591,12 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture& UnidirectionalProcessArray<T>::readAsync() {
+  mtca4u::TransferFuture UnidirectionalProcessArray<T>::readAsync() {
 
     // If we already have a still-active future, we can return it directly. It is not possible that this future is
     // blocking and there is valid data to be read in the atomic triple buffer.
     // This is only a preformance optimisation, we would generate the same future again.
-    if(mtca4u::TransferElement::hasActiveFuture) return activeFuture;
+    if(hasActiveFuture) return activeFuture;
 
     if (!this->isReadable()) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
@@ -614,8 +622,8 @@ namespace ChimeraTK {
     }
 
     // return the future
-    activeFuture.reset(future, static_cast<mtca4u::TransferElement*>(this));
-    mtca4u::TransferElement::hasActiveFuture = true;
+    activeFuture = TransferFuture(future, this);
+    hasActiveFuture = true;
     return activeFuture;
 
   }
@@ -625,7 +633,9 @@ namespace ChimeraTK {
   template<class T>
   void UnidirectionalProcessArray<T>::postRead() {
 
-    mtca4u::TransferElement::hasActiveFuture = false;
+    // need to reset the hasActiveFuture flag ourselves, since we internally always use readAsync, but
+    // TransferFuture::wait() is not always called then.
+    hasActiveFuture = false;
 
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into

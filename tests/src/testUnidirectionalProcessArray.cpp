@@ -164,7 +164,7 @@ namespace ChimeraTK {
     for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
-    
+
   }
 
   template<class T>
@@ -242,7 +242,6 @@ namespace ChimeraTK {
         createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-
     // If we send three values consecutively, they all should be received because the queue length is two and there is
     // the additional atomic triple buffer holding a third value
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER);
@@ -388,7 +387,7 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
     BOOST_CHECK(receiver->accessChannel(0)[0] == 5);
-    
+
     // provoke buffer overrun, read until the queue is empty (but triple buffer still has value) and put a new element
     // into the queue
     for(int i=0; i<10; ++i) {
@@ -458,7 +457,7 @@ namespace ChimeraTK {
     sender->write();
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
-    
+
     // readLatest with no element in the queue will return false and not change the value
     BOOST_CHECK(!receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 42);
@@ -500,7 +499,7 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 119);
     BOOST_CHECK(!(receiver->readNonBlocking()));
-    
+
     // provoke buffer overrun, read until the queue is empty (but triple buffer still has value) and put a new element
     // into the queue - which should then be read by readLatest
     for(int i=0; i<10; ++i) {
@@ -516,8 +515,8 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 12);
     BOOST_CHECK(!(receiver->readLatest()));
-    
-    
+
+
   }
 
 }  //namespace ChimeraTK
