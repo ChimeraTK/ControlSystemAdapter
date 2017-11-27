@@ -27,6 +27,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
   // Test that a delayed incoming update with an older version does not
   // overwrite a newer version.
   BOOST_AUTO_TEST_CASE( testConflictingUpdates ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
     DoubleArray::SharedPtr pv1, pv2;
     double initialValue = 3.5;
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
@@ -81,6 +83,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
 
   // Test that send notification listeners are called correctly.
   BOOST_AUTO_TEST_CASE( testListeners ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
     DoubleArray::SharedPtr pv1, pv2;
     TimeStampSource::SharedPtr nullTimeStampSource;
     auto listener1 = make_shared<CountingProcessVariableListener>();
@@ -115,6 +119,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
 
   // Test that the data-transfer mechanism works.
   BOOST_AUTO_TEST_CASE( testSync ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
     DoubleArray::SharedPtr pv1, pv2;
     // We use the same time-stamp source for both sides. The counting time-stamp
     // source is not thread-safe, but we use the same thread for both sides, so
@@ -194,6 +200,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
 
   // Test that time-stamp source are used correctly.
   BOOST_AUTO_TEST_CASE( testTimeStampSources ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
     DoubleArray::SharedPtr pv1, pv2;
     auto timeStampSource1 = make_shared<CountingTimeStampSource>();
     auto timeStampSource2 = make_shared<CountingTimeStampSource>();

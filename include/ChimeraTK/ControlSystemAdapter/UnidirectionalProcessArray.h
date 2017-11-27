@@ -22,7 +22,7 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
-  
+
   /**
    * Implementation of the process array that transports data in a single
    * direction. This implementation is used for both sides (sender and
@@ -76,8 +76,6 @@ namespace ChimeraTK {
         ProcessVariableListener::SharedPtr sendNotificationListener,
         UnidirectionalProcessArray::SharedPtr receiver);
 
-    ~UnidirectionalProcessArray();
-
     TimeStamp getTimeStamp() const override {
       return _currentIndex->timeStamp;
     }
@@ -92,11 +90,11 @@ namespace ChimeraTK {
 
     bool doReadTransferLatest() override;
 
-    mtca4u::TransferFuture& readAsync() override;
-    
+    mtca4u::TransferFuture readAsync() override;
+
     void postRead() override;
 
-    bool write(ChimeraTK::VersionNumber versionNumber={}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -152,6 +150,14 @@ namespace ChimeraTK {
      *  persistent accross executions of the process. */
     size_t getUniqueId() const override {
       return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
+    }
+
+    bool asyncTransferActive() override {
+      return hasActiveFuture;
+    }
+
+    void clearAsyncTransferActive() override {
+      hasActiveFuture = false;
     }
 
   private:
@@ -264,8 +270,7 @@ namespace ChimeraTK {
 
       /**
       * The promise corresponding to the unfulfilled future in the _fullBufferQueue.
-      * This promise is basically only used by the sender. Only in the destructor of the receiver it is used to
-      * shutdown properly, thus it must be in the shared state.
+      * This promise is basically only used by the sender.
       */
       TransferFuture::PromiseType _notificationPromise;
 
@@ -306,6 +311,16 @@ namespace ChimeraTK {
      * Persistent data storage which needs to be informed when the process variable is sent.
      */
     boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+
+    /**
+     * The last future returned by readAsync
+     */
+    mtca4u::TransferFuture activeFuture;
+
+    /**
+     * Flag whether acviteFuture is valid
+     */
+    bool hasActiveFuture{false};
 
     /**
      * Variable ID for the persistent data storage
@@ -402,7 +417,7 @@ namespace ChimeraTK {
    *
    * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
    * <code>false</code> by default), the {@link ProcessArray::writeDestructively()} method may
-   * be used to transfer values without copying but losing them on the sender
+   * be used to transfer values without copying but losing them on the senderdoWriteTransfer
    * side.
    *
    * The specified time-stamp source is used for determining the current time
@@ -442,45 +457,40 @@ namespace ChimeraTK {
           initialValue.size()), _maySendDestructively(false), _sharedState(
           boost::make_shared<SharedState>(numberOfBuffers)), _currentIndex(
           &(_sharedState->_buffers[0])), _tripleBufferIndex(
-          &(_sharedState->_buffers[4])) {
-    try {
-      // allocate and initialise buffer of the base class
-      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
-      // It would be better to do the validation before initializing, but this
-      // would mean that we would have to initialize twice.
-      if (!this->isReadable()) {
-        throw std::invalid_argument("This constructor may only be used for a receiver process variable.");
-      }
-      // We need at least two buffers for the queue (so four buffers in total)
-      // in order to guarantee that we never have to block.
-      if (numberOfBuffers < 2) {
-        throw std::invalid_argument("The number of buffers must be at least two.");
-      }
-      // We have to limit the number of buffers because we cannot allocate
-      // more buffers than can be represented by size_t and the total number
-      // of buffers is the specified number plus two. These extra two buffers
-      // are needed because the sender and the receiver each hold one buffer
-      // at all times and thus only the rest remains for the queue. We use
-      // this definition of the number of buffers to keep it consistent with
-      // what ProcessScalarImpl uses.
-      if (numberOfBuffers > (std::numeric_limits<std::size_t>::max() - (2+3))) {
-        throw std::invalid_argument("The number of buffers is too large.");
-      }
-      // We have to initialize the buffers by copying in the initial vectors.
-      for (auto &i : _sharedState->_buffers) {
-        i.value = initialValue;
-      }
-      // The buffer with the index 0 is assigned to the receiver and the buffer with the index 1 is assigned to the
-      // sender. Indices 2-4 are assigned to the atomic triple buffer (for detailed assignment see definition of
-      // atomic triple buffer in the shared state). All other buffers have to be added to the empty-buffer queue.
-      for (std::size_t i = 2+3; i < _sharedState->_buffers.size(); ++i) {
-        _sharedState->_emptyBufferQueue.push(&(_sharedState->_buffers[i]));
-      }
+          &(_sharedState->_buffers[4]))
+  {
+    // allocate and initialise buffer of the base class
+    mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+    mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
+    // It would be better to do the validation before initializing, but this
+    // would mean that we would have to initialize twice.
+    if (!this->isReadable()) {
+      throw std::invalid_argument("This constructor may only be used for a receiver process variable.");
     }
-    catch(...) {
-      this->shutdown();
-      throw;
+    // We need at least two buffers for the queue (so four buffers in total)
+    // in order to guarantee that we never have to block.
+    if (numberOfBuffers < 2) {
+      throw std::invalid_argument("The number of buffers must be at least two.");
+    }
+    // We have to limit the number of buffers because we cannot allocate
+    // more buffers than can be represented by size_t and the total number
+    // of buffers is the specified number plus two. These extra two buffers
+    // are needed because the sender and the receiver each hold one buffer
+    // at all times and thus only the rest remains for the queue. We use
+    // this definition of the number of buffers to keep it consistent with
+    // what ProcessScalarImpl uses.
+    if (numberOfBuffers > (std::numeric_limits<std::size_t>::max() - (2+3))) {
+      throw std::invalid_argument("The number of buffers is too large.");
+    }
+    // We have to initialize the buffers by copying in the initial vectors.
+    for (auto &i : _sharedState->_buffers) {
+      i.value = initialValue;
+    }
+    // The buffer with the index 0 is assigned to the receiver and the buffer with the index 1 is assigned to the
+    // sender. Indices 2-4 are assigned to the atomic triple buffer (for detailed assignment see definition of
+    // atomic triple buffer in the shared state). All other buffers have to be added to the empty-buffer queue.
+    for (std::size_t i = 2+3; i < _sharedState->_buffers.size(); ++i) {
+      _sharedState->_emptyBufferQueue.push(&(_sharedState->_buffers[i]));
     }
   }
 
@@ -497,57 +507,32 @@ namespace ChimeraTK {
           maySendDestructively), _sharedState(receiver->_sharedState), _currentIndex(
           &(_sharedState->_buffers[1])), _tripleBufferIndex(
           &(_sharedState->_buffers[2])), _receiver(receiver), _timeStampSource(
-          timeStampSource), _sendNotificationListener(sendNotificationListener) {
-    try {
-      // It would be better to do the validation before initializing, but this
-      // would mean that we would have to initialize twice.
-      if (!this->isWriteable()) {
-        throw std::invalid_argument("This constructor may only be used for a sender process variable.");
-      }
-      if (!receiver) {
-        throw std::invalid_argument("The pointer to the receiver must not be null.");
-      }
-      if (!receiver->isReadable()) {
-        throw std::invalid_argument(
-            "The pointer to the receiver must point to an instance that is actually a receiver.");
-      }
-      // allocate and initialise buffer of the base class
-      mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-      mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
-      // put future into the notification queue
-      _sharedState->_fullBufferQueue.push(_sharedState->_notificationPromise.get_future());
+          timeStampSource), _sendNotificationListener(sendNotificationListener)
+  {
+    // It would be better to do the validation before initializing, but this
+    // would mean that we would have to initialize twice.
+    if (!this->isWriteable()) {
+      throw std::invalid_argument("This constructor may only be used for a sender process variable.");
     }
-    catch(...) {
-      this->shutdown();
-      throw;
+    if (!receiver) {
+      throw std::invalid_argument("The pointer to the receiver must not be null.");
     }
+    if (!receiver->isReadable()) {
+      throw std::invalid_argument(
+          "The pointer to the receiver must point to an instance that is actually a receiver.");
+    }
+    // allocate and initialise buffer of the base class
+    mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
+    mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
+    // put future into the notification queue
+    _sharedState->_fullBufferQueue.push(_sharedState->_notificationPromise.get_future());
   }
 
-/*********************************************************************************************************************/
-
-  template<class T>
-  UnidirectionalProcessArray<T>::~UnidirectionalProcessArray() {
-    // if this is a receiver, shutdown a potentially running readAsync
-    if(this->isReadable()) {
-      if(this->readAsyncThread.joinable()) {
-        this->readAsyncThread.interrupt();
-        try {
-          _sharedState->_notificationPromise.set_value(0);
-        }
-        catch(boost::promise_already_satisfied) {
-          // ignore -> already notified
-        }
-        this->readAsyncThread.join();
-      }
-    }
-    this->shutdown();
-  }
-    
 /*********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
-    
+
     // Obtain future and wait until transfer is complete. Do not yet call postRead(), so do not call
     // TransferFuture::wait().
     readAsync().getBoostFuture().wait();
@@ -559,19 +544,15 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-
-    // Obtain future and check if a transfer is complete.
-    auto theFuture = readAsync().getBoostFuture();
-    auto status = theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0));
-    if(status == boost::future_status::timeout) return false;
-    return true;
-
+    bool ret = readAsync().hasNewData();
+    return ret;
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
+
     // As long as there is more than one valid element on the queue, discard it.
     // Due to our implementation there is always one unfulfilled future in the queue, so
     // we must pop until there are two elements left in order not to flush out the newest valid value.
@@ -581,7 +562,7 @@ namespace ChimeraTK {
       // discard data by moving the buffer to the empty buffer queue
       TransferFuture::Data *discardedBuffer = theFuture.get();
       _sharedState->_fullBufferQueue.pop();
-      mtca4u::TransferElement::hasActiveFuture = false;
+      hasActiveFuture = false;
       _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
       theFuture = readAsync().getBoostFuture();
     }
@@ -610,23 +591,23 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture& UnidirectionalProcessArray<T>::readAsync() {
+  mtca4u::TransferFuture UnidirectionalProcessArray<T>::readAsync() {
 
     // If we already have a still-active future, we can return it directly. It is not possible that this future is
     // blocking and there is valid data to be read in the atomic triple buffer.
     // This is only a preformance optimisation, we would generate the same future again.
-    if(mtca4u::TransferElement::hasActiveFuture) return mtca4u::TransferElement::activeFuture;
-    
+    if(hasActiveFuture) return activeFuture;
+
     if (!this->isReadable()) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
-    
+
     // Obtain future from queue but do not pop it yet, since we need to determine first whether to use it nor not.
     // The future will only be popped from the queue in postRead(). This makes sure that subsequent calls to this
     // function even if the future has not yet been used still result in the correct behaviour.
     assert(_sharedState->_fullBufferQueue.read_available() > 0);   // guaranteed by our logic
     TransferFuture::PlainFutureType future = _sharedState->_fullBufferQueue.front();
-    
+
     // if the future blocks, check for data in the tripple buffer
     auto status = future.wait_for(boost::chrono::duration<int, boost::centi>(0));
     if(status == boost::future_status::timeout) {
@@ -639,19 +620,22 @@ namespace ChimeraTK {
         future = boost::make_ready_future(static_cast<TransferFuture::Data*>(_tripleBufferIndex)).share();
       }
     }
-    
+
     // return the future
-    mtca4u::TransferElement::activeFuture.reset(future, static_cast<mtca4u::TransferElement*>(this));
-    mtca4u::TransferElement::hasActiveFuture = true;
-    return mtca4u::TransferElement::activeFuture;
+    activeFuture = TransferFuture(future, this);
+    hasActiveFuture = true;
+    return activeFuture;
 
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::postRead() {
-    mtca4u::TransferElement::hasActiveFuture = false;
+
+    // need to reset the hasActiveFuture flag ourselves, since we internally always use readAsync, but
+    // TransferFuture::wait() is not always called then.
+    hasActiveFuture = false;
 
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into
@@ -660,15 +644,15 @@ namespace ChimeraTK {
       throw std::runtime_error("Cannot run read operation because the size of the vector belonging to the current"
                                 " buffer has been modified.");
     }
-    
+
     // If local buffer of triple buffer is invalid, swap with shared buffer first
     if(!(_tripleBufferIndex->_isValid)) {
       _tripleBufferIndex = _sharedState->_tripleBufferIndex.exchange(_tripleBufferIndex);
     }
-    
+
     // Determine version number of data in the triple buffer
     bool tripleBufferHasData = _tripleBufferIndex->_isValid;
-    
+
     // Determine version number of data in the queue
     assert(_sharedState->_fullBufferQueue.read_available() > 0);   // guaranteed by our logic
     TransferFuture::PlainFutureType future = _sharedState->_fullBufferQueue.front();
@@ -676,12 +660,7 @@ namespace ChimeraTK {
     bool queueHasData = (status != boost::future_status::timeout);
 
     // If postRead() has been called, there should be new data somewhere
-    /// @todo FIXME find this problem and make an assert again!
-    //assert(queueHasData || tripleBufferHasData);
-    if(!(queueHasData || tripleBufferHasData)) {
-      std::cout << "ERROR: assert(queueHasData || tripleBufferHasData) failed! Waiting for new data..." << std::endl;
-      future.wait();
-    }
+    assert(queueHasData || tripleBufferHasData);
 
     // Determine whether to use the data from the queue or from the triple buffer. If in both places data is present,
     // use the older data (by the version number).
@@ -731,7 +710,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::write(
+  bool UnidirectionalProcessArray<T>::doWriteTransfer(
       ChimeraTK::VersionNumber versionNumber) {
     return writeInternal(
         _timeStampSource ?
@@ -753,7 +732,7 @@ namespace ChimeraTK {
             _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
         versionNumber, false);
   }
-  
+
   /*********************************************************************************************************************/
 
     template<class T>
@@ -781,10 +760,10 @@ namespace ChimeraTK {
                                   mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
     if(sendInitialValue) {
         mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-        write();
+        doWriteTransfer();
     }
   }
-  
+
 /*********************************************************************************************************************/
 
   template<class T>
@@ -815,18 +794,18 @@ namespace ChimeraTK {
     if(_persistentDataStorage) {
       _persistentDataStorage->updateValue(_persistentDataStorageID, mtca4u::NDRegisterAccessor<T>::buffer_2D[0]);
     }
-    
+
     // Before sending the value, we have to set the associated time-stamp.
     _currentIndex->timeStamp = newTimeStamp;
-    
+
     // set the version numbers
     _currentIndex->_versionNumber = newVersionNumber;
     _currentIndex->_internalVersionNumber = _lastInternalVersionNumber;
     ++_lastInternalVersionNumber;
-    
+
     // flag current data as valid
     _currentIndex->_isValid = true;
-    
+
     // set the data by copying or swapping
     if(shouldCopy) {
       _currentIndex->value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
@@ -857,14 +836,14 @@ namespace ChimeraTK {
         _tripleBufferIndex->_isValid = false;
       }
     }
-    
+
     // change current index to the new empty buffer
     if(shouldCopy) {
       nextIndex->timeStamp = newTimeStamp;
       nextIndex->_versionNumber = newVersionNumber;
     }
     _currentIndex = nextIndex;
-    
+
     // notify send notification listener, if present
     if(_sendNotificationListener) {
       _sendNotificationListener->notify(_receiver);
