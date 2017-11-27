@@ -61,6 +61,10 @@ namespace ChimeraTK {
     virtual void convertAndCopyFromImpl() = 0;
     virtual void convertAndCopyToImpl() = 0;
 
+    void preRead() override {
+      _target->preRead();
+    }
+
     void postRead() override {
       _target->postRead();
       convertAndCopyFromImpl();
@@ -72,13 +76,7 @@ namespace ChimeraTK {
     }
 
     void postWrite() override {
-    }
-
-    bool write(ChimeraTK::VersionNumber versionNumber={}) override {
-      // don't call preWrite() here. It would trigger the preWrite on the target, which is also
-      // happening when _target()->write() is called.
-      convertAndCopyToImpl();
-      return _target->write(versionNumber);
+      _target->postWrite();
     }
 
   protected:

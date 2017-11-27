@@ -210,7 +210,7 @@ namespace ChimeraTK {
 
     void postRead() override;
 
-    bool write(ChimeraTK::VersionNumber versionNumber={}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -430,7 +430,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool BidirectionalProcessArray<T>::write(
+  bool BidirectionalProcessArray<T>::doWriteTransfer(
       ChimeraTK::VersionNumber versionNumber) {
     // We have to copy our current value to the sender. We cannot swap it
     // because this would mean that we would lose the current value.
@@ -489,7 +489,7 @@ namespace ChimeraTK {
     if (sendInitialValue) {
       mtca4u::NDRegisterAccessor<T>::buffer_2D[0] =
           _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-      write();
+      doWriteTransfer();
     }
   }
 

@@ -94,7 +94,7 @@ namespace ChimeraTK {
 
     void postRead() override;
 
-    bool write(ChimeraTK::VersionNumber versionNumber={}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -417,7 +417,7 @@ namespace ChimeraTK {
    *
    * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
    * <code>false</code> by default), the {@link ProcessArray::writeDestructively()} method may
-   * be used to transfer values without copying but losing them on the sender
+   * be used to transfer values without copying but losing them on the senderdoWriteTransfer
    * side.
    *
    * The specified time-stamp source is used for determining the current time
@@ -710,7 +710,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::write(
+  bool UnidirectionalProcessArray<T>::doWriteTransfer(
       ChimeraTK::VersionNumber versionNumber) {
     return writeInternal(
         _timeStampSource ?
@@ -760,7 +760,7 @@ namespace ChimeraTK {
                                   mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
     if(sendInitialValue) {
         mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-        write();
+        doWriteTransfer();
     }
   }
 
