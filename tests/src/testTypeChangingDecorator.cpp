@@ -107,7 +107,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   anotherScalarAccessor = startReadValue+2;
   anotherScalarAccessor.write();
   
-  auto & future = decoratedScalar.readAsync();
+  auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
   BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue+1) );
   future.wait(); // this calls the post-reads correctly
