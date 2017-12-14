@@ -208,7 +208,7 @@ namespace ChimeraTK {
 
     mtca4u::TransferFuture readAsync() override;
 
-    void postRead() override;
+    void doPostRead() override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
@@ -402,7 +402,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::postRead() {
+  void BidirectionalProcessArray<T>::doPostRead() {
     _receiver->postRead();
     // We only update the current value (stored in the sender) when the version
     // number of the data that we received is greater than the current version

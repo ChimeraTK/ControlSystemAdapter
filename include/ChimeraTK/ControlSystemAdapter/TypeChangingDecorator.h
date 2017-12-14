@@ -61,22 +61,31 @@ namespace ChimeraTK {
     virtual void convertAndCopyFromImpl() = 0;
     virtual void convertAndCopyToImpl() = 0;
 
-    void preRead() override {
+    void doPreRead() override {
       _target->preRead();
     }
 
-    void postRead() override {
+    void doPostRead() override {
       _target->postRead();
       convertAndCopyFromImpl();
     }
 
-    void preWrite() override {
+    void doPreWrite() override {
       convertAndCopyToImpl();
       _target->preWrite();
     }
 
-    void postWrite() override {
+    void doPostWrite() override {
       _target->postWrite();
+    }
+
+    bool mayReplaceOther(const boost::shared_ptr<mtca4u::TransferElement const> &other) const override {
+      if(other.get() == this) return false;
+      auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T,IMPL_T> const>(other);
+      if(!casted) return false;
+      // the TypeChangingeDecorator implementations have no internal state and just depend on the template parameters,
+      // thus we don't need to check anything else here...
+      return true;
     }
 
   protected:
@@ -155,11 +164,12 @@ namespace ChimeraTK {
   class TypeChangingRangeCheckingDecorator: public TypeChangingStringImplDecorator<T, IMPL_T>{
   public:
     using TypeChangingStringImplDecorator<T, IMPL_T>::TypeChangingStringImplDecorator;
-    virtual void convertAndCopyFromImpl();
-    virtual void convertAndCopyToImpl();
+    void convertAndCopyFromImpl() override;
+    void convertAndCopyToImpl() override;
     DecoratorType getDecoratorType() const override{
       return DecoratorType::range_checking;
     }
+
   private:
     /** Internal exceptions to overload the what() function of the boost exceptions in order to fill in the variable name.
      *  These exceptions are not part of the external interface and cannot be caught explicitly because they are protected.
@@ -339,7 +349,7 @@ namespace ChimeraTK {
       // The decorator has to have a matching type, otherwise we can only throw
       auto castedType = boost::dynamic_pointer_cast<mtca4u::NDRegisterAccessor<UserType>>(decoratorMapEntry->second);
       if (castedType){// User type matches,  but the decorator type also has to match
-        auto decoTypeHolder = boost::dynamic_pointer_cast<DecoratorTypeHolder>(decoratorMapEntry->second);
+        auto decoTypeHolder = boost::dynamic_pointer_cast<DecoratorTypeHolder>(decoratorMapEntry->second);  /// @todo eliminate this cast and change map to hold DecoratorTypeHolder
         assert(decoTypeHolder);
         if (decoTypeHolder->getDecoratorType() == decoratorType){
           // decorator matches, return it

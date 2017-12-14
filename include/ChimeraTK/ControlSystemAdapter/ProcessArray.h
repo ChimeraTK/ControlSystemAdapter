@@ -22,7 +22,7 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
-  
+
   /**
    * Array version of the ProcessVariable. This class mainly exists for
    * historical reasons: Originally, there were different implementations for
@@ -87,7 +87,7 @@ namespace ChimeraTK {
     bool isReadOnly() const override {
       return !isWriteable();
     }
-  
+
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
      * empty buffer was available and <code>false</code> if no empty buffer was
@@ -122,15 +122,18 @@ namespace ChimeraTK {
       return true;
     }
 
-    bool isSameRegister(const boost::shared_ptr<const mtca4u::TransferElement>& e) const override {
-      // only true if the very instance of the transfer element is the same
-      return e.get() == this;
+    bool mayReplaceOther(const boost::shared_ptr<const mtca4u::TransferElement>&) const override {
+      return false;  // never true as we shall return false if instance is the same
     }
 
     std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
       return { boost::enable_shared_from_this<mtca4u::TransferElement>::shared_from_this() };
     }
-    
+
+    std::list<boost::shared_ptr<mtca4u::TransferElement>> getInternalElements() override {
+      return {};
+    }
+
     void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>) override {
       // You can't replace anything here. Just do nothing.
     }

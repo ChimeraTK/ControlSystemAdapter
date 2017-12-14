@@ -92,7 +92,7 @@ namespace ChimeraTK {
 
     mtca4u::TransferFuture readAsync() override;
 
-    void postRead() override;
+    void doPostRead() override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
@@ -631,7 +631,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::postRead() {
+  void UnidirectionalProcessArray<T>::doPostRead() {
 
     // need to reset the hasActiveFuture flag ourselves, since we internally always use readAsync, but
     // TransferFuture::wait() is not always called then.
