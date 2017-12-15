@@ -602,6 +602,10 @@ namespace ChimeraTK {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
 
+    // this is required to make sure postRead() can later run.
+    this->readTransactionInProgress = false;
+    this->preRead();
+
     // Obtain future from queue but do not pop it yet, since we need to determine first whether to use it nor not.
     // The future will only be popped from the queue in postRead(). This makes sure that subsequent calls to this
     // function even if the future has not yet been used still result in the correct behaviour.
