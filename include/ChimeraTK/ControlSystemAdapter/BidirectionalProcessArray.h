@@ -206,7 +206,7 @@ namespace ChimeraTK {
 
     bool doReadTransferLatest() override;
 
-    mtca4u::TransferFuture readAsync() override;
+    mtca4u::TransferFuture doReadTransferAsync() override;
 
     void doPostRead() override;
 
@@ -242,14 +242,6 @@ namespace ChimeraTK {
      * not be  persistent across executions of the process. */
     size_t getUniqueId() const override {
       return _uniqueId;
-    }
-
-    bool asyncTransferActive() override {
-      return _receiver->asyncTransferActive();
-    }
-
-    void clearAsyncTransferActive() override {
-      _receiver->clearAsyncTransferActive();
     }
 
   private:
@@ -395,7 +387,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture BidirectionalProcessArray<T>::readAsync() {
+  mtca4u::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
     return {_receiver->readAsync(), this};
   }
 

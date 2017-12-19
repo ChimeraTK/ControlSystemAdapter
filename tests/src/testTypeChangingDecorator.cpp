@@ -8,6 +8,7 @@ using namespace ChimeraTK;
 
 #include <mtca4u/Device.h>
 #include <mtca4u/TransferGroup.h>
+#include <mtca4u/ScalarRegisterAccessor.h>
 
 // always test close for floating point values. Don't rely on exact binary representations
 bool test_close(double a, double b, double tolerance = 0.0001){
@@ -246,30 +247,30 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
   wholeArray[1]=12346;
   wholeArray.write();
 
-  auto decorated0 = getDecorator<int>(partial0);
-  auto decorated1 = getDecorator<int>(partial1);
+  mtca4u::ScalarRegisterAccessor<int> decorated0(getDecorator<int>(partial0));
+  mtca4u::ScalarRegisterAccessor<int> decorated1(getDecorator<int>(partial1));
 
   TransferGroup group;
-  group.addAccessor(*decorated0);
-  group.addAccessor(*decorated1);
+  group.addAccessor(decorated0);
+  group.addAccessor(decorated1);
   group.read();
-  BOOST_CHECK( decorated0->accessData(0) == 12345 );
-  BOOST_CHECK( decorated1->accessData(0) == 12346 );
+  BOOST_CHECK( decorated0 == 12345 );
+  BOOST_CHECK( decorated1 == 12346 );
 
-  decorated0->accessData(0)=4321;
-  decorated1->accessData(0)=4322;
+/*  decorated0 = 4321;    // test disabled since TransferGroup is read-only. Reason: overlapping registers.
+  decorated1 = 4322;
   group.write();
 
   wholeArray.read();
   BOOST_CHECK( test_close( wholeArray[0], 4321) );
-  BOOST_CHECK( test_close( wholeArray[1], 4322) );
+  BOOST_CHECK( test_close( wholeArray[1], 4322) ); */
 }
 
 BOOST_AUTO_TEST_CASE( testFactory ){
   mtca4u::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  mtca4u::TransferElement & transferElement = scalar;
+  mtca4u::TransferElementAbstractor & transferElement = scalar;
 
   auto decoratedScalar = getDecorator<int>(transferElement);
   BOOST_CHECK( decoratedScalar );
