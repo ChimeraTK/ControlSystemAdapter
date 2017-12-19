@@ -30,7 +30,7 @@ namespace ChimeraTK {
    *  @param decoratorType The type of decorator you want (see description of DecoratorType)
    */
   template<class UserType>
-  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(boost::shared_ptr<mtca4u::TransferElement> &transferElement,
+  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<mtca4u::TransferElement> &transferElement,
                                                                        DecoratorType decoratorType =  DecoratorType::range_checking);
 
   template<class UserType>
@@ -347,7 +347,7 @@ namespace ChimeraTK {
 
   // the factory function. You don't have to care about the IMPL_Type when requesting a decorator. Implementation, declared at the top of this file
   template<class UserType>
-  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(boost::shared_ptr<mtca4u::TransferElement> transferElement,
+  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<mtca4u::TransferElement> &transferElement,
                                                                        DecoratorType decoratorType) {
 
     // check if there already is a decorator for the transfer element
