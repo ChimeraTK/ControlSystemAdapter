@@ -88,6 +88,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   BOOST_CHECK( !decoratedScalar.mayReplaceOther(anotherImplTAccessor.getHighLevelImplElement()) );
   auto anotherNdAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(anotherImplTAccessor.getHighLevelImplElement());
+  BOOST_CHECK(anotherNdAccessor->mayReplaceOther(ndAccessor)); // unrelated check just to make sure the test is doing the right thing...
   auto anotherDecoratedScalar = boost::make_shared<DECORATOR_TYPE<T, IMPL_T>>(anotherNdAccessor);
   BOOST_CHECK( decoratedScalar.mayReplaceOther(anotherDecoratedScalar) );
 
@@ -253,17 +254,18 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
   TransferGroup group;
   group.addAccessor(decorated0);
   group.addAccessor(decorated1);
+
   group.read();
   BOOST_CHECK( decorated0 == 12345 );
   BOOST_CHECK( decorated1 == 12346 );
 
-/*  decorated0 = 4321;    // test disabled since TransferGroup is read-only. Reason: overlapping registers.
+  decorated0 = 4321;
   decorated1 = 4322;
   group.write();
 
   wholeArray.read();
   BOOST_CHECK( test_close( wholeArray[0], 4321) );
-  BOOST_CHECK( test_close( wholeArray[1], 4322) ); */
+  BOOST_CHECK( test_close( wholeArray[1], 4322) );
 }
 
 BOOST_AUTO_TEST_CASE( testFactory ){

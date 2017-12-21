@@ -88,12 +88,9 @@ namespace ChimeraTK {
       }
 
       bool mayReplaceOther(const boost::shared_ptr<mtca4u::TransferElement const> &other) const override {
-        if(other.get() == this) return false;
         auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T,IMPL_T> const>(other);
         if(!casted) return false;
-        // the TypeChangingeDecorator implementations have no internal state and just depend on the template parameters,
-        // thus we don't need to check anything else here...
-        return true;
+        return _target->mayReplaceOther(casted->_target);
       }
 
     protected:
