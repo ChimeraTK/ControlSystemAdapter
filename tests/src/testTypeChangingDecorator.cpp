@@ -8,6 +8,7 @@ using namespace ChimeraTK;
 
 #include <mtca4u/Device.h>
 #include <mtca4u/TransferGroup.h>
+#include <mtca4u/ScalarRegisterAccessor.h>
 
 //function which can be called many times but only call enable() the first time
 void enableExperimental(){
@@ -47,7 +48,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   auto scalar = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   auto anotherScalarAccessor = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
   auto anotherImplTAccessor = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
-  
+
   auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(scalar.getHighLevelImplElement());
   DECORATOR_TYPE<T, IMPL_T> decoratedScalar(ndAccessor);
 
@@ -55,11 +56,11 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_REQUIRE( decoratedScalar.getNumberOfSamples()==1);
 
   BOOST_CHECK( decoratedScalar.getName() == "/SOME/SCALAR" );
-  
+
   BOOST_CHECK( decoratedScalar.isReadable() );
   BOOST_CHECK( decoratedScalar.isWriteable() );
   BOOST_CHECK( !decoratedScalar.isReadOnly() );
-  
+
   anotherScalarAccessor = startReadValue;
   anotherScalarAccessor.write();
   // check that the values are different at start so we know the test is sensitive
@@ -76,15 +77,19 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // repeat the read / write tests with all different functions
 
   // 1. The way a transfer group would call it:
+  /// @todo This is bad testing practise. It does not test whether the decorator works with a TransferGroup. This
+  /// becomes especially problematic when the behaviour of the TransferGroup is changed - in which case this test
+  /// does not notice the problem. Instead a real test with an actual TransferGroup should be implemented.
   anotherScalarAccessor = startReadValue+1;
   anotherScalarAccessor.write();
+  decoratedScalar.preRead();
   for (auto & hwAccessor : decoratedScalar.getHardwareAccessingElements()){
     hwAccessor->read();
   }
   // still nothing has changed on the user buffer
-  BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue) ); 
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue) );
   decoratedScalar.postRead();
-  BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue+1) );   
+  BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue+1) );
 
   decoratedScalar.accessData(0) = startWriteValue + 1 ;
   decoratedScalar.preWrite();
@@ -118,7 +123,11 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // implementation. Thus we intentionally do not call them to indicate them uncovered.
   // We would have to use the control system adapter implementations with the queues to test it.
 
-  BOOST_CHECK( decoratedScalar.isSameRegister( boost::dynamic_pointer_cast<const mtca4u::TransferElement>(anotherImplTAccessor.getHighLevelImplElement()) ) );
+  BOOST_CHECK( !decoratedScalar.mayReplaceOther(anotherImplTAccessor.getHighLevelImplElement()) );
+  auto anotherNdAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< IMPL_T > >(anotherImplTAccessor.getHighLevelImplElement());
+  BOOST_CHECK(anotherNdAccessor->mayReplaceOther(ndAccessor)); // unrelated check just to make sure the test is doing the right thing...
+  auto anotherDecoratedScalar = boost::make_shared<DECORATOR_TYPE<T, IMPL_T>>(anotherNdAccessor);
+  BOOST_CHECK( decoratedScalar.mayReplaceOther(anotherDecoratedScalar) );
 
   // OK, I give up. I would have to repeat all tests ever written for a decorator, incl. transfer group, persistentDataStorage and everything. All I can do is leave the stuff intentionally uncovered so a reviewer can find the places.
 }
@@ -216,7 +225,7 @@ BOOST_AUTO_TEST_CASE( testLoops ){
   loopTest<TypeChangingRangeCheckingDecorator>();
   loopTest<TypeChangingDirectCastDecorator>();
 }
-  
+
 #define CHECK_THROW_PRINT( command , exception_type)           \
 try{ \
     command;\
@@ -236,11 +245,11 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
   auto myIntDummy = d.getScalarRegisterAccessor<int32_t>("/SOME/INT"); // the second accessor for the test
   auto myUInt = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
   auto myUIntDummy = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
-  
+
   auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< int32_t > >(myInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
   TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
-  
+
   auto uintNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor< uint32_t > >(myUInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
   TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor); // don't try this at home: putting the same NDAccessor into different decorators can cause trouble
@@ -250,14 +259,14 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
   myIntDummy.write();
   myUIntDummy = 0xFFFFFFFF;
   myUIntDummy.write();
-  
+
   CHECK_THROW_PRINT( u2i.read(), boost::numeric::negative_overflow );
   CHECK_THROW_PRINT( i2u.read(), boost::numeric::positive_overflow );
   BOOST_CHECK_NO_THROW( directI2u.read() );
   BOOST_CHECK_NO_THROW( directU2i.read() );
   BOOST_CHECK( directU2i.accessData(0) == 0xFFFFFFFF );
   BOOST_CHECK( directI2u.accessData(0) == -1 );
-  
+
   i2u.accessData(0) = 0xFFFFFFFE;
   u2i.accessData(0) = 0xFFFFFFFE;
 
@@ -275,19 +284,20 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
   wholeArray[0]=12345;
   wholeArray[1]=12346;
   wholeArray.write();
-  
-  auto decorated0 = getDecorator<int>(partial0);
-  auto decorated1 = getDecorator<int>(partial1);
+
+  mtca4u::ScalarRegisterAccessor<int> decorated0(getDecorator<int>(partial0));
+  mtca4u::ScalarRegisterAccessor<int> decorated1(getDecorator<int>(partial1));
 
   TransferGroup group;
-  group.addAccessor(*decorated0);
-  group.addAccessor(*decorated1);
+  group.addAccessor(decorated0);
+  group.addAccessor(decorated1);
+
   group.read();
-  BOOST_CHECK( decorated0->accessData(0) == 12345 );
-  BOOST_CHECK( decorated1->accessData(0) == 12346 );
-  
-  decorated0->accessData(0)=4321;
-  decorated1->accessData(0)=4322;
+  BOOST_CHECK( decorated0 == 12345 );
+  BOOST_CHECK( decorated1 == 12346 );
+
+  decorated0 = 4321;
+  decorated1 = 4322;
   group.write();
 
   wholeArray.read();
@@ -299,7 +309,7 @@ BOOST_AUTO_TEST_CASE( testFactory ){
   mtca4u::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  mtca4u::TransferElement & transferElement = scalar;
+  mtca4u::TransferElementAbstractor & transferElement = scalar;
 
   auto decoratedScalar = getDecorator<int>(transferElement);
   BOOST_CHECK( decoratedScalar );
@@ -314,15 +324,15 @@ BOOST_AUTO_TEST_CASE( testFactory ){
   // but you can get the same decorator again if you ask for it
   auto sameDecorator = getDecorator<int>(transferElement);
   BOOST_CHECK( sameDecorator.get() == decoratedScalar.get() );
-  
-  // Test for direct convertion decorator type 
+
+  // Test for direct convertion decorator type
   // we have to use a different transfer element for this to work
   auto scalar2 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
   auto decoratedDirectConvertingScalar = getDecorator<int>(scalar2, DecoratorType::C_style_conversion);
   BOOST_CHECK( decoratedDirectConvertingScalar );
   auto castedDCScalar = boost::dynamic_pointer_cast< TypeChangingDirectCastDecorator< int, double> >( decoratedDirectConvertingScalar) ;
   BOOST_CHECK( castedDCScalar );
-  
+
   // fixme: at the moment we are throwing if a limiting decorator is requested
   auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
   CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), mtca4u::NotImplementedException );

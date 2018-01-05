@@ -281,17 +281,17 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER + 3);
+      BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 3);
     }
     BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER + 4);
+      BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 4);
     }
     BOOST_CHECK(receiver->readNonBlocking());
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
-      BOOST_CHECK(*i == SOME_NUMBER + 6);
+      BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 6);
     }
     // We have received all values, so no more values should be available.
     BOOST_CHECK(!receiver->readNonBlocking());

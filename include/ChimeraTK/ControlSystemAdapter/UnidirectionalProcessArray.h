@@ -33,310 +33,292 @@ namespace ChimeraTK {
   template<class T>
   class UnidirectionalProcessArray : public ProcessArray<T> {
 
-  public:
-
-    /**
-     * Type alias for a shared pointer to this type.
-     */
-    typedef boost::shared_ptr<UnidirectionalProcessArray> SharedPtr;
-
-    /**
-     * Creates a process array that acts as a receiver. A receiver is
-     * intended to work as a tandem with a sender and receives values that
-     * have been set to the sender.
-     *
-     * This constructor creates the buffers and queues that are needed for the
-     * send/receive process and are shared with the sender.
-     */
-    UnidirectionalProcessArray(
-        typename ProcessArray<T>::InstanceType instanceType,
-        const mtca4u::RegisterPath& name, const std::string &unit,
-        const std::string &description, const std::vector<T>& initialValue,
-        std::size_t numberOfBuffers);
-
-    /**
-     * Creates a process array that acts as a sender. A sender is intended
-     * intended to work as a tandem with a receiver and send set values to
-     * it. It uses the buffers and queues that have been created by the
-     * receiver.
-     *
-     * If the <code>maySendDestructively</code> flag is <code>true</code>, the
-     * {@link ProcessArray::writeDestructively()} method may be used to transfer
-     * values without copying but losing them on the sender side.
-     *
-     * The optional send-notification listener is notified every time the
-     * sender's ProcessArray::write() method is called. It can be
-     * used to queue a request for the receiver's
-     * readNonBlocking() method to be called. The process
-     * variable passed to the listener is the receiver and not the sender.
-     */
-    UnidirectionalProcessArray(
-        typename ProcessArray<T>::InstanceType instanceType,
-        bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
-        ProcessVariableListener::SharedPtr sendNotificationListener,
-        UnidirectionalProcessArray::SharedPtr receiver);
-
-    TimeStamp getTimeStamp() const override {
-      return _currentIndex->timeStamp;
-    }
-
-    ChimeraTK::VersionNumber getVersionNumber() const override {
-      return _currentIndex->_versionNumber;
-    }
-
-    void doReadTransfer() override;
-
-    bool doReadTransferNonBlocking() override;
-
-    bool doReadTransferLatest() override;
-
-    mtca4u::TransferFuture readAsync() override;
-
-    void postRead() override;
-
-    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
-
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * The specified version number is passed to the receiver. If the receiver
-     * has a value with a version number greater than or equal to the specified
-     * version number, it silently discards this update.
-     *
-     * This version of the send operation moves the current value from the
-     * sender to the receiver without copying it. This means that after calling
-     * this method, the sender's value, time stamp, and version number are
-     * undefined. Therefore, this method must only be used if this process
-     * variable is not read (on the sender side) after sending it.
-     *
-     * The time-stamp of the sent value is retrieved from the time-stamp source.
-     *
-     * Throws an exception if this process variable is not a sender or if this
-     * process variable does not allow destructive sending.
-     */
-    bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}) override; /// @todo FIXME this function must be present in TransferElement already!
-
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * The specified version number is passed to the receiver. If the receiver
-     * has a value with a version number greater than or equal to the specified
-     * version number, it silently discards this update.
-     *
-     * This version of the send operation moves the current value from the
-     * sender to the receiver without copying it. This means that after calling
-     * this method, the sender's value, time stamp, and version number are
-     * undefined. Therefore, this method must only be used if this process
-     * variable is not read (on the sender side) after sending it.
-     *
-     * The time-stamp source of this process array is ignored and the passed
-     * time stamp is used instead.
-     *
-     * Throws an exception if this process variable is not a sender or if this
-     * process variable does not allow destructive sending.
-     */
-    bool writeDestructively(ChimeraTK::TimeStamp timeStamp, ChimeraTK::VersionNumber versionNumber);
-
-    void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override ;
-
-    /** Return a unique ID of this process variable, which will be indentical for the receiver and sender side of the
-     *  same variable but different for any other process variable within the same process. The unique ID will not be
-     *  persistent accross executions of the process. */
-    size_t getUniqueId() const override {
-      return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
-    }
-
-    bool asyncTransferActive() override {
-      return hasActiveFuture;
-    }
-
-    void clearAsyncTransferActive() override {
-      hasActiveFuture = false;
-    }
-
-  private:
-
-    /**
-     * Type for the individual buffers. Each buffer stores a vector (wrapped in a Boost scoped pointer) and a time
-     * stamp. It extends the TransferFuture::Data type (which provides the version number) so it can be transported
-     * by a TransferFuture.
-     */
-    struct Buffer : public TransferFuture::Data {
+    public:
 
       /**
-       * Default constructor. Has to be defined explicitly because we delete our copy constructor.
-       */
-      Buffer()
-      : TransferFuture::Data({})
-      {}
-
-      /**
-       * Delete all copy and move constructors and assignment operators. In C++11, elements of a std::vector no longer
-       * have to be copy-constructable if the size of the vector is fixed and specified in the constructor.
-       */
-      Buffer(const Buffer &other) = delete;
-      Buffer& operator=(const Buffer &other) = delete;
-      Buffer(Buffer &&other) = delete;
-      Buffer& operator=(Buffer &&other) = delete;
-
-      /** The actual data contained in this buffer. */
-      std::vector<T> value;
-
-      /** Flag whether this buffer currently contains valid data. This flag is used only for the atomic triple buffer
-       *  and not set for buffers on the queues (since the queue the buffer is in already tells whether it contains
-       *  valid data or not). */
-      bool _isValid{false};
-
-      /**
-       * Extra version number used to sort the values within the process variable (so this version is not globally
-       * valid). This number is needed in addition to the globally valid _versionNumber defined in
-       * TransferFuture::Data, because the globally valid version numebr can be controlled by the application and
-       * values with an older version number might be written to this process variable later. That later data with
-       * the older version number shall still be considered as last data e.g. in the context of readLatest(), i.e.
-       * whatever has been written to the process variable last should be read with readLatest(), even if it has
-       * the older version number.
-       */
-      uint64_t _internalVersionNumber;
-
-      /** Time stamp associated with this buffer */
-      TimeStamp timeStamp;
-
-    };
-
-    /**
-     * Number of elements that each vector (and thus this array) has.
-     */
-    std::size_t _vectorSize;
-
-    /**
-     * Flag indicating whether the {@code sendDestructively} methods may be used
-     * on this process array.
-     */
-    bool _maySendDestructively;
-
-    /**
-     * Last internal version number written. See Buffer::_internalVersionNumber for more details.
-     */
-    uint64_t _lastInternalVersionNumber{0};
-
-    /**
-     * The state shared between the sender and the receiver
-     */
-    struct SharedState {
-
-      SharedState(size_t numberOfBuffers)
-      : _buffers(numberOfBuffers + 2 + 3),    // two additional buffers owned by sender and receiver, 3 more additional
-                                              // buffers for the atomic triple buffer
-        _tripleBufferIndex(&(_buffers[3])),
-        _fullBufferQueue(numberOfBuffers+1),
-        _emptyBufferQueue(numberOfBuffers)
-      {}
-
-      /**
-      * Buffers that hold the actual values.
+      * Type alias for a shared pointer to this type.
       */
-      std::vector<Buffer> _buffers;
+      typedef boost::shared_ptr<UnidirectionalProcessArray> SharedPtr;
 
       /**
-       * Special atomic triple buffer to be filled when the queue runs over
-       * (i.e. all normal buffers are full). After construction, buffer 2 is
-       * owned by the sender, 3 by the shared state and 4 by the receiver. A
-       * buffer is considered containing valid data if its _isValid flag is
-       * set. The buffer's default constructor sets _isValid to false.
-       */
-      std::atomic<Buffer*> _tripleBufferIndex;
-
-      /**
-      * Queue holding the indices of the full buffers. Those are the buffers
-      * that have been sent but not yet received. We can use an spsc_queue for
-      * this queue because it is only filled by the sending process array and
-      * only consumed by the receiving process array. In fact, we have to use
-      * an spsc_queue because the standard boost::lockfree::queue cannot hold
-      * futures (as they are not trivially assignable / destructable).
+      * Creates a process array that acts as a receiver. A receiver is
+      * intended to work as a tandem with a sender and receives values that
+      * have been set to the sender.
+      *
+      * This constructor creates the buffers and queues that are needed for the
+      * send/receive process and are shared with the sender.
       */
-      boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
+      UnidirectionalProcessArray(
+          typename ProcessArray<T>::InstanceType instanceType,
+          const mtca4u::RegisterPath& name, const std::string &unit,
+          const std::string &description, const std::vector<T>& initialValue,
+          std::size_t numberOfBuffers);
 
       /**
-      * Queue holding the empty buffers. Those are the buffers that have been
-      * returned to the sender by the receiver.
+      * Creates a process array that acts as a sender. A sender is intended
+      * intended to work as a tandem with a receiver and send set values to
+      * it. It uses the buffers and queues that have been created by the
+      * receiver.
+      *
+      * If the <code>maySendDestructively</code> flag is <code>true</code>, the
+      * {@link ProcessArray::writeDestructively()} method may be used to transfer
+      * values without copying but losing them on the sender side.
+      *
+      * The optional send-notification listener is notified every time the
+      * sender's ProcessArray::write() method is called. It can be
+      * used to queue a request for the receiver's
+      * readNonBlocking() method to be called. The process
+      * variable passed to the listener is the receiver and not the sender.
       */
-      boost::lockfree::spsc_queue<Buffer*> _emptyBufferQueue;
+      UnidirectionalProcessArray(
+          typename ProcessArray<T>::InstanceType instanceType,
+          bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
+          ProcessVariableListener::SharedPtr sendNotificationListener,
+          UnidirectionalProcessArray::SharedPtr receiver);
+
+      TimeStamp getTimeStamp() const override {
+        return _currentIndex->timeStamp;
+      }
+
+      ChimeraTK::VersionNumber getVersionNumber() const override {
+        return _currentIndex->_versionNumber;
+      }
+
+      void doReadTransfer() override;
+
+      bool doReadTransferNonBlocking() override;
+
+      bool doReadTransferLatest() override;
+
+      mtca4u::TransferFuture doReadTransferAsync() override;
+
+      void doPostRead() override;
+
+      bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
       /**
-      * The promise corresponding to the unfulfilled future in the _fullBufferQueue.
-      * This promise is basically only used by the sender.
+      * Sends the current value to the receiver. Returns <code>true</code> if an
+      * empty buffer was available and <code>false</code> if no empty buffer was
+      * available and thus a previously sent value has been dropped in order to
+      * send the current value.
+      *
+      * The specified version number is passed to the receiver. If the receiver
+      * has a value with a version number greater than or equal to the specified
+      * version number, it silently discards this update.
+      *
+      * This version of the send operation moves the current value from the
+      * sender to the receiver without copying it. This means that after calling
+      * this method, the sender's value, time stamp, and version number are
+      * undefined. Therefore, this method must only be used if this process
+      * variable is not read (on the sender side) after sending it.
+      *
+      * The time-stamp of the sent value is retrieved from the time-stamp source.
+      *
+      * Throws an exception if this process variable is not a sender or if this
+      * process variable does not allow destructive sending.
       */
-      TransferFuture::PromiseType _notificationPromise;
+      bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}) override; /// @todo FIXME this function must be present in TransferElement already!
 
-    };
-    boost::shared_ptr<SharedState> _sharedState;
+      /**
+      * Sends the current value to the receiver. Returns <code>true</code> if an
+      * empty buffer was available and <code>false</code> if no empty buffer was
+      * available and thus a previously sent value has been dropped in order to
+      * send the current value.
+      *
+      * The specified version number is passed to the receiver. If the receiver
+      * has a value with a version number greater than or equal to the specified
+      * version number, it silently discards this update.
+      *
+      * This version of the send operation moves the current value from the
+      * sender to the receiver without copying it. This means that after calling
+      * this method, the sender's value, time stamp, and version number are
+      * undefined. Therefore, this method must only be used if this process
+      * variable is not read (on the sender side) after sending it.
+      *
+      * The time-stamp source of this process array is ignored and the passed
+      * time stamp is used instead.
+      *
+      * Throws an exception if this process variable is not a sender or if this
+      * process variable does not allow destructive sending.
+      */
+      bool writeDestructively(ChimeraTK::TimeStamp timeStamp, ChimeraTK::VersionNumber versionNumber);
 
-    /**
-     * Index into the _buffers array that is currently owned by this instance
-     * and used for read and (possibly) write operations.
-     */
-    Buffer *_currentIndex;
+      void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override ;
 
-    /**
-     * Index into the _buffers array that is currently owned by this instance.
-     * The _tripleBufferIndex is different from the _currentIndex because it is
-     * only used as a fallback when a value cannot be transferred through the
-     * _fullBufferQueue because the _emptyBufferQueue is empty.
-     */
-    Buffer *_tripleBufferIndex;
+      /** Return a unique ID of this process variable, which will be indentical for the receiver and sender side of the
+      *  same variable but different for any other process variable within the same process. The unique ID will not be
+      *  persistent accross executions of the process. */
+      size_t getUniqueId() const override {
+        return reinterpret_cast<size_t>(_sharedState.get());      // use pointer address of the shared state
+      }
 
-    /**
-     * Pointer to the receiver associated with this sender. This field is only
-     * used if this process variable represents a sender.
-     */
-    boost::shared_ptr<UnidirectionalProcessArray> _receiver;
+    private:
 
-    /**
-     * Time-stamp source used to update the time-stamp when sending a value.
-     */
-    boost::shared_ptr<TimeStampSource> _timeStampSource;
+      /**
+      * Type for the individual buffers. Each buffer stores a vector (wrapped in a Boost scoped pointer) and a time
+      * stamp. It extends the TransferFuture::Data type (which provides the version number) so it can be transported
+      * by a TransferFuture.
+      */
+      struct Buffer : public TransferFuture::Data {
 
-    /**
-     * Listener that is notified when the process variable is sent.
-     */
-    boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
+        /**
+        * Default constructor. Has to be defined explicitly because we delete our copy constructor.
+        */
+        Buffer()
+        : TransferFuture::Data({})
+        {}
 
-    /**
-     * Persistent data storage which needs to be informed when the process variable is sent.
-     */
-    boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+        /**
+        * Delete all copy and move constructors and assignment operators. In C++11, elements of a std::vector no longer
+        * have to be copy-constructable if the size of the vector is fixed and specified in the constructor.
+        */
+        Buffer(const Buffer &other) = delete;
+        Buffer& operator=(const Buffer &other) = delete;
+        Buffer(Buffer &&other) = delete;
+        Buffer& operator=(Buffer &&other) = delete;
 
-    /**
-     * The last future returned by readAsync
-     */
-    mtca4u::TransferFuture activeFuture;
+        /** The actual data contained in this buffer. */
+        std::vector<T> value;
 
-    /**
-     * Flag whether acviteFuture is valid
-     */
-    bool hasActiveFuture{false};
+        /** Flag whether this buffer currently contains valid data. This flag is used only for the atomic triple buffer
+        *  and not set for buffers on the queues (since the queue the buffer is in already tells whether it contains
+        *  valid data or not). */
+        bool _isValid{false};
 
-    /**
-     * Variable ID for the persistent data storage
-     */
-    size_t _persistentDataStorageID{0};
+        /**
+        * Extra version number used to sort the values within the process variable (so this version is not globally
+        * valid). This number is needed in addition to the globally valid _versionNumber defined in
+        * TransferFuture::Data, because the globally valid version numebr can be controlled by the application and
+        * values with an older version number might be written to this process variable later. That later data with
+        * the older version number shall still be considered as last data e.g. in the context of readLatest(), i.e.
+        * whatever has been written to the process variable last should be read with readLatest(), even if it has
+        * the older version number.
+        */
+        uint64_t _internalVersionNumber;
 
-    /**
-     * Internal implementation of the various {@code send} methods. All these
-     * methods basically do the same and only differ in whether the data in the
-     * sent array is copied to the buffer used as the new current buffer and
-     * which version number is used.
-     *
-     * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
-     */
-    bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
-        bool shouldCopy);
+        /** Time stamp associated with this buffer */
+        TimeStamp timeStamp;
+
+      };
+
+      /**
+      * Number of elements that each vector (and thus this array) has.
+      */
+      std::size_t _vectorSize;
+
+      /**
+      * Flag indicating whether the {@code sendDestructively} methods may be used
+      * on this process array.
+      */
+      bool _maySendDestructively;
+
+      /**
+      * Last internal version number written. See Buffer::_internalVersionNumber for more details.
+      */
+      uint64_t _lastInternalVersionNumber{0};
+
+      /**
+      * The state shared between the sender and the receiver
+      */
+      struct SharedState {
+
+        SharedState(size_t numberOfBuffers)
+        : _buffers(numberOfBuffers + 2 + 3),    // two additional buffers owned by sender and receiver, 3 more additional
+                                                // buffers for the atomic triple buffer
+          _tripleBufferIndex(&(_buffers[3])),
+          _fullBufferQueue(numberOfBuffers+1),
+          _emptyBufferQueue(numberOfBuffers)
+        {}
+
+        /**
+        * Buffers that hold the actual values.
+        */
+        std::vector<Buffer> _buffers;
+
+        /**
+        * Special atomic triple buffer to be filled when the queue runs over
+        * (i.e. all normal buffers are full). After construction, buffer 2 is
+        * owned by the sender, 3 by the shared state and 4 by the receiver. A
+        * buffer is considered containing valid data if its _isValid flag is
+        * set. The buffer's default constructor sets _isValid to false.
+        */
+        std::atomic<Buffer*> _tripleBufferIndex;
+
+        /**
+        * Queue holding the indices of the full buffers. Those are the buffers
+        * that have been sent but not yet received. We can use an spsc_queue for
+        * this queue because it is only filled by the sending process array and
+        * only consumed by the receiving process array. In fact, we have to use
+        * an spsc_queue because the standard boost::lockfree::queue cannot hold
+        * futures (as they are not trivially assignable / destructable).
+        */
+        boost::lockfree::spsc_queue< TransferFuture::PlainFutureType > _fullBufferQueue;
+
+        /**
+        * Queue holding the empty buffers. Those are the buffers that have been
+        * returned to the sender by the receiver.
+        */
+        boost::lockfree::spsc_queue<Buffer*> _emptyBufferQueue;
+
+        /**
+        * The promise corresponding to the unfulfilled future in the _fullBufferQueue.
+        * This promise is basically only used by the sender.
+        */
+        TransferFuture::PromiseType _notificationPromise;
+
+      };
+      boost::shared_ptr<SharedState> _sharedState;
+
+      /**
+      * Index into the _buffers array that is currently owned by this instance
+      * and used for read and (possibly) write operations.
+      */
+      Buffer *_currentIndex;
+
+      /**
+      * Index into the _buffers array that is currently owned by this instance.
+      * The _tripleBufferIndex is different from the _currentIndex because it is
+      * only used as a fallback when a value cannot be transferred through the
+      * _fullBufferQueue because the _emptyBufferQueue is empty.
+      */
+      Buffer *_tripleBufferIndex;
+
+      /**
+      * Pointer to the receiver associated with this sender. This field is only
+      * used if this process variable represents a sender.
+      */
+      boost::shared_ptr<UnidirectionalProcessArray> _receiver;
+
+      /**
+      * Time-stamp source used to update the time-stamp when sending a value.
+      */
+      boost::shared_ptr<TimeStampSource> _timeStampSource;
+
+      /**
+      * Listener that is notified when the process variable is sent.
+      */
+      boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
+
+      /**
+      * Persistent data storage which needs to be informed when the process variable is sent.
+      */
+      boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+
+      /**
+      * Variable ID for the persistent data storage
+      */
+      size_t _persistentDataStorageID{0};
+
+      /**
+      * Internal implementation of the various {@code send} methods. All these
+      * methods basically do the same and only differ in whether the data in the
+      * sent array is copied to the buffer used as the new current buffer and
+      * which version number is used.
+      *
+      * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
+      */
+      bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
+          bool shouldCopy);
 
   };
 
@@ -459,6 +441,7 @@ namespace ChimeraTK {
           &(_sharedState->_buffers[0])), _tripleBufferIndex(
           &(_sharedState->_buffers[4]))
   {
+    mtca4u::ExperimentalFeatures::enable();
     // allocate and initialise buffer of the base class
     mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
     mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
@@ -509,6 +492,7 @@ namespace ChimeraTK {
           &(_sharedState->_buffers[2])), _receiver(receiver), _timeStampSource(
           timeStampSource), _sendNotificationListener(sendNotificationListener)
   {
+    mtca4u::ExperimentalFeatures::enable();
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isWriteable()) {
@@ -535,7 +519,7 @@ namespace ChimeraTK {
 
     // Obtain future and wait until transfer is complete. Do not yet call postRead(), so do not call
     // TransferFuture::wait().
-    readAsync().getBoostFuture().wait();
+    mtca4u::TransferElement::readAsync().getBoostFuture().wait();
     boost::this_thread::interruption_point();
 
   }
@@ -544,7 +528,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-    bool ret = readAsync().hasNewData();
+    bool ret = mtca4u::TransferElement::readAsync().hasNewData();
     return ret;
   }
 
@@ -556,15 +540,15 @@ namespace ChimeraTK {
     // As long as there is more than one valid element on the queue, discard it.
     // Due to our implementation there is always one unfulfilled future in the queue, so
     // we must pop until there are two elements left in order not to flush out the newest valid value.
-    auto theFuture = readAsync().getBoostFuture();
+    auto theFuture = mtca4u::TransferElement::readAsync().getBoostFuture();
     while(    theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0)) != boost::future_status::timeout
            && _sharedState->_fullBufferQueue.read_available() > 2                                                ) {
       // discard data by moving the buffer to the empty buffer queue
       TransferFuture::Data *discardedBuffer = theFuture.get();
       _sharedState->_fullBufferQueue.pop();
-      hasActiveFuture = false;
+      mtca4u::TransferElement::hasActiveFuture = false;
       _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
-      theFuture = readAsync().getBoostFuture();
+      theFuture = mtca4u::TransferElement::readAsync().getBoostFuture();
     }
     // Check whether data is present in the atomic triple buffer. If it is newer, we also need to discard the last
     // valid element in the queue. If it is older, we need to discard the data in the triple buffer.
@@ -591,12 +575,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture UnidirectionalProcessArray<T>::readAsync() {
-
-    // If we already have a still-active future, we can return it directly. It is not possible that this future is
-    // blocking and there is valid data to be read in the atomic triple buffer.
-    // This is only a preformance optimisation, we would generate the same future again.
-    if(hasActiveFuture) return activeFuture;
+  mtca4u::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
 
     if (!this->isReadable()) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
@@ -622,20 +601,14 @@ namespace ChimeraTK {
     }
 
     // return the future
-    activeFuture = TransferFuture(future, this);
-    hasActiveFuture = true;
-    return activeFuture;
+    return TransferFuture(future, this);
 
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::postRead() {
-
-    // need to reset the hasActiveFuture flag ourselves, since we internally always use readAsync, but
-    // TransferFuture::wait() is not always called then.
-    hasActiveFuture = false;
+  void UnidirectionalProcessArray<T>::doPostRead() {
 
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into

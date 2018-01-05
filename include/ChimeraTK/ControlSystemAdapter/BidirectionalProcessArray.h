@@ -206,9 +206,9 @@ namespace ChimeraTK {
 
     bool doReadTransferLatest() override;
 
-    mtca4u::TransferFuture readAsync() override;
+    mtca4u::TransferFuture doReadTransferAsync() override;
 
-    void postRead() override;
+    void doPostRead() override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
 
@@ -242,14 +242,6 @@ namespace ChimeraTK {
      * not be  persistent across executions of the process. */
     size_t getUniqueId() const override {
       return _uniqueId;
-    }
-
-    bool asyncTransferActive() override {
-      return _receiver->asyncTransferActive();
-    }
-
-    void clearAsyncTransferActive() override {
-      _receiver->clearAsyncTransferActive();
     }
 
   private:
@@ -395,14 +387,14 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture BidirectionalProcessArray<T>::readAsync() {
+  mtca4u::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
     return {_receiver->readAsync(), this};
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::postRead() {
+  void BidirectionalProcessArray<T>::doPostRead() {
     _receiver->postRead();
     // We only update the current value (stored in the sender) when the version
     // number of the data that we received is greater than the current version
