@@ -46,7 +46,7 @@ ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(mtca4u-deviceaccess 00.28 REQUIRED)
+add_dependency(mtca4u-deviceaccess 00.29 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
