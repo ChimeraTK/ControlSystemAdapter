@@ -71,7 +71,7 @@ if(TESTING_IS_ENABLED)
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
-    #The ReferenceTestApplication is written to work with the control system adapter as installed, so 
+    #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES} pthread)
@@ -90,13 +90,16 @@ if(TESTING_IS_ENABLED)
   ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
   FILE(COPY tests/decoratorTest.map DESTINATION ${PROJECT_BINARY_DIR})
+  FILE(COPY tests/changedType.persist DESTINATION ${PROJECT_BINARY_DIR})
+  FILE(COPY tests/changedVectorSize.persist DESTINATION ${PROJECT_BINARY_DIR})
+  FILE(COPY tests/renamedVariable.persist DESTINATION ${PROJECT_BINARY_DIR})
 endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} ${LibXML++_LDFLAGS} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${mtca4u-deviceaccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
 
-#change the install prefix to the source directory in case the user has not specified a destination 
+#change the install prefix to the source directory in case the user has not specified a destination
 #i. e. CMAKE_INSTALL_PREFIX is not set manually
 IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   SET(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH "Install directory
@@ -118,7 +121,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include
 #We additionally install the reference test application, it's header only
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
         FILES_MATCHING
-            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")	
+            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")
 
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....

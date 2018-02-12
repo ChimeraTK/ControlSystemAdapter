@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PersistentData xmlns="https://github.com/ChimeraTK/ControlSystemAdapter" application="myTestApplication">
+  <variable name="/SomeCsToDevVar" type="double">
+    <val i="0" v="0.5"/>
+    <val i="1" v="17.5"/>
+    <val i="2" v="34.5"/>
+    <val i="3" v="51.5"/>
+    <val i="4" v="68.5"/>
+    <val i="5" v="85.5"/>
+    <val i="6" v="102.5"/>
+  </variable>
+  <variable name="/AnotherCsToDevVar" type="int16_t">
+    <val i="0" v="0"/>
+    <val i="1" v="1"/>
+    <val i="2" v="2"/>
+    <val i="3" v="3"/>
+    <val i="4" v="4"/>
+    <val i="5" v="5"/>
+    <val i="5" v="6"/>
+    <val i="6" v="7"/>
+    <val i="8" v="8"/>
+    <val i="9" v="9"/>
+    <val i="10" v="10"/>
+    <val i="11" v="11"/>
+    <val i="12" v="12"/>
+    <val i="13" v="13"/>
+    <val i="14" v="14"/>
+    <val i="15" v="15"/>
+    <val i="16" v="16"/>
+    <val i="17" v="17"/>
+    <val i="18" v="18"/>
+    <val i="19" v="19"/>
+    <val i="20" v="20"/>
+    <val i="21" v="21"/>
+    <val i="22" v="22"/>
+    <val i="23" v="23"/>
+    <val i="24" v="24"/>
+    <val i="25" v="25"/>
+    <val i="26" v="26"/>
+    <val i="27" v="27"/>
+    <val i="28" v="28"/>
+    <val i="29" v="29"/>
+    <val i="30" v="30"/>
+    <val i="31" v="31"/>
+    <val i="32" v="32"/>
+    <val i="33" v="33"/>
+    <val i="34" v="34"/>
+    <val i="35" v="35"/>
+    <val i="36" v="36"/>
+    <val i="37" v="37"/>
+    <val i="38" v="38"/>
+    <val i="39" v="39"/>
+    <val i="40" v="40"/>
+    <val i="41" v="41"/>
+  </variable>
+</PersistentData>

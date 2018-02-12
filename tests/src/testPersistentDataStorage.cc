@@ -1,7 +1,4 @@
-// Define a name for the test module.
 #define BOOST_TEST_MODULE PersistentDataStorageTest
-
-// Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
@@ -24,8 +21,6 @@ class MyTestApplication : public ApplicationBase {
     void run() {};
 };
 
-
-// Create a test suite which holds all your tests.
 BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
 
 /**
@@ -33,9 +28,9 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
  */
 
 
-// Define one test after another. Each one needs a unique name.
-  BOOST_AUTO_TEST_CASE( testStoreAndRetrieve ) {
-    
+// Test storing data in first instance of PersistentDataStorage and retrieveing it in a second instance
+BOOST_AUTO_TEST_CASE( testStoreAndRetrieve ) {
+
     // remove persistency file from previous test run
     boost::filesystem::remove("myTestApplication.persist");
 
@@ -62,11 +57,11 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       for(int i=0; i<100; ++i) BOOST_CHECK_CLOSE( myVar2stored[i], -120 + 7*i, 0.0001 );
     }
     // the first PersistentDataStorage is destroyed at this point, in its destructor the file is written
-    
+
     // create another PersistentDataStorage and read the previously stored variables from it
     {
       PersistentDataStorage storage{"myTestApplication"};
-      
+
       // check MyVar1
       std::vector<int32_t> myVar1(10);
       int id1 = storage.registerVariable<int32_t>("MyVar1", 10);
@@ -78,17 +73,17 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
       myVar2 = storage.retrieveValue<double>(id2);
       for(int i=0; i<100; ++i) BOOST_CHECK_CLOSE( myVar2[i], -120 + 7*i, 0.0001 );
-      
+
       // modify some elements of myVar1
       myVar1[7] = 42;
       myVar1[3] = 120;
       storage.updateValue(id1, myVar1);
     }
-    
+
     // create another PersistentDataStorage and read the previously stored variables from it
     {
       PersistentDataStorage storage{"myTestApplication"};
-      
+
       // check MyVar1
       std::vector<int32_t> myVar1(10);
       int id1 = storage.registerVariable<int32_t>("MyVar1", 10);
@@ -110,20 +105,21 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
       myVar2 = storage.retrieveValue<double>(id2);
       for(int i=0; i<100; ++i) BOOST_CHECK_CLOSE( myVar2[i], -120 + 7*i, 0.0001 );
-      
+
       // modify some elements of myVar1
       myVar1[7] = 42;
       myVar1[3] = 120;
       storage.updateValue(id1, myVar1);
     }
-    
-  }
 
-  BOOST_AUTO_TEST_CASE( testUsageInPVManager ) {
+}
+
+// test integration in PVManager
+BOOST_AUTO_TEST_CASE( testUsageInPVManager ) {
 
     // remove persistency file from previous test run
     boost::filesystem::remove("myTestApplication.persist");
-    
+
     // first application instance: initialise the variables with some values and store them in the persistency file
     {
 
@@ -139,10 +135,10 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
       devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
       devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
-      
+
       // enable persist data storage
       csManager->enablePersistentDataStorage();
-      
+
       // obtain the process variables, send some values to the variables
       auto v1 = csManager->getProcessArray<uint16_t>("SomeCsToDevVar");
       for(int i=0; i<7; ++i) v1->accessChannel(0)[i] = i*17;
@@ -155,9 +151,9 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       auto v3 = devManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
       for(int i=0; i<7; ++i) v3->accessChannel(0)[i] = 9*i + 666;
       v3->write();
-      
+
     }
-    
+
     // second application instance: check if stored values are properly retrieved
     {
 
@@ -173,13 +169,13 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
       devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
       devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
-      
+
       // enable persist data storage
       csManager->enablePersistentDataStorage();
-      
+
       // obtain all variables from the manager to initialise them with the persistent data storage
       csManager->getAllProcessVariables();
-      
+
       // obtain the process variables, send some values to the variables
       auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
       v1->readNonBlocking();
@@ -192,11 +188,138 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
       auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
       v3->readNonBlocking();
       for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
-      
+
     }
-    
-    
-  }
+
+}
+
+// test opening .persist files which contain a different variable household
+BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
+
+    // check with changed data type
+    boost::filesystem::remove("myTestApplication.persist");
+    boost::filesystem::copy("changedType.persist", "myTestApplication.persist");
+
+    // check if stored values are properly retrieved
+    {
+
+      // create instance of test application
+      MyTestApplication myTestApplication{"myTestApplication"};
+
+      // create PV managers
+      auto pvManagers = createPVManager();
+      auto csManager = pvManagers.first;
+      auto devManager = pvManagers.second;
+
+      // create some variables
+      devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+
+      // enable persist data storage
+      csManager->enablePersistentDataStorage();
+
+      // obtain all variables from the manager to initialise them with the persistent data storage
+      csManager->getAllProcessVariables();
+
+      // obtain the process variables, send some values to the variables
+      auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
+      v1->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], 0 );
+
+      auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
+      v2->readNonBlocking();
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001 );
+
+      auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
+      v3->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
+
+    }
+
+    // check with changed data type
+    boost::filesystem::remove("myTestApplication.persist");
+    boost::filesystem::copy("changedVectorSize.persist", "myTestApplication.persist");
+
+    // check if stored values are properly retrieved
+    {
+
+      // create instance of test application
+      MyTestApplication myTestApplication{"myTestApplication"};
+
+      // create PV managers
+      auto pvManagers = createPVManager();
+      auto csManager = pvManagers.first;
+      auto devManager = pvManagers.second;
+
+      // create some variables
+      devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+
+      // enable persist data storage
+      csManager->enablePersistentDataStorage();
+
+      // obtain all variables from the manager to initialise them with the persistent data storage
+      csManager->getAllProcessVariables();
+
+      // obtain the process variables, send some values to the variables
+      auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
+      v1->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], 0 );
+
+      auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
+      v2->readNonBlocking();
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001 );
+
+      auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
+      v3->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
+
+    }
+
+    // check with changed data type
+    boost::filesystem::remove("myTestApplication.persist");
+    boost::filesystem::copy("renamedVariable.persist", "myTestApplication.persist");
+
+    // check if stored values are properly retrieved
+    {
+
+      // create instance of test application
+      MyTestApplication myTestApplication{"myTestApplication"};
+
+      // create PV managers
+      auto pvManagers = createPVManager();
+      auto csManager = pvManagers.first;
+      auto devManager = pvManagers.second;
+
+      // create some variables
+      devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+
+      // enable persist data storage
+      csManager->enablePersistentDataStorage();
+
+      // obtain all variables from the manager to initialise them with the persistent data storage
+      csManager->getAllProcessVariables();
+
+      // obtain the process variables, send some values to the variables
+      auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
+      v1->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], i*17 );
+
+      auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
+      v2->readNonBlocking();
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001 );
+
+      auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
+      v3->readNonBlocking();
+      for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
+
+    }
+
+}
 
 // After you finished all test you have to end the test suite.
 BOOST_AUTO_TEST_SUITE_END()

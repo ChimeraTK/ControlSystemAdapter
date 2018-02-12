@@ -732,8 +732,11 @@ namespace ChimeraTK {
     _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(mtca4u::TransferElement::getName(),
                                   mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
     if(sendInitialValue) {
+      if( _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID).size() ==
+          mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size()                           ) {
         mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
         doWriteTransfer();
+      }
     }
   }
 

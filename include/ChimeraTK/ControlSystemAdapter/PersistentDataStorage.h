@@ -16,18 +16,18 @@ namespace xmlpp {
 }
 
 namespace ChimeraTK {
-  
+
   class ControlSystemPVManager;
-  
+
   /**
    *  Persistent data storage for process variables.
-   *  
+   *
    *  The PersistentDataStorage will create a file in the current working directory based on the provided application
    *  name ("<applicationName>.persist"). This file will be an XML file containing all values of the registered
    *  variables. The file is written when the PersistentDataStorage is destroyed and read when it is constructed.
    *  After reading the file, all variables will be updated with the current values taken from the file. This will be
    *  seen as a value received by the application just like any other update.
-   * 
+   *
    *  @todo TODO list:
    *    * thread safety (only an issue when having multiple ControlSystemPVManagers)
    *    * automatic periodic commits
@@ -37,10 +37,10 @@ namespace ChimeraTK {
   class PersistentDataStorage {
 
     public:
-      
+
       /** Constructor: Open and parse the storage file. */
       PersistentDataStorage(std::string const &applicationName);
-      
+
       /** Destructor: Store variables to the file. */
       ~PersistentDataStorage();
 
@@ -51,32 +51,32 @@ namespace ChimeraTK {
 
       /** Retrieve the current value for the variable with the given ID */
       template<typename DataType>
-      const std::vector<DataType>& retrieveValue(size_t id) const;
+      const std::vector<DataType>& retrieveValue(size_t id);
 
       /** Notify the storage system about a new value of the variable with the given ID (as returned by
        *  registerVariable) */
       template<typename DataType>
       void updateValue(int id, std::vector<DataType> const &value);
-      
+
   protected:
-    
+
       /** Write out the file containing the persistent data */
       void writeToFile();
-    
+
       /** Read the file containing the persistent data */
       void readFromFile();
-    
+
       /** Generate XML tags for the given value */
       template<typename DataType>
       void generateXmlValueTags(xmlpp::Element *parent, size_t id);
-    
+
       /** Read value from XML tags */
       template<typename DataType>
       void readXmlValueTags(const xmlpp::Element *parent, size_t id);
-      
+
       /** Application name */
       std::string _applicationName;
-    
+
       /** File name to store the data to */
       std::string _filename;
 
@@ -97,7 +97,7 @@ namespace ChimeraTK {
       boost::thread writerThread;
 
       void writerThreadFunction();
-      
+
   };
 
   /*********************************************************************************************************************/
@@ -106,33 +106,35 @@ namespace ChimeraTK {
   size_t PersistentDataStorage::registerVariable(mtca4u::RegisterPath const &name, size_t nElements) {
     // check if already existing
     auto position = std::find(_variableNames.begin(), _variableNames.end(), name);
-    
+
+    size_t id = position - _variableNames.begin();
+
     // create new element
-    if(position == _variableNames.end()) {
-      
+    if(position == _variableNames.end() || boost::fusion::at_key<DataType>(_dataMap.table).count(id) == 0) {
+
       // store name and type
       _variableNames.push_back(name);
       _variableTypes.push_back(&typeid(DataType));
 
       // create value vector
-      size_t id = _variableNames.size()-1;
+      id = _variableNames.size()-1;
       std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
       value.resize(nElements);
-      
+
       // return id
       return id;
     }
     // return existing id
     else {
-      return position - _variableNames.begin();
+      return id;
     }
   }
 
   /*********************************************************************************************************************/
 
   template<typename DataType>
-  const std::vector<DataType>& PersistentDataStorage::retrieveValue(size_t id) const {
-    return boost::fusion::at_key<DataType>(_dataMap.table).at(id);
+  const std::vector<DataType>& PersistentDataStorage::retrieveValue(size_t id) {
+    return boost::fusion::at_key<DataType>(_dataMap.table)[id];
   }
 
   /*********************************************************************************************************************/
