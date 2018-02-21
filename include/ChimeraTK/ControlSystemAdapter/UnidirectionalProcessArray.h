@@ -6,6 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <typeinfo>
+#include <thread>
 
 #include <boost/smart_ptr.hpp>
 #include <boost/shared_ptr.hpp>
@@ -22,6 +23,18 @@
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
+
+  namespace detail {
+
+    /** Global flag if thread safety check shall performed on each read/write. */
+    extern std::atomic<bool> processArrayEnableThreadSafetyCheck;   // std::atomic<bool> defaults to false
+
+  }
+
+  /** Globally enable or disable the thread safety check on each read/write. This will throw an assertion if the
+    *  thread id has been changed since the last read/write operation which has been executed with the safety check
+    *  enabled. This will only have an effect if debug compiler flags are enabled. */
+  void setEnableProcessArrayThreadSafetyCheck(bool enable);
 
   /**
    * Implementation of the process array that transports data in a single
@@ -320,6 +333,36 @@ namespace ChimeraTK {
       bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
           bool shouldCopy);
 
+
+      /** Check thread safety. This function is used in various places inside an assert(). */
+      bool checkThreadSafety() {
+
+        // Only perform check if enableThreadSafetyCheck is enabled
+        if(!detail::processArrayEnableThreadSafetyCheck) return true;
+
+        // If threadSafetyCheckLastId has already been filled, perform the check
+        if(threadSafetyCheckInitialised) {
+          bool isOk = ( threadSafetyCheckLastId == std::hash<std::thread::id>()(std::this_thread::get_id()) );
+          if(!isOk) {
+            threadSafetyCheckLastId = std::hash<std::thread::id>()(std::this_thread::get_id());
+            std::cout << "ProcessArray thread safety check failed for variable " << this->getName() << std::endl;
+          }
+          return true;
+        }
+        else {
+          // ThreadSafetyCheckLastId not yet filled: fill it and set the flag.
+          threadSafetyCheckLastId = std::hash<std::thread::id>()(std::this_thread::get_id());
+          threadSafetyCheckInitialised = true;
+          return true;
+        }
+      }
+
+      /** Hash of the last known thread id for the thread safety check */
+      std::atomic<size_t> threadSafetyCheckLastId;
+
+      /** Flag whether threadSafetyCheckLastId has been filled already */
+      std::atomic<bool> threadSafetyCheckInitialised;     // std::atomic<bool> defaults to false
+
   };
 
 /*********************************************************************************************************************/
@@ -609,6 +652,7 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArray<T>::doPostRead() {
+    assert(checkThreadSafety());
 
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into
@@ -745,6 +789,10 @@ namespace ChimeraTK {
   template<class T>
   bool UnidirectionalProcessArray<T>::writeInternal(
       TimeStamp newTimeStamp, VersionNumber newVersionNumber, bool shouldCopy) {
+
+    // thread safety check, if enabled (only active with debug flags enabled)
+    assert(checkThreadSafety());
+
     if(!this->isWriteable()) {
       throw std::logic_error(
           "Send operation is only allowed for a sender process variable. Variable name: "+this->getName());
