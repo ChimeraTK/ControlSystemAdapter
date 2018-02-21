@@ -508,13 +508,37 @@ namespace ChimeraTK {
     }
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 33);
-    BOOST_CHECK(receiver->readNonBlocking());         // after this line the buffer should be empty
+    BOOST_CHECK(receiver->readNonBlocking());         // after this line the queue should be empty
     BOOST_CHECK_EQUAL(receiver->accessData(0), 34);
     sender->accessData(0) = 12;
     sender->write();
     BOOST_CHECK(receiver->readLatest());
     BOOST_CHECK_EQUAL(receiver->accessData(0), 12);
     BOOST_CHECK(!(receiver->readLatest()));
+
+    // provoke that the future obtained in the very beginning of doReadTransferLatest() is pointing to the buffer on
+    // the triple buffer
+    for(int i=0; i<10; ++i) {
+      sender->accessData(0) = 11+i;
+      sender->write();
+    }
+    BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 11);
+    BOOST_CHECK(receiver->readNonBlocking());         // after this line the queue should be empty
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 12);
+    BOOST_CHECK(receiver->readLatest());
+    BOOST_CHECK_EQUAL(receiver->accessData(0), 20);
+    BOOST_CHECK(!(receiver->readLatest()));
+    for(int i=0; i<100; ++i) {                        // check that all buffers are still properly working
+      for(int k=0; k<3; ++k) {
+        sender->accessData(0) = 10*i + k;
+        sender->write();
+      }
+      for(int k=0; k<3; ++k) {
+        BOOST_CHECK(receiver->readNonBlocking());
+        BOOST_CHECK_EQUAL(receiver->accessData(0), T(10*i + k));
+      }
+    }
 
 
   }
