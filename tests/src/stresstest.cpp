@@ -41,7 +41,7 @@ int main() {
     for(size_t i=0; i<nSenders; ++i) {
 
       // create process variable pairs for the current thread pair
-      std::vector<std::pair<boost::shared_ptr<ProcessArray<int>>, boost::shared_ptr<ProcessArray<int>> >> pvars;
+      std::vector< std::pair< boost::shared_ptr<ProcessArray<int>>, boost::shared_ptr<ProcessArray<int>> > > pvars;
       for(size_t k=0; k<nVarsPerSender; ++k) {
         std::string name = "thread"+std::to_string(i)+"_var"+std::to_string(k);
         pvars.push_back(createSynchronizedProcessArray<int>(1, name));
