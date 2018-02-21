@@ -144,14 +144,14 @@ namespace ChimeraTK {
     class TypeChangingStringImplDecorator<T, std::string >: public TypeChangingDecorator<T, std::string>{
   public:
     using TypeChangingDecorator<T, std::string>::TypeChangingDecorator;
-    virtual void convertAndCopyFromImpl(){
+    void convertAndCopyFromImpl() override {
       for (size_t i = 0; i < this->buffer_2D.size(); ++i){
         for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
           this->buffer_2D[i][j] = csa_helpers::stringToT<T>(this->_target->accessChannel(i)[j]);
         }
       }
     }
-    virtual void convertAndCopyToImpl(){
+    void convertAndCopyToImpl() override {
       for (size_t i = 0; i < this->buffer_2D.size(); ++i){
         for (size_t j = 0; j < this->buffer_2D[i].size(); ++j){
           this->_target->accessChannel(i)[j] = csa_helpers::T_ToString(this->buffer_2D[i][j]);
@@ -199,10 +199,10 @@ namespace ChimeraTK {
     class TypeChangingRangeCheckingDecorator<T, std::string>: public TypeChangingStringImplDecorator<T, std::string>{
   public:
     using TypeChangingStringImplDecorator<T, std::string>::TypeChangingStringImplDecorator;
-    virtual void convertAndCopyFromImpl(){
+    void convertAndCopyFromImpl() override {
       TypeChangingStringImplDecorator<T, std::string>::convertAndCopyFromImpl();
     }
-    virtual void convertAndCopyToImpl(){
+    void convertAndCopyToImpl() override {
       TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl();
     }
     DecoratorType getDecoratorType() const override{
@@ -297,10 +297,10 @@ namespace ChimeraTK {
   class TypeChangingDirectCastDecorator<T, std::string> : public TypeChangingStringImplDecorator<T, std::string> {
     public:
       using TypeChangingStringImplDecorator<T, std::string>::TypeChangingStringImplDecorator;
-      virtual void convertAndCopyFromImpl(){
+      void convertAndCopyFromImpl() override {
         TypeChangingStringImplDecorator<T, std::string>::convertAndCopyFromImpl();
       }
-      virtual void convertAndCopyToImpl(){
+      void convertAndCopyToImpl() override {
         TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl();
       }
       DecoratorType getDecoratorType() const override{
