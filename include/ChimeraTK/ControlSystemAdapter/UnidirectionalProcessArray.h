@@ -527,13 +527,16 @@ namespace ChimeraTK {
       typename ProcessArray<T>::InstanceType instanceType,
       bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener,
-      UnidirectionalProcessArray::SharedPtr receiver) :
-      ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(),
-          receiver->getDescription()), _vectorSize(receiver->_vectorSize), _maySendDestructively(
-          maySendDestructively), _sharedState(receiver->_sharedState), _currentIndex(
-          &(_sharedState->_buffers[1])), _tripleBufferIndex(
-          &(_sharedState->_buffers[2])), _receiver(receiver), _timeStampSource(
-          timeStampSource), _sendNotificationListener(sendNotificationListener)
+      UnidirectionalProcessArray::SharedPtr receiver)
+  : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription()),
+    _vectorSize(receiver->_vectorSize),
+    _maySendDestructively(maySendDestructively),
+    _sharedState(receiver->_sharedState),
+    _currentIndex(&(_sharedState->_buffers[1])),
+    _tripleBufferIndex(&(_sharedState->_buffers[2])),
+    _receiver(receiver),
+    _timeStampSource(timeStampSource),
+    _sendNotificationListener(sendNotificationListener)
   {
     mtca4u::ExperimentalFeatures::enable();
     // It would be better to do the validation before initializing, but this
@@ -563,7 +566,7 @@ namespace ChimeraTK {
     // Obtain future and wait until transfer is complete. Do not yet call postRead(), so do not call
     // TransferFuture::wait().
     mtca4u::TransferElement::readAsync().getBoostFuture().wait();
-    boost::this_thread::interruption_point();
+    boost::this_thread::interruption_point();                         /// @todo probably redundant
 
   }
 
@@ -584,13 +587,18 @@ namespace ChimeraTK {
     // Due to our implementation there is always one unfulfilled future in the queue, so
     // we must pop until there are two elements left in order not to flush out the newest valid value.
     auto theFuture = mtca4u::TransferElement::readAsync().getBoostFuture();
-    while(    theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0)) != boost::future_status::timeout
+    while(    theFuture.wait_for(boost::chrono::duration<int, boost::centi>(0)) != boost::future_status::timeout        /// @todo probably redundant check
            && _sharedState->_fullBufferQueue.read_available() > 2                                                ) {
       // discard data by moving the buffer to the empty buffer queue
       TransferFuture::Data *discardedBuffer = theFuture.get();
-      _sharedState->_fullBufferQueue.pop();
-      mtca4u::TransferElement::hasActiveFuture = false;
-      _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
+      if(discardedBuffer != _tripleBufferIndex) {               // buffer is coming from fullBufferQueue
+        _sharedState->_fullBufferQueue.pop();
+        mtca4u::TransferElement::hasActiveFuture = false;
+        _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));    // static cast is ok, we never put something else into the queue
+      }
+      else {                                                    // buffer is coming from triple buffer
+        _tripleBufferIndex->_isValid = false;
+      }
       theFuture = mtca4u::TransferElement::readAsync().getBoostFuture();
     }
     // Check whether data is present in the atomic triple buffer. If it is newer, we also need to discard the last
@@ -603,7 +611,10 @@ namespace ChimeraTK {
     if(_tripleBufferIndex->_isValid) {
       uint64_t tripleBufferVersion = _tripleBufferIndex->_internalVersionNumber;
       uint64_t queueVersion = static_cast<Buffer*>(theFuture.get())->_internalVersionNumber;
-      if(tripleBufferVersion > queueVersion) {
+      if(theFuture.get() == _tripleBufferIndex) {           // the future is pointing us to the triple buffer (queue was empty, latest data on triple buffer)
+        // don't invalidate any data
+      }
+      else if(tripleBufferVersion > queueVersion) {
         TransferFuture::Data *discardedBuffer = theFuture.get();
         _sharedState->_fullBufferQueue.pop();
         _sharedState->_emptyBufferQueue.push(static_cast<Buffer*>(discardedBuffer));
