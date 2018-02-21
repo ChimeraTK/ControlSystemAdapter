@@ -98,12 +98,6 @@ int main() {
         while(!terminate) {
 
           int sleepTime;
-
-          //if(mode == 0) mode = 2;
-          if(mode == 1) mode = 2;
-          if(mode == 3) mode = 2;
-
-
           if(mode == 0) {
             pviter->second->read();
             sleepTime = pviter->second->accessData(0);
