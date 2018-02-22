@@ -342,12 +342,7 @@ namespace ChimeraTK {
 
         // If threadSafetyCheckLastId has already been filled, perform the check
         if(threadSafetyCheckInitialised) {
-          bool isOk = ( threadSafetyCheckLastId == std::hash<std::thread::id>()(std::this_thread::get_id()) );
-          if(!isOk) {
-            threadSafetyCheckLastId = std::hash<std::thread::id>()(std::this_thread::get_id());
-            std::cout << "ProcessArray thread safety check failed for variable " << this->getName() << std::endl;
-          }
-          return true;
+          return ( threadSafetyCheckLastId == std::hash<std::thread::id>()(std::this_thread::get_id()) );
         }
         else {
           // ThreadSafetyCheckLastId not yet filled: fill it and set the flag.
