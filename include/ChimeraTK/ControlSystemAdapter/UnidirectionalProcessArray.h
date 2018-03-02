@@ -330,8 +330,7 @@ namespace ChimeraTK {
       *
       * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
       */
-      bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
-          bool shouldCopy);
+      bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber, bool shouldCopy);
 
 
       /** Check thread safety. This function is used in various places inside an assert(). */
@@ -408,10 +407,8 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
       const std::string &description = "", T initialValue = T(), std::size_t numberOfBuffers = 2,
-      bool maySendDestructively = false,
-      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener =
-          ProcessVariableListener::SharedPtr());
+      bool maySendDestructively = false, TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr() );
 
   /**
    * Creates a synchronized process array. A synchronized process array works
@@ -460,8 +457,7 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
       const std::string &description = "", std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener =
-          ProcessVariableListener::SharedPtr());
+      ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr());
 
 /*********************************************************************************************************************/
 /*** Implementations of member functions below this line *************************************************************/
@@ -733,48 +729,39 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::doWriteTransfer(
-      ChimeraTK::VersionNumber versionNumber) {
-    return writeInternal(
-        _timeStampSource ?
-            _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
-        versionNumber, true);
+  bool UnidirectionalProcessArray<T>::doWriteTransfer(ChimeraTK::VersionNumber versionNumber) {
+    auto timestamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
+    return writeInternal(timestamp, versionNumber, true);
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::writeDestructively(
-      ChimeraTK::VersionNumber versionNumber) {
-    if (!_maySendDestructively) {
-      throw std::runtime_error(
-          "This process variable must not be sent destructively because the corresponding flag has not been set.");
+  bool UnidirectionalProcessArray<T>::writeDestructively(ChimeraTK::VersionNumber versionNumber) {
+    if(!_maySendDestructively) {
+      throw std::runtime_error("This process variable must not be sent destructively because the corresponding flag "
+                               "has not been set.");
     }
-    return writeInternal(
-        _timeStampSource ?
-            _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime(),
-        versionNumber, false);
+    auto timestamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
+    return writeInternal(timestamp, versionNumber, false);
   }
 
   /*********************************************************************************************************************/
 
     template<class T>
-    bool UnidirectionalProcessArray<T>::writeDestructively(
-        ChimeraTK::TimeStamp timeStamp,
-        ChimeraTK::VersionNumber versionNumber) {
-      if (!_maySendDestructively) {
-        throw std::runtime_error(
-            "This process variable must not be sent destructively because the corresponding flag has not been set.");
+    bool UnidirectionalProcessArray<T>::writeDestructively(ChimeraTK::TimeStamp timeStamp,
+                                                           ChimeraTK::VersionNumber versionNumber) {
+      if(!_maySendDestructively) {
+        throw std::runtime_error("This process variable must not be sent destructively because the corresponding flag "
+                                 "has not been set.");
       }
-      return writeInternal(timeStamp, versionNumber,
-          false);
+      return writeInternal(timeStamp, versionNumber, false);
     }
 
 /*********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::setPersistentDataStorage(
-      boost::shared_ptr<PersistentDataStorage> storage) {
+  void UnidirectionalProcessArray<T>::setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
     if(!this->isWriteable()) return;
     bool sendInitialValue = false;
     if(!_persistentDataStorage) sendInitialValue = true;
@@ -793,8 +780,8 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::writeInternal(
-      TimeStamp newTimeStamp, VersionNumber newVersionNumber, bool shouldCopy) {
+  bool UnidirectionalProcessArray<T>::writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
+                                                    bool shouldCopy) {
 
     // thread safety check, if enabled (only active with debug flags enabled)
     assert(checkThreadSafety());
