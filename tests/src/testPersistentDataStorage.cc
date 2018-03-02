@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_SUITE( PersistentDataStorageTestSuite )
 /**
  *  @todo FIXME No exception tests are yet done. They should be implemented asap!
  */
-
+/*
 
 // Test storing data in first instance of PersistentDataStorage and retrieveing it in a second instance
 BOOST_AUTO_TEST_CASE( testStoreAndRetrieve ) {
@@ -192,6 +192,12 @@ BOOST_AUTO_TEST_CASE( testUsageInPVManager ) {
     }
 
 }
+*/
+
+size_t countLinesInFile(const std::string &filename) {
+    std::ifstream inFile(filename);
+    return std::count(std::istreambuf_iterator<char>(inFile), std::istreambuf_iterator<char>(), '\n');
+}
 
 // test opening .persist files which contain a different variable household
 BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
@@ -237,7 +243,10 @@ BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
 
     }
 
-    // check with changed data type
+    // check that the number of lines in the file didn't change
+    BOOST_CHECK_EQUAL( countLinesInFile("changedType.persist"), countLinesInFile("myTestApplication.persist") );
+
+    // check with changed vector size
     boost::filesystem::remove("myTestApplication.persist");
     boost::filesystem::copy("changedVectorSize.persist", "myTestApplication.persist");
 
@@ -266,11 +275,12 @@ BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
       // obtain the process variables, send some values to the variables
       auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
       v1->readNonBlocking();
-      for(int i=0; i<7; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], 0 );
+      for(int i=0; i<4; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], i*17 );
+      for(int i=4; i<7; ++i) BOOST_CHECK_EQUAL( v1->accessChannel(0)[i], 0 );
 
       auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
       v2->readNonBlocking();
-      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001 );
+      for(int i=0; i<42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i*3.1415 * 1e30, 2e23);
 
       auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
       v3->readNonBlocking();
@@ -278,7 +288,10 @@ BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
 
     }
 
-    // check with changed data type
+    // check that the number of lines in the file changed in the right way (SomeCsToDevVar changed from 4 to 7 elements)
+    BOOST_CHECK_EQUAL( countLinesInFile("changedVectorSize.persist")+2, countLinesInFile("myTestApplication.persist") );
+
+    // check with renamed variable
     boost::filesystem::remove("myTestApplication.persist");
     boost::filesystem::copy("renamedVariable.persist", "myTestApplication.persist");
 
@@ -318,6 +331,9 @@ BOOST_AUTO_TEST_CASE( testChangedVariableHousehold ) {
       for(int i=0; i<7; ++i) BOOST_CHECK( v3->accessChannel(0)[i] == 0 );
 
     }
+
+    // check that the number of lines in the file didn't change
+    BOOST_CHECK_EQUAL( countLinesInFile("renamedVariable.persist"), countLinesInFile("myTestApplication.persist") );
 
 }
 

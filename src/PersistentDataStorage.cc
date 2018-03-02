@@ -25,7 +25,7 @@ namespace ChimeraTK {
   }
 
   /*********************************************************************************************************************/
-      
+
   PersistentDataStorage::~PersistentDataStorage() {
     writerThread.interrupt();
     writerThread.join();
@@ -33,7 +33,7 @@ namespace ChimeraTK {
   }
 
   /*********************************************************************************************************************/
-      
+
   void PersistentDataStorage::writerThreadFunction() {
     while(true) {
       for(int i=0; i<30; ++i) {
@@ -46,7 +46,7 @@ namespace ChimeraTK {
   }
 
   /*********************************************************************************************************************/
-      
+
   void PersistentDataStorage::writeToFile() {
 
     // create XML document with root node and a flat list of variables below this root
@@ -55,6 +55,7 @@ namespace ChimeraTK {
     rootElement->set_attribute("application", _applicationName);
 
     for(size_t i=0; i<_variableNames.size(); ++i) {
+      if(!_variableRegisteredFromApp[i]) continue;      // exclude variables no longer present in the application
 
       // create XML element for the variable and set name attribute
       xmlpp::Element *variable = rootElement->add_child("variable");
@@ -101,7 +102,7 @@ namespace ChimeraTK {
       else {
         /// @todo TODO what todo here?
       }
-      
+
       // set type attribute
       variable->set_attribute("type",dataTypeName);
 
@@ -116,7 +117,7 @@ namespace ChimeraTK {
 
   template<typename DataType>
   void PersistentDataStorage::generateXmlValueTags(xmlpp::Element *parent, size_t id) {
-    
+
     // obtain the data vector from the map
     std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
 
@@ -131,16 +132,16 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   void PersistentDataStorage::readFromFile() {
-  
+
     // check if file exists
-    struct stat buffer;   
+    struct stat buffer;
     if(stat(_filename.c_str(), &buffer) != 0) {
       // file does not exist: print message and do nothing
       std::cerr << "ChimeraTK::PersistentDataStorage: Persistency file '" << _filename << "' does not exist. "
                    "It will be created when exiting the application." << std::endl;
       return;
     }
-    
+
     try {
       xmlpp::DomParser parser;
       //parser.set_validate();
@@ -150,22 +151,22 @@ namespace ChimeraTK {
         // obtain root node
         const xmlpp::Node *rootElement = parser.get_document()->get_root_node(); // object will be deleted by DomParser
         /// @todo TODO check if the application name is correct?
-        
+
         // iterate through variables
         for(auto &elem : rootElement->get_children()) {
           const xmlpp::Element *child = dynamic_cast<const xmlpp::Element*>(elem);
           if(!child) continue;    // comment or white spaces...
           std::string name = child->get_attribute("name")->get_value();
           std::string type = child->get_attribute("type")->get_value();
-          if(type == "int8") { readXmlValueTags<int8_t>(child, registerVariable<int8_t>(name, 0)); }
-          else if(type == "uint8") { readXmlValueTags<uint8_t>(child, registerVariable<uint8_t>(name, 0)); }
-          else if(type == "int16") { readXmlValueTags<int16_t>(child, registerVariable<int16_t>(name, 0)); }
-          else if(type == "uint16") { readXmlValueTags<uint16_t>(child, registerVariable<uint16_t>(name, 0)); }
-          else if(type == "int32") { readXmlValueTags<int32_t>(child, registerVariable<int32_t>(name, 0)); }
-          else if(type == "uint32") { readXmlValueTags<uint32_t>(child, registerVariable<uint32_t>(name, 0)); }
-          else if(type == "float") { readXmlValueTags<float>(child, registerVariable<float>(name, 0)); }
-          else if(type == "double") { readXmlValueTags<double>(child, registerVariable<double>(name, 0)); }
-          else if(type == "string") { readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0)); }
+          if(type == "int8") { readXmlValueTags<int8_t>(child, registerVariable<int8_t>(name, 0, true)); }
+          else if(type == "uint8") { readXmlValueTags<uint8_t>(child, registerVariable<uint8_t>(name, 0, true)); }
+          else if(type == "int16") { readXmlValueTags<int16_t>(child, registerVariable<int16_t>(name, 0, true)); }
+          else if(type == "uint16") { readXmlValueTags<uint16_t>(child, registerVariable<uint16_t>(name, 0, true)); }
+          else if(type == "int32") { readXmlValueTags<int32_t>(child, registerVariable<int32_t>(name, 0, true)); }
+          else if(type == "uint32") { readXmlValueTags<uint32_t>(child, registerVariable<uint32_t>(name, 0, true)); }
+          else if(type == "float") { readXmlValueTags<float>(child, registerVariable<float>(name, 0, true)); }
+          else if(type == "double") { readXmlValueTags<double>(child, registerVariable<double>(name, 0, true)); }
+          else if(type == "string") { readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0, true)); }
           else { /* @todo TODO ??? */ }
         }
       }
@@ -175,15 +176,15 @@ namespace ChimeraTK {
     }
     catch(const std::exception& ex) {   // @todo TODO proper exception handling
       std::cout << "Exception caught: " << ex.what() << std::endl;
-    }    
-      
+    }
+
   }
 
   /*********************************************************************************************************************/
 
   template<typename DataType>
   void PersistentDataStorage::readXmlValueTags(const xmlpp::Element *parent, size_t id) {
-    
+
     // obtain the data vector from the map
     std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
 
@@ -191,23 +192,23 @@ namespace ChimeraTK {
     for(auto &valElems : parent->get_children()) {
       const xmlpp::Element *valChild = dynamic_cast<const xmlpp::Element*>(valElems);
       if(!valChild) continue;    // comment or white spaces...
-      
+
       // obtain index and value as string
       std::string s_idx = valChild->get_attribute("i")->get_value();
       std::string s_val = valChild->get_attribute("v")->get_value();
-      
+
       // convert to data type
       size_t idx = boost::lexical_cast<size_t>(s_idx);
       DataType val = boost::lexical_cast<DataType>(s_val);
-      
+
       // resize vector if needed
       if(value.size() <= idx) value.resize(idx+1);
-      
+
       // store value
       value[idx] = val;
     }
   }
 
   /*********************************************************************************************************************/
-  
+
 } /* namespace ChimeraTK */

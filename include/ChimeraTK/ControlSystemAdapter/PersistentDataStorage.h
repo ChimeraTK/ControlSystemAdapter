@@ -7,7 +7,10 @@
 #include <typeinfo>
 #include <vector>
 #include <map>
+
 #include <boost/thread.hpp>
+#include <boost/fusion/include/for_each.hpp>
+
 #include <mtca4u/SupportedUserTypes.h>
 #include <mtca4u/RegisterPath.h>
 
@@ -45,9 +48,11 @@ namespace ChimeraTK {
       ~PersistentDataStorage();
 
       /** Register a variable to be stored to and retrieved from the data storage. The returned value is the ID which
-      *   must be passed to the other functions. */
+       *  must be passed to the other functions. The last argument "fromFile" should be false when the function is
+       *  called from within UnidirectionalProcessArray<T>::setPersistentDataStorage() etc. and true when called from
+       *  within readFromFile(). */
       template<typename DataType>
-      size_t registerVariable(mtca4u::RegisterPath const &name, size_t nElements);
+      size_t registerVariable(mtca4u::RegisterPath const &name, size_t nElements, bool fromFile=false);
 
       /** Retrieve the current value for the variable with the given ID */
       template<typename DataType>
@@ -83,6 +88,11 @@ namespace ChimeraTK {
       /** Vector of variable names. The index is the ID of the variable. */
       std::vector<mtca4u::RegisterPath> _variableNames;
 
+      /** Vector of flags whether the variable was registers from the application. The index is the ID of the variable.
+       *  This flag is used to clean up variables only coming from the file and are no longer present in the
+       *  application. */
+      std::vector<bool> _variableRegisteredFromApp;
+
       /** Vector of data types. The index is the ID of the variable. */
       std::vector<std::type_info const *> _variableTypes;
 
@@ -98,23 +108,48 @@ namespace ChimeraTK {
 
       void writerThreadFunction();
 
+      /** A functor needed in registerVariable() */
+      struct registerVariable_oldTypeRemover {
+        template<typename PAIR>
+        void operator()(PAIR &pair) const;
+        const std::type_info *type;
+        size_t id;
+      };
   };
 
   /*********************************************************************************************************************/
 
+  template<typename PAIR>
+  void PersistentDataStorage::registerVariable_oldTypeRemover::operator()(PAIR &pair) const {
+
+    // search for the right type
+    if(*type != typeid(typename PAIR::first_type)) return;
+
+    // remove entry from data map
+    pair.second.erase(id);
+
+  }
+
+  /*********************************************************************************************************************/
+
   template<typename DataType>
-  size_t PersistentDataStorage::registerVariable(mtca4u::RegisterPath const &name, size_t nElements) {
+  size_t PersistentDataStorage::registerVariable(mtca4u::RegisterPath const &name, size_t nElements, bool fromFile) {
     // check if already existing
     auto position = std::find(_variableNames.begin(), _variableNames.end(), name);
 
     size_t id = position - _variableNames.begin();
 
     // create new element
-    if(position == _variableNames.end() || boost::fusion::at_key<DataType>(_dataMap.table).count(id) == 0) {
+    if(position == _variableNames.end()) {
+      // output information
+      if(!fromFile) std::cout << "PersistentDataStorage: registering new variable " << name << std::endl;
 
       // store name and type
       _variableNames.push_back(name);
       _variableTypes.push_back(&typeid(DataType));
+
+      // set flag whether this variable has been registered from the application
+      _variableRegisteredFromApp.push_back(!fromFile);
 
       // create value vector
       id = _variableNames.size()-1;
@@ -124,8 +159,42 @@ namespace ChimeraTK {
       // return id
       return id;
     }
+    // replace element (changed data type)
+    else if(boost::fusion::at_key<DataType>(_dataMap.table).count(id) == 0) {
+      std::cout << "PersistentDataStorage: changing type of variable " << name << std::endl;
+      assert(_variableTypes[id] != &typeid(DataType));
+      assert(!fromFile);
+
+      // remove value vector from old type
+      boost::fusion::for_each(_dataMap.table, registerVariable_oldTypeRemover({_variableTypes[id], id}));
+
+      // update type
+      _variableTypes[id] = &typeid(DataType);
+
+      // update flag that this variable has been registered from the application
+      _variableRegisteredFromApp[id] = true;
+
+      // create value vector
+      std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
+      value.resize(nElements);
+
+      // return id
+      return id;
+    }
     // return existing id
     else {
+      assert(!fromFile);
+
+      // update flag that this variable has been registered from the application
+      _variableRegisteredFromApp[id] = true;
+
+      // check if resize required
+      std::vector<DataType> &value = boost::fusion::at_key<DataType>(_dataMap.table)[id];
+      if(value.size() != nElements) {
+        std::cout << "PersistentDataStorage: changing size of variable " << name << std::endl;
+        value.resize(nElements);
+      }
+
       return id;
     }
   }
