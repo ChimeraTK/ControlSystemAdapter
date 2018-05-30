@@ -5,8 +5,9 @@
 #include <boost/thread.hpp>
 #include <boost/test/included/unit_test.hpp>
 
-#include <mtca4u/Device.h>
-#include <mtca4u/ExperimentalFeatures.h>
+#include <ChimeraTK/Device.h>
+#include <ChimeraTK/ExperimentalFeatures.h>
+#include <ChimeraTK/ReadAnyGroup.h>
 
 #include "ProcessArray.h"
 
@@ -154,7 +155,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -170,7 +172,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -186,7 +189,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -203,7 +207,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -219,7 +224,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -235,7 +241,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -251,7 +258,8 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&a1,&a2,&a3,&a4,&flag] { readAny({a1,a2,a3,a4}); flag = true; });
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -271,12 +279,13 @@ void AsyncReadTest::testReadAny() {
     s2 = 777;
     s2.write();
     // no point to use a thread here
-    auto r = readAny({a1,a2,a3,a4});
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    auto r = group.waitAny();
     BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 123);
 
-    r = readAny({a1,a2,a3,a4});
+    r = group.waitAny();
     BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
@@ -299,28 +308,29 @@ void AsyncReadTest::testReadAny() {
     s1.write();
 
     // no point to use a thread here
-    auto r = readAny({a1,a2,a3,a4});
+    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+    auto r = group.waitAny();
     BOOST_CHECK(a4.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
-    r = readAny({a1,a2,a3,a4});
+    r = group.waitAny();
     BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
-    r = readAny({a1,a2,a3,a4});
+    r = group.waitAny();
     BOOST_CHECK(a3.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 333);
     BOOST_CHECK(a4 == 111);
 
-    r = readAny({a1,a2,a3,a4});
+    r = group.waitAny();
     BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 444);
     BOOST_CHECK(a2 == 222);

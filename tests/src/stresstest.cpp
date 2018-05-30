@@ -110,12 +110,12 @@ int main() {
             pviter->second->readLatest();
             sleepTime = pviter->second->accessData(0);
           }
-          else {  // mode == 3
+          /*else {  // mode == 3                            /// @todo enable readAny in stresstest again!
             auto id = readAny(varList);
             sleepTime = varMap[id]->accessData(0);
-          }
+          }*/
           ++nReceiveOps;
-          mode = (sleepTime % 4);
+          mode = (sleepTime % 3); //4);
 
           // iterate to next variable
           ++pviter;

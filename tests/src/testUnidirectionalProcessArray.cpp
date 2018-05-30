@@ -239,7 +239,7 @@ namespace ChimeraTK {
   void UnidirectionalProcessArrayTest<T>::testSynchronization() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
     // If we send three values consecutively, they all should be received because the queue length is two and there is
@@ -251,16 +251,19 @@ namespace ChimeraTK {
     sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 2);
     sender->writeDestructively();
     BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER);
     }
     BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 1);
     }
     BOOST_CHECK(receiver->readNonBlocking());
+    BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
     for (typename std::vector<T>::iterator i = receiver->accessChannel(0).begin();
         i != receiver->accessChannel(0).end(); ++i) {
       BOOST_CHECK(*i == SOME_NUMBER + 2);
@@ -346,7 +349,7 @@ namespace ChimeraTK {
   void UnidirectionalProcessArrayTest<T>::testVersionNumbers() {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true,
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true,
             TimeStampSource::SharedPtr());
     typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
     typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
@@ -409,7 +412,7 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArrayTest<T>::testBlockingRead() {
-    auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, true);
+    auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
     auto sender = senderReceiver.first;
     auto receiver = senderReceiver.second;
 
