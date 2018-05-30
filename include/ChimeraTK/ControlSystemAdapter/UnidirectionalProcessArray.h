@@ -175,10 +175,29 @@ namespace ChimeraTK {
 
       /**
       *  Type for the individual buffers. Each buffer stores a vector, the version number and the time stamp. The type
-      *  is swappable, i.e. std::swap will be overloaded for it. This helps to avoid unnecessary memory allocations when
-      *  transported in a cppext::future_queue.
+      *  is swappable by the default implemenation of std::swap since both the move constructor and the move assignment
+      *  operator are implemented. This helps to avoid unnecessary memory allocations when transported in a
+      *  cppext::future_queue.
       */
       struct Buffer {
+
+        Buffer(const std::vector<T> &initialValue)
+        : _value(initialValue) {}
+
+        Buffer(size_t size)
+        : _value(size) {}
+
+        Buffer() {}
+
+        Buffer(Buffer &&other)
+        : _value(std::move(other._value)), _versionNumber(other._versionNumber), _timeStamp(other._timeStamp) {}
+
+        Buffer& operator=(Buffer &&other) {
+          _value = std::move(other._value);
+          _versionNumber = other._versionNumber;
+          _timeStamp = other._timeStamp;
+          return *this;
+        }
 
         /** The actual data contained in this buffer. */
         std::vector<T> _value;
@@ -188,21 +207,6 @@ namespace ChimeraTK {
 
         /** Time stamp associated with this buffer */
         TimeStamp _timeStamp;
-
-        /** Swap the content of this Buffer with another */
-        void swap(Buffer &other) {
-
-          _value.swap(other._value);
-
-          ChimeraTK::VersionNumber tempVersion = _versionNumber;
-          _versionNumber = other._versionNumber;
-          other._versionNumber = tempVersion;
-
-          TimeStamp tempTime = _timeStamp;
-          _timeStamp = other._timeStamp;
-          other._timeStamp = tempTime;
-
-        }
 
       };
 
@@ -227,10 +231,9 @@ namespace ChimeraTK {
         {
           // fill the internal buffers of the queue
           for(size_t i=0; i<numberOfBuffers+1; ++i) {
-            Buffer b0;
-            Buffer b1;
-            b1._value.resize(bufferLength);
-            _queue.push(b0);
+            Buffer b0(bufferLength);
+            Buffer b1(bufferLength);
+            _queue.push(std::move(b0));
             _queue.pop(b1);   // here the buffer b1 gets swapped into the queue
           }
         }
@@ -364,7 +367,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", T initialValue = T(), std::size_t numberOfBuffers = 2,
+      const std::string &description = "", T initialValue = T(), std::size_t numberOfBuffers = 3,
       bool maySendDestructively = false, TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr() );
 
@@ -413,7 +416,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", std::size_t numberOfBuffers = 2, bool maySendDestructively = false,
+      const std::string &description = "", std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr());
 
@@ -428,7 +431,8 @@ namespace ChimeraTK {
   : ProcessArray<T>(instanceType, name, unit, description),
     _vectorSize(initialValue.size()),
     _maySendDestructively(false),
-    _sharedState(numberOfBuffers, initialValue.size())
+    _sharedState(numberOfBuffers, initialValue.size()),
+    _localBuffer(initialValue)
   {
     mtca4u::ExperimentalFeatures::enable();
     // allocate and initialise buffer of the base class
@@ -463,6 +467,7 @@ namespace ChimeraTK {
     _vectorSize(receiver->_vectorSize),
     _maySendDestructively(maySendDestructively),
     _sharedState(receiver->_sharedState),
+    _localBuffer(receiver->_localBuffer._value),
     _receiver(receiver),
     _timeStampSource(timeStampSource),
     _sendNotificationListener(sendNotificationListener)
@@ -489,8 +494,7 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
-
-    _sharedState._queue.wait();
+    _sharedState._queue.pop_wait(_localBuffer);
     boost::this_thread::interruption_point();                         /// @todo probably redundant
 
   }
@@ -499,8 +503,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-    bool ret = !(_sharedState._queue.empty());
-    return ret;
+    return _sharedState._queue.pop(_localBuffer);
   }
 
 /*********************************************************************************************************************/
@@ -547,10 +550,7 @@ namespace ChimeraTK {
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into
     // trouble when it suddenly experiences a vector of the wrong size.
-    if(_localBuffer._value.size() != _vectorSize) {
-      throw std::runtime_error("Cannot run read operation because the size of the vector belonging to the current"
-                                " buffer has been modified.");
-    }
+    assert(mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
 
     // swap data out of the queue buffer
     mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( _localBuffer._value );
@@ -652,6 +652,7 @@ namespace ChimeraTK {
     _localBuffer._versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
+    assert(_localBuffer._value.size() == mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() );
     if(shouldCopy) {
       _localBuffer._value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
     }
@@ -660,7 +661,7 @@ namespace ChimeraTK {
     }
 
     // send the data to the queue
-    bool lostData = _sharedState._queue.push_overwrite(_localBuffer);
+    bool lostData = _sharedState._queue.push_overwrite(std::move(_localBuffer));
 
     // change current index to the new empty buffer
     if(shouldCopy) {
