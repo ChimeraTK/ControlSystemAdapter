@@ -375,12 +375,16 @@ namespace ChimeraTK {
     BOOST_CHECK(receiver->readNonBlocking());
     BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
     BOOST_CHECK(receiver->accessChannel(0)[0] == 3);
-    // Even when sending again an update with an older version number, the update should be seen by the receiver.
+    // Even when sending again an update with an older version number, we should receive an exception
     sender->accessChannel(0)[0] = 4;
-    sender->writeDestructively(versionNumber);
-    BOOST_CHECK(receiver->readNonBlocking());
-    BOOST_CHECK(versionNumber == receiver->getVersionNumber());
-    BOOST_CHECK(receiver->accessChannel(0)[0] == 4);
+    try {
+      sender->writeDestructively(versionNumber);
+      BOOST_ERROR("Exception expected.");
+    }
+    catch(std::logic_error&) {}
+    BOOST_CHECK(receiver->readNonBlocking() == false);
+    BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
+    BOOST_CHECK(receiver->accessChannel(0)[0] == 3);
     // When we send non-destructively, the version number on the sender and the
     // receiver should match after sending and receiving.
     versionNumber = receiver->getVersionNumber();
