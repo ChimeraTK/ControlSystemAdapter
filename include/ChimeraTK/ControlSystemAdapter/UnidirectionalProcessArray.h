@@ -90,11 +90,11 @@ namespace ChimeraTK {
           UnidirectionalProcessArray::SharedPtr receiver);
 
       TimeStamp getTimeStamp() const override {
-        return _localBuffer._timeStamp;
+        return _timeStamp;
       }
 
       ChimeraTK::VersionNumber getVersionNumber() const override {
-        return _localBuffer._versionNumber;
+        return _versionNumber;
       }
 
       void doReadTransfer() override;
@@ -256,6 +256,16 @@ namespace ChimeraTK {
        * Local buffer of this end (receiving or sending) of the process variable
        */
       Buffer _localBuffer;
+
+      /**
+       * Local copy of the version number belonging to the NDRegisterAccessor<T>::buffer_2D
+       */
+      VersionNumber _versionNumber;
+
+      /**
+       * Local copy of the version number belonging to the NDRegisterAccessor<T>::buffer_2D
+       */
+      TimeStamp _timeStamp;
 
       /**
       * Pointer to the receiver associated with this sender. This field is only
@@ -552,8 +562,10 @@ namespace ChimeraTK {
     // trouble when it suddenly experiences a vector of the wrong size.
     assert(mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
 
-    // swap data out of the queue buffer
+    // swap data out of the local buffer into the user buffer
     mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( _localBuffer._value );
+    _versionNumber = _localBuffer._versionNumber;
+    _timeStamp = _localBuffer._timeStamp;
 
   }
 
