@@ -638,7 +638,7 @@ namespace ChimeraTK {
     // right size. Otherwise, the code using the receiver might get into
     // trouble when it suddenly experiences a vector of the wrong size.
     if(mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
-      throw std::runtime_error(
+      throw std::logic_error(
           "Cannot run receive operation because the size of the vector belonging to the current buffer has been "
           "modified. Variable name: "+this->getName());
     }
@@ -646,8 +646,8 @@ namespace ChimeraTK {
     // A version should never be send with a version number that is equal to or
     // even less than the last version number used. Such an attempt indicates
     // that there is a problem in the logic attempting the write operation.
-    if (newVersionNumber <= getVersionNumber()) {
-      throw std::runtime_error(
+    if (newVersionNumber < _versionNumber) {
+      throw std::logic_error(
           "The version number passed to write is less than or equal to the last version number used.");
     }
 
@@ -657,11 +657,11 @@ namespace ChimeraTK {
       _persistentDataStorage->updateValue(_persistentDataStorageID, mtca4u::NDRegisterAccessor<T>::buffer_2D[0]);
     }
 
-    // Before sending the value, we have to set the associated time-stamp.
+    // Set time stamp and version number
     _localBuffer._timeStamp = newTimeStamp;
-
-    // set the version numbers
     _localBuffer._versionNumber = newVersionNumber;
+    _timeStamp = newTimeStamp;
+    _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
     assert(_localBuffer._value.size() == mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() );
@@ -674,12 +674,12 @@ namespace ChimeraTK {
 
     // send the data to the queue
     bool dataNotLost = _sharedState._queue.push_overwrite(std::move(_localBuffer));
-
+/*
     // change current index to the new empty buffer
     if(shouldCopy) {
       _localBuffer._timeStamp = newTimeStamp;
       _localBuffer._versionNumber = newVersionNumber;
-    }
+    } */
 
     // notify send notification listener, if present
     if(_sendNotificationListener) {
