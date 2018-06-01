@@ -73,7 +73,7 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
       std::size_t size, const mtca4u::RegisterPath & name = "",
       const std::string &unit = "", const std::string &description = "",
-      T initialValue = T(), std::size_t numberOfBuffers = 2,
+      T initialValue = T(), std::size_t numberOfBuffers = 3,
       TimeStampSource::SharedPtr timeStampSource1 =
           TimeStampSource::SharedPtr(),
       TimeStampSource::SharedPtr timeStampSource2 =
@@ -132,7 +132,7 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
       const std::vector<T>& initialValue,
       const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", std::size_t numberOfBuffers = 2,
+      const std::string &description = "", std::size_t numberOfBuffers = 3,
       TimeStampSource::SharedPtr timeStampSource1 =
           TimeStampSource::SharedPtr(),
       TimeStampSource::SharedPtr timeStampSource2 =
