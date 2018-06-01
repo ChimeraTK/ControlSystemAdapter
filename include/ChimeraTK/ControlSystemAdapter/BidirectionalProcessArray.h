@@ -200,6 +200,8 @@ namespace ChimeraTK {
       return _versionNumber;
     }
 
+    void doPreRead() override;
+
     void doReadTransfer() override;
 
     bool doReadTransferNonBlocking() override;
@@ -210,7 +212,11 @@ namespace ChimeraTK {
 
     void doPostRead() override;
 
+    void doPreWrite() override;
+
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber={}) override;
+
+    void doPostWrite() override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -366,6 +372,13 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
+  void BidirectionalProcessArray<T>::doPreRead() {
+    _receiver->preRead();
+  }
+
+/*********************************************************************************************************************/
+
+  template<class T>
   void BidirectionalProcessArray<T>::doReadTransfer() {
     _receiver->doReadTransfer();
   }
@@ -422,6 +435,12 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
+  void BidirectionalProcessArray<T>::doPreWrite() {
+  }
+
+/*********************************************************************************************************************/
+
+  template<class T>
   bool BidirectionalProcessArray<T>::doWriteTransfer(
       ChimeraTK::VersionNumber versionNumber) {
     // We have to copy our current value to the sender. We cannot swap it
@@ -450,6 +469,12 @@ namespace ChimeraTK {
       }
     }
     return lostData;
+  }
+
+/*********************************************************************************************************************/
+
+  template<class T>
+  void BidirectionalProcessArray<T>::doPostWrite() {
   }
 
 /*********************************************************************************************************************/
