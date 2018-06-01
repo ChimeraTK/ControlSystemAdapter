@@ -674,12 +674,6 @@ namespace ChimeraTK {
 
     // send the data to the queue
     bool dataNotLost = _sharedState._queue.push_overwrite(std::move(_localBuffer));
-/*
-    // change current index to the new empty buffer
-    if(shouldCopy) {
-      _localBuffer._timeStamp = newTimeStamp;
-      _localBuffer._versionNumber = newVersionNumber;
-    } */
 
     // notify send notification listener, if present
     if(_sendNotificationListener) {
