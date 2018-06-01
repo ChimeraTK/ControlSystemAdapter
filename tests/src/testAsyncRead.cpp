@@ -151,11 +151,13 @@ void AsyncReadTest::testReadAny() {
   s3 = 120;
   s4 = 345;
 
+  // create ReadAnyGroup
+  ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+
   // variable Test1
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -172,7 +174,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -189,7 +190,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -207,7 +207,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -224,7 +223,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -241,7 +239,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -258,7 +255,6 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
 
     // check that it doesn't return too soon
@@ -279,7 +275,6 @@ void AsyncReadTest::testReadAny() {
     s2 = 777;
     s2.write();
     // no point to use a thread here
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     auto r = group.waitAny();
     BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 666);
@@ -308,7 +303,6 @@ void AsyncReadTest::testReadAny() {
     s1.write();
 
     // no point to use a thread here
-    ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
     auto r = group.waitAny();
     BOOST_CHECK(a4.getId() == r);
     BOOST_CHECK(a1 == 666);
