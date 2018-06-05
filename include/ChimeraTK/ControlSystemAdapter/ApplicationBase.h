@@ -63,7 +63,7 @@ namespace ChimeraTK {
       static ApplicationBase& getInstance();
 
       /** Return the name of the application */
-      const std::string& getName() {
+      const std::string& getName() const {
         return applicationName;
       }
 
