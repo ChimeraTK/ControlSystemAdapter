@@ -69,19 +69,15 @@ namespace ChimeraTK {
    * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
-  std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
-      std::size_t size, const mtca4u::RegisterPath & name = "",
-      const std::string &unit = "", const std::string &description = "",
+  std::pair< typename ProcessArray<T>::SharedPtr,
+             typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( std::size_t size,
+      const mtca4u::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       T initialValue = T(), std::size_t numberOfBuffers = 3,
-      TimeStampSource::SharedPtr timeStampSource1 =
-          TimeStampSource::SharedPtr(),
-      TimeStampSource::SharedPtr timeStampSource2 =
-          TimeStampSource::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener1 =
-          ProcessVariableListener::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener2 =
-          ProcessVariableListener::SharedPtr());
+      TimeStampSource::SharedPtr timeStampSource1 = TimeStampSource::SharedPtr(),
+      TimeStampSource::SharedPtr timeStampSource2 = TimeStampSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener1 = ProcessVariableListener::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener2 = ProcessVariableListener::SharedPtr(),
+      const AccessModeFlags &flags={AccessMode::wait_for_new_data} );
 
   /**
    * Creates a bidirectional synchronized process array. A bidirectional
@@ -128,19 +124,15 @@ namespace ChimeraTK {
    * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
-  std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
-      const std::vector<T>& initialValue,
-      const mtca4u::RegisterPath & name = "", const std::string &unit = "",
-      const std::string &description = "", std::size_t numberOfBuffers = 3,
-      TimeStampSource::SharedPtr timeStampSource1 =
-          TimeStampSource::SharedPtr(),
-      TimeStampSource::SharedPtr timeStampSource2 =
-          TimeStampSource::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener1 =
-          ProcessVariableListener::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener2 =
-          ProcessVariableListener::SharedPtr());
+  std::pair< typename ProcessArray<T>::SharedPtr,
+             typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( const std::vector<T>& initialValue,
+      const mtca4u::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
+      std::size_t numberOfBuffers = 3,
+      TimeStampSource::SharedPtr timeStampSource1 = TimeStampSource::SharedPtr(),
+      TimeStampSource::SharedPtr timeStampSource2 = TimeStampSource::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener1 = ProcessVariableListener::SharedPtr(),
+      ProcessVariableListener::SharedPtr sendNotificationListener2 = ProcessVariableListener::SharedPtr(),
+      const AccessModeFlags &flags={AccessMode::wait_for_new_data} );
 
   /**
    * Implementation of the process array that transports data in both
@@ -169,13 +161,13 @@ namespace ChimeraTK {
         const std::vector<T>&, const mtca4u::RegisterPath &,
         const std::string &, const std::string &, std::size_t,
         TimeStampSource::SharedPtr, TimeStampSource::SharedPtr,
-        ProcessVariableListener::SharedPtr, ProcessVariableListener::SharedPtr);
+        ProcessVariableListener::SharedPtr, ProcessVariableListener::SharedPtr, const AccessModeFlags &flags);
     friend std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray<>(
         std::size_t, const mtca4u::RegisterPath &, const std::string &,
         const std::string &, T, std::size_t, TimeStampSource::SharedPtr,
         TimeStampSource::SharedPtr, ProcessVariableListener::SharedPtr,
-        ProcessVariableListener::SharedPtr);
+        ProcessVariableListener::SharedPtr, const AccessModeFlags &flags);
 
     /**
      * Creates a bidirectional process array that uses the passed process arrays
@@ -190,7 +182,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr sender,
         TimeStampSource::SharedPtr timeStampSource,
         ProcessVariableListener::SharedPtr sendNotificationListener,
-        TimeStamp initialTimeStamp, VersionNumber initialVersionNumber);
+        TimeStamp initialTimeStamp, VersionNumber initialVersionNumber, const AccessModeFlags &flags);
 
     TimeStamp getTimeStamp() const override {
       return _timeStamp;
@@ -338,8 +330,9 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr sender,
       TimeStampSource::SharedPtr timeStampSource,
       ProcessVariableListener::SharedPtr sendNotificationListener,
-      TimeStamp initialTimeStamp, VersionNumber initialVersionNumber)
-  : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description),
+      TimeStamp initialTimeStamp, VersionNumber initialVersionNumber,
+      const AccessModeFlags &flags)
+  : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description, flags),
     _allowPersistentDataStorage(allowPersistentDataStorage),
     _receiver(receiver),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
@@ -515,18 +508,17 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
-      std::size_t size, const mtca4u::RegisterPath & name,
-      const std::string &unit, const std::string &description, T initialValue,
+  typename std::pair< typename ProcessArray<T>::SharedPtr,
+                      typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( std::size_t size,
+      const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
       std::size_t numberOfBuffers, TimeStampSource::SharedPtr timeStampSource1,
-      TimeStampSource::SharedPtr timeStampSource2,
-      ProcessVariableListener::SharedPtr sendNotificationListener1,
-      ProcessVariableListener::SharedPtr sendNotificationListener2) {
+      TimeStampSource::SharedPtr timeStampSource2, ProcessVariableListener::SharedPtr sendNotificationListener1,
+      ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags &flags )
+  {
     auto senderReceiver1 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, true);
+        description, initialValue, numberOfBuffers, true, {}, {}, flags);
     auto senderReceiver2 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, true);
+        description, initialValue, numberOfBuffers, true, {}, {}, flags);
     // We create a default-constructed time-stamp and version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
@@ -541,12 +533,12 @@ namespace ChimeraTK {
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
             timeStampSource1, sendNotificationListener1, timeStamp,
-            versionNumber);
+            versionNumber, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
             timeStampSource2, sendNotificationListener2, timeStamp,
-            versionNumber);
+            versionNumber, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr,
@@ -556,18 +548,17 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray(
-      const std::vector<T>& initialValue, const mtca4u::RegisterPath & name,
-      const std::string &unit, const std::string &description,
+  typename std::pair< typename ProcessArray<T>::SharedPtr,
+                      typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( const std::vector<T>& initialValue,
+      const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description,
       std::size_t numberOfBuffers, TimeStampSource::SharedPtr timeStampSource1,
-      TimeStampSource::SharedPtr timeStampSource2,
-      ProcessVariableListener::SharedPtr sendNotificationListener1,
-      ProcessVariableListener::SharedPtr sendNotificationListener2) {
+      TimeStampSource::SharedPtr timeStampSource2, ProcessVariableListener::SharedPtr sendNotificationListener1,
+      ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags &flags )
+  {
     auto senderReceiver1 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, true, timeStampSource1);
+        unit, description, numberOfBuffers, true, timeStampSource1, {}, flags);
     auto senderReceiver2 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, true, timeStampSource2);
+        unit, description, numberOfBuffers, true, timeStampSource2, {}, flags);
     // We create a default-constructed time-stamp and version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
@@ -582,12 +573,12 @@ namespace ChimeraTK {
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
             timeStampSource1, sendNotificationListener1, timeStamp,
-            versionNumber);
+            versionNumber, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
             timeStampSource2, sendNotificationListener2, timeStamp,
-            versionNumber);
+            versionNumber, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr,
