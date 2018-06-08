@@ -1,7 +1,6 @@
 #include <signal.h>
 #include <random>
 #include <boost/thread/thread.hpp>
-#include <mtca4u/ReadAny.h>
 #include "ProcessArray.h"
 
 using namespace ChimeraTK;
