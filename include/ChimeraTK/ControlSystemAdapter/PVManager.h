@@ -121,7 +121,8 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createProcessArrayDeviceToControlSystem(
         mtca4u::RegisterPath const & processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
-        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+        const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
     /**
      * Creates a new process array for transferring data from the control system
@@ -154,7 +155,8 @@ namespace ChimeraTK {
       typename ProcessArray<T>::SharedPtr> createProcessArrayControlSystemToDevice(
         mtca4u::RegisterPath const & processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
-        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+        const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -502,7 +504,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayDeviceToControlSystem(
       mtca4u::RegisterPath const & processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description, bool maySendDestructively,
-      std::size_t numberOfBuffers) {
+      std::size_t numberOfBuffers, const AccessModeFlags &flags) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
       throw std::invalid_argument(
@@ -520,7 +522,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
-            sendNotificationListener);
+            sendNotificationListener, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -539,7 +541,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr> PVManager::createProcessArrayControlSystemToDevice(
       mtca4u::RegisterPath const & processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description, bool maySendDestructively,
-      std::size_t numberOfBuffers) {
+      std::size_t numberOfBuffers, const AccessModeFlags &flags) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
       throw std::invalid_argument(
@@ -558,7 +560,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
             numberOfBuffers, maySendDestructively, timeStampSource,
-            sendNotificationListener);
+            sendNotificationListener, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName,

@@ -82,7 +82,8 @@ namespace ChimeraTK {
         SynchronizationDirection synchronizationDirection,
         const mtca4u::RegisterPath& processVariableName, std::size_t size,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
-        T initialValue = T(), bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
+        T initialValue = T(), bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+        const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
     /**
      * Creates a new process array and registers it with the PV manager.
@@ -113,7 +114,8 @@ namespace ChimeraTK {
         SynchronizationDirection synchronizationDirection,
         const mtca4u::RegisterPath& processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
-        bool maySendDestructively = false, std::size_t numberOfBuffers = 2);
+        bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+        const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -226,16 +228,17 @@ namespace ChimeraTK {
       SynchronizationDirection synchronizationDirection,
       const mtca4u::RegisterPath& processVariableName, std::size_t size,
       const std::string& unit, const std::string& description, T initialValue,
-      bool maySendDestructively, std::size_t numberOfBuffers) {
+      bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags &flags)
+  {
     switch (synchronizationDirection) {
       case controlSystemToDevice:
         return _pvManager->createProcessArrayControlSystemToDevice<T>(
             processVariableName, std::vector<T>(size, initialValue), unit, description,
-            maySendDestructively, numberOfBuffers).second;
+            maySendDestructively, numberOfBuffers, flags).second;
       case deviceToControlSystem:
         return _pvManager->createProcessArrayDeviceToControlSystem<T>(
             processVariableName, std::vector<T>(size, initialValue), unit, description,
-            maySendDestructively, numberOfBuffers).second;
+            maySendDestructively, numberOfBuffers, flags).second;
       case bidirectional:
         if (maySendDestructively) {
           throw std::logic_error(
@@ -254,16 +257,17 @@ namespace ChimeraTK {
       SynchronizationDirection synchronizationDirection,
       const mtca4u::RegisterPath& processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description,
-      bool maySendDestructively, std::size_t numberOfBuffers) {
+      bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags &flags)
+  {
     switch (synchronizationDirection) {
       case controlSystemToDevice:
         return _pvManager->createProcessArrayControlSystemToDevice<T>(
             processVariableName, initialValue, unit, description, maySendDestructively,
-            numberOfBuffers).second;
+            numberOfBuffers, {}, {}, flags).second;
       case deviceToControlSystem:
         return _pvManager->createProcessArrayDeviceToControlSystem<T>(
             processVariableName, initialValue, unit, description, maySendDestructively,
-            numberOfBuffers).second;
+            numberOfBuffers, {}, {}, flags).second;
       case bidirectional:
         if (maySendDestructively) {
           throw std::logic_error(
