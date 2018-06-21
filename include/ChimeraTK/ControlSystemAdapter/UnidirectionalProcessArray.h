@@ -176,7 +176,7 @@ namespace ChimeraTK {
           throw boost::thread_interrupted();
         }
         catch(...) {
-          _sharedState._queue.push_exception(std::current_exception());
+          _sharedState._queue.push_overwrite_exception(std::current_exception());
         }
       }
 
