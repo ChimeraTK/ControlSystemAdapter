@@ -86,8 +86,8 @@ int main() {
         auto pviter = pvars.begin();
 
         // fill list of app receivers for readAny()
-        std::list<std::reference_wrapper<mtca4u::TransferElement>> varList;
-        std::map< mtca4u::TransferElementID, boost::shared_ptr<ProcessArray<int>> > varMap;
+        std::list<std::reference_wrapper<ChimeraTK::TransferElement>> varList;
+        std::map< ChimeraTK::TransferElementID, boost::shared_ptr<ProcessArray<int>> > varMap;
         for(auto &pvar : pvars) {
           varList.emplace_back(*(pvar.second));
           varMap[pvar.second->getId()] = pvar.second;

@@ -11,8 +11,8 @@
 #include <boost/thread.hpp>
 #include <boost/fusion/include/for_each.hpp>
 
-#include <mtca4u/SupportedUserTypes.h>
-#include <mtca4u/RegisterPath.h>
+#include <ChimeraTK/SupportedUserTypes.h>
+#include <ChimeraTK/RegisterPath.h>
 
 namespace xmlpp {
   class Element;
@@ -52,7 +52,7 @@ namespace ChimeraTK {
        *  called from within UnidirectionalProcessArray<T>::setPersistentDataStorage() etc. and true when called from
        *  within readFromFile(). */
       template<typename DataType>
-      size_t registerVariable(mtca4u::RegisterPath const &name, size_t nElements, bool fromFile=false);
+      size_t registerVariable(ChimeraTK::RegisterPath const &name, size_t nElements, bool fromFile=false);
 
       /** Retrieve the current value for the variable with the given ID */
       template<typename DataType>
@@ -86,7 +86,7 @@ namespace ChimeraTK {
       std::string _filename;
 
       /** Vector of variable names. The index is the ID of the variable. */
-      std::vector<mtca4u::RegisterPath> _variableNames;
+      std::vector<ChimeraTK::RegisterPath> _variableNames;
 
       /** Vector of flags whether the variable was registers from the application. The index is the ID of the variable.
        *  This flag is used to clean up variables only coming from the file and are no longer present in the
@@ -101,7 +101,7 @@ namespace ChimeraTK {
       using DataMap = std::map<size_t, std::vector<DataType> >;
 
       /** boost::fusion::map of the data type to the DataMap holding the values for the type */
-      mtca4u::TemplateUserTypeMap<DataMap> _dataMap;
+      ChimeraTK::TemplateUserTypeMap<DataMap> _dataMap;
 
       /** */
       boost::thread writerThread;
@@ -133,7 +133,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<typename DataType>
-  size_t PersistentDataStorage::registerVariable(mtca4u::RegisterPath const &name, size_t nElements, bool fromFile) {
+  size_t PersistentDataStorage::registerVariable(ChimeraTK::RegisterPath const &name, size_t nElements, bool fromFile) {
     // check if already existing
     auto position = std::find(_variableNames.begin(), _variableNames.end(), name);
 

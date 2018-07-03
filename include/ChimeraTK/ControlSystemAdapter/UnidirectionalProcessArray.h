@@ -15,7 +15,7 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/thread/future.hpp>
 
-#include <mtca4u/VersionNumber.h>
+#include <ChimeraTK/VersionNumber.h>
 
 #include "ProcessArray.h"
 #include "ProcessVariableListener.h"
@@ -63,7 +63,7 @@ namespace ChimeraTK {
       */
       UnidirectionalProcessArray(
           typename ProcessArray<T>::InstanceType instanceType,
-          const mtca4u::RegisterPath& name, const std::string &unit,
+          const ChimeraTK::RegisterPath& name, const std::string &unit,
           const std::string &description, const std::vector<T>& initialValue,
           std::size_t numberOfBuffers, const AccessModeFlags &flags);
 
@@ -103,7 +103,7 @@ namespace ChimeraTK {
 
       bool doReadTransferLatest() override;
 
-      mtca4u::TransferFuture doReadTransferAsync() override;
+      ChimeraTK::TransferFuture doReadTransferAsync() override;
 
       void doPostRead() override;
 
@@ -386,7 +386,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair< typename ProcessArray<T>::SharedPtr,
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
-      const mtca4u::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
+      const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       T initialValue = T(), std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
@@ -437,7 +437,7 @@ namespace ChimeraTK {
   template<class T>
   std::pair< typename ProcessArray<T>::SharedPtr,
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray( const std::vector<T>& initialValue,
-      const mtca4u::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
+      const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
       TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
@@ -449,7 +449,7 @@ namespace ChimeraTK {
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray( typename ProcessArray<T>::InstanceType instanceType,
-      const mtca4u::RegisterPath& name, const std::string &unit, const std::string &description,
+      const ChimeraTK::RegisterPath& name, const std::string &unit, const std::string &description,
       const std::vector<T>& initialValue, std::size_t numberOfBuffers, const AccessModeFlags &flags )
   : ProcessArray<T>(instanceType, name, unit, description, flags),
     _vectorSize(initialValue.size()),
@@ -457,10 +457,10 @@ namespace ChimeraTK {
     _sharedState(numberOfBuffers, initialValue.size()),
     _localBuffer(initialValue)
   {
-    mtca4u::ExperimentalFeatures::enable();
+    ChimeraTK::ExperimentalFeatures::enable();
     // allocate and initialise buffer of the base class
-    mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-    mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isReadable()) {
@@ -496,7 +496,7 @@ namespace ChimeraTK {
     _timeStampSource(timeStampSource),
     _sendNotificationListener(sendNotificationListener)
   {
-    mtca4u::ExperimentalFeatures::enable();
+    ChimeraTK::ExperimentalFeatures::enable();
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isWriteable()) {
@@ -510,8 +510,8 @@ namespace ChimeraTK {
           "The pointer to the receiver must point to an instance that is actually a receiver.");
     }
     // allocate and initialise buffer of the base class
-    mtca4u::NDRegisterAccessor<T>::buffer_2D.resize(1);
-    mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
   }
 
 /*********************************************************************************************************************/
@@ -552,7 +552,7 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  mtca4u::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
+  ChimeraTK::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
 
     if (!this->isReadable()) {
       throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
@@ -575,10 +575,10 @@ namespace ChimeraTK {
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the sender might get into
     // trouble when it suddenly experiences a vector of the wrong size.
-    assert(mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
+    assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
 
     // swap data out of the local buffer into the user buffer
-    mtca4u::NDRegisterAccessor<T>::buffer_2D[0].swap( _localBuffer._value );
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap( _localBuffer._value );
     _versionNumber = _localBuffer._versionNumber;
     _timeStamp = _localBuffer._timeStamp;
 
@@ -624,12 +624,12 @@ namespace ChimeraTK {
     bool sendInitialValue = false;
     if(!_persistentDataStorage) sendInitialValue = true;
     _persistentDataStorage = storage;
-    _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(mtca4u::TransferElement::getName(),
-                                  mtca4u::NDRegisterAccessor<T>::getNumberOfSamples());
+    _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(ChimeraTK::TransferElement::getName(),
+                                  ChimeraTK::NDRegisterAccessor<T>::getNumberOfSamples());
     if(sendInitialValue) {
       if( _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID).size() ==
-          mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size()                           ) {
-        mtca4u::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
+          ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size()                           ) {
+        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
         doWriteTransfer();
       }
     }
@@ -652,7 +652,7 @@ namespace ChimeraTK {
     // We have to check that the vector that we currently own still has the
     // right size. Otherwise, the code using the receiver might get into
     // trouble when it suddenly experiences a vector of the wrong size.
-    if(mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
+    if(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
       throw std::logic_error(
           "Cannot run receive operation because the size of the vector belonging to the current buffer has been "
           "modified. Variable name: "+this->getName());
@@ -669,7 +669,7 @@ namespace ChimeraTK {
     // First update the persistent data storage, if any was associated. This cannot be done after sending, since the
     // value might no longer be available within this instance.
     if(_persistentDataStorage) {
-      _persistentDataStorage->updateValue(_persistentDataStorageID, mtca4u::NDRegisterAccessor<T>::buffer_2D[0]);
+      _persistentDataStorage->updateValue(_persistentDataStorageID, ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0]);
     }
 
     // Set time stamp and version number
@@ -679,12 +679,12 @@ namespace ChimeraTK {
     _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
-    assert(_localBuffer._value.size() == mtca4u::NDRegisterAccessor<T>::buffer_2D[0].size() );
+    assert(_localBuffer._value.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() );
     if(shouldCopy) {
-      _localBuffer._value = mtca4u::NDRegisterAccessor<T>::buffer_2D[0];
+      _localBuffer._value = ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0];
     }
     else {
-      _localBuffer._value.swap( mtca4u::NDRegisterAccessor<T>::buffer_2D[0] );
+      _localBuffer._value.swap( ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] );
     }
 
     // send the data to the queue
@@ -705,7 +705,7 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
-         const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
+         const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
          std::size_t numberOfBuffers, bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
          ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
   {
@@ -723,7 +723,7 @@ namespace ChimeraTK {
   template<class T>
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(const std::vector<T>& initialValue,
-         const mtca4u::RegisterPath & name, const std::string &unit, const std::string &description,
+         const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description,
          std::size_t numberOfBuffers, bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
          ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
   {

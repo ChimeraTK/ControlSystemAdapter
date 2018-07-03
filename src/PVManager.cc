@@ -25,7 +25,7 @@ namespace ChimeraTK {
   }
 
   std::pair<ProcessVariable::SharedPtr, ProcessVariable::SharedPtr> PVManager::getProcessVariable(
-      mtca4u::RegisterPath const & processVariableName) const {
+      ChimeraTK::RegisterPath const & processVariableName) const {
     ProcessVariableMap::const_iterator i = _processVariables.find(
         processVariableName);
     if (i != _processVariables.end()) {

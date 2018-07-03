@@ -14,7 +14,7 @@ namespace ChimeraTK {
   }
 
   void ControlSystemSynchronizationUtility::addReceiveNotificationListener(
-      mtca4u::RegisterPath const & processVariableName,
+      ChimeraTK::RegisterPath const & processVariableName,
       ProcessVariableListener::SharedPtr receiveNotificationListener) {
     std::cout << "Use of deprecated function: Use addReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable, ProcessVariableListener::SharedPtr receiveNotificationListener) instead of the version with processVariableName!" << std::endl;
     auto pv = _pvManager->getProcessVariable(processVariableName);
@@ -29,7 +29,7 @@ namespace ChimeraTK {
   }
 
   void ControlSystemSynchronizationUtility::removeReceiveNotificationListener(
-      mtca4u::RegisterPath const & processVariableName) {
+      ChimeraTK::RegisterPath const & processVariableName) {
     std::cout << "Use of deprecated function: Use removeReceiveNotificationListener(ProcessVariable::SharedPtr const & processVariable) instead of the version with processVariableName!" << std::endl;
     auto pv = _pvManager->getProcessVariable(processVariableName);
     // althougt it's just one line: call the new interface so the old test covers both

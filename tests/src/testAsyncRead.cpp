@@ -14,7 +14,7 @@
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
-using namespace mtca4u;
+using namespace ChimeraTK;
 
 /**********************************************************************************************************************/
 class AsyncReadTest {
@@ -65,8 +65,8 @@ void AsyncReadTest::testAsyncRead() {
   auto receiver = senderReceiver.second;
 
   // obtain register accessor with integral type
-  auto accessor = mtca4u::ScalarRegisterAccessor<int32_t>(receiver);
-  auto senderAccessor = mtca4u::ScalarRegisterAccessor<int32_t>(sender);
+  auto accessor = ChimeraTK::ScalarRegisterAccessor<int32_t>(receiver);
+  auto senderAccessor = ChimeraTK::ScalarRegisterAccessor<int32_t>(sender);
 
   // simple reading through readAsync without actual need
   TransferFuture future;
@@ -127,17 +127,17 @@ void AsyncReadTest::testReadAny() {
 
   // obtain accessors for process variables
   auto senderReceiver1 = createSynchronizedProcessArray<int32_t>(1, "Test1");
-  auto a1 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver1.second);
-  auto s1 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver1.first);
+  auto a1 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver1.second);
+  auto s1 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver1.first);
   auto senderReceiver2 = createSynchronizedProcessArray<int32_t>(1, "Test2");
-  auto a2 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver2.second);
-  auto s2 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver2.first);
+  auto a2 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver2.second);
+  auto s2 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver2.first);
   auto senderReceiver3 = createSynchronizedProcessArray<int32_t>(1, "Test3");
-  auto a3 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver3.second);
-  auto s3 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver3.first);
+  auto a3 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver3.second);
+  auto s3 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver3.first);
   auto senderReceiver4 = createSynchronizedProcessArray<int32_t>(1, "Test4");
-  auto a4 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver4.second);
-  auto s4 = mtca4u::ScalarRegisterAccessor<int32_t>(senderReceiver4.first);
+  auto a4 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver4.second);
+  auto s4 = ChimeraTK::ScalarRegisterAccessor<int32_t>(senderReceiver4.first);
 
   // initialise the buffers of the accessors
   a1 = 1;
@@ -350,8 +350,8 @@ void AsyncReadTest::testMixedRead() {
   auto receiver = senderReceiver.second;
 
   // obtain register accessor with integral type
-  auto accessor = mtca4u::ScalarRegisterAccessor<int32_t>(receiver);
-  auto senderAccessor = mtca4u::ScalarRegisterAccessor<int32_t>(sender);
+  auto accessor = ChimeraTK::ScalarRegisterAccessor<int32_t>(receiver);
+  auto senderAccessor = ChimeraTK::ScalarRegisterAccessor<int32_t>(sender);
 
   TransferFuture future;
 

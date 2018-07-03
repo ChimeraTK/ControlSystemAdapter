@@ -80,8 +80,8 @@ namespace ChimeraTK {
     template<class T>
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
-        const mtca4u::RegisterPath& processVariableName, std::size_t size,
-        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        const ChimeraTK::RegisterPath& processVariableName, std::size_t size,
+        const std::string& unit = ChimeraTK::TransferElement::unitNotSet, const std::string& description = "",
         T initialValue = T(), bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
         const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
@@ -112,31 +112,31 @@ namespace ChimeraTK {
     template<class T>
     typename ProcessArray<T>::SharedPtr createProcessArray(
         SynchronizationDirection synchronizationDirection,
-        const mtca4u::RegisterPath& processVariableName, const std::vector<T>& initialValue,
-        const std::string& unit = mtca4u::TransferElement::unitNotSet, const std::string& description = "",
+        const ChimeraTK::RegisterPath& processVariableName, const std::vector<T>& initialValue,
+        const std::string& unit = ChimeraTK::TransferElement::unitNotSet, const std::string& description = "",
         bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
         const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)}
+     * {@link createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t, const AccessModeFlags&)}
      * or
-     * {@link createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t, const AccessModeFlags&)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name. Throws a bad_cast exception if
      * there is a process scalar or array with the specified name but its type
      * does not match.
      */
     template<class T> typename ProcessArray<T>::SharedPtr getProcessArray(
-        const mtca4u::RegisterPath& processVariableName) const;
+        const ChimeraTK::RegisterPath& processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using the
-     * {@link createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)},
+     * {@link createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t, const AccessModeFlags&)},
      * or
-     * {@link createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t, const AccessModeFlags&)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name.
      */
@@ -144,15 +144,15 @@ namespace ChimeraTK {
      * FIXME: It these should be links, but Doxygen can't resolve then, so we leave it normal to avoid
      * non-working links:
      *
-     * The {@link getProcessScalar(const mtca4u::RegisterPath&)} and
-     * {@link getProcessArray(const mtca4u::RegisterPath&)} methods should be preferred
+     * The {@link getProcessScalar(const ChimeraTK::RegisterPath&)} and
+     * {@link getProcessArray(const ChimeraTK::RegisterPath&)} methods should be preferred
      */
-    /** The \c getProcessScalar(const mtca4u::RegisterPath&) and
-     * \c getProcessArray(const mtca4u::RegisterPath&) methods should be preferred
+    /** The \c getProcessScalar(const ChimeraTK::RegisterPath&) and
+     * \c getProcessArray(const ChimeraTK::RegisterPath&) methods should be preferred
      * if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(
-        const mtca4u::RegisterPath& processVariableName) const;
+        const ChimeraTK::RegisterPath& processVariableName) const;
 
     /**
      * Returns a vector containing all process variables that are registered
@@ -226,7 +226,7 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
-      const mtca4u::RegisterPath& processVariableName, std::size_t size,
+      const ChimeraTK::RegisterPath& processVariableName, std::size_t size,
       const std::string& unit, const std::string& description, T initialValue,
       bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags &flags)
   {
@@ -255,7 +255,7 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection,
-      const mtca4u::RegisterPath& processVariableName, const std::vector<T>& initialValue,
+      const ChimeraTK::RegisterPath& processVariableName, const std::vector<T>& initialValue,
       const std::string& unit, const std::string& description,
       bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags &flags)
   {
@@ -283,7 +283,7 @@ namespace ChimeraTK {
 
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::getProcessArray(
-      const mtca4u::RegisterPath& processVariableName) const {
+      const ChimeraTK::RegisterPath& processVariableName) const {
     return _pvManager->getProcessArray<T>(processVariableName).second;
   }
 

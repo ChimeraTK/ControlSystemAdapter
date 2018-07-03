@@ -6,9 +6,9 @@ using namespace boost::unit_test_framework;
 #include "TypeChangingDecorator.h"
 using namespace ChimeraTK;
 
-#include <mtca4u/Device.h>
-#include <mtca4u/TransferGroup.h>
-#include <mtca4u/ScalarRegisterAccessor.h>
+#include <ChimeraTK/Device.h>
+#include <ChimeraTK/TransferGroup.h>
+#include <ChimeraTK/ScalarRegisterAccessor.h>
 
 //function which can be called many times but only call enable() the first time
 void enableExperimental(){
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_SUITE( TypeChangingDecoratorTestSuite )
 // the startReadValue and expectedWriteValue are from the register in the dummy device, which is 32 bit fixed point singed with 16 fractional bits, thus we talk to it as double from the test
 template<class T, class IMPL_T, template<typename, typename> class DECORATOR_TYPE = TypeChangingRangeCheckingDecorator>
 void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue, double expectedWriteValue){
-  mtca4u::Device d;
+  ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
   auto anotherScalarAccessor = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
@@ -174,7 +174,7 @@ template<template<typename, typename> class DECORATOR_TYPE>
 void loopTest(){
   // Test loops for numeric data types. One type is enough because it's template code
   // We don't have to test the string specialisations, arrays of strings are not allowed
-  mtca4u::Device d;
+  ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto twoD = d.getTwoDRegisterAccessor<double>("/SOME/TWO_D");
   auto anotherAccessor = d.getTwoDRegisterAccessor<double>("/SOME/TWO_D");
@@ -239,7 +239,7 @@ try{ \
 BOOST_AUTO_TEST_CASE( testRangeChecks ){
   // Just a few tests where the type changing decorator with conversion should throw
   // where the direct cast decorator changes the interpretation
-  mtca4u::Device d;
+  ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto myInt = d.getScalarRegisterAccessor<int32_t>("/SOME/INT");
   auto myIntDummy = d.getScalarRegisterAccessor<int32_t>("/SOME/INT"); // the second accessor for the test
@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE( testRangeChecks ){
 }
 
 BOOST_AUTO_TEST_CASE( testTransferGroup ){
-  mtca4u::Device d;
+  ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto partial0 = d.getScalarRegisterAccessor<double>("/SOME/ARRAY");
   auto partial1 = d.getScalarRegisterAccessor<double>("/SOME/ARRAY",1);
@@ -285,8 +285,8 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
   wholeArray[1]=12346;
   wholeArray.write();
 
-  mtca4u::ScalarRegisterAccessor<int> decorated0(getDecorator<int>(partial0));
-  mtca4u::ScalarRegisterAccessor<int> decorated1(getDecorator<int>(partial1));
+  ChimeraTK::ScalarRegisterAccessor<int> decorated0(getDecorator<int>(partial0));
+  ChimeraTK::ScalarRegisterAccessor<int> decorated1(getDecorator<int>(partial1));
 
   TransferGroup group;
   group.addAccessor(decorated0);
@@ -306,10 +306,10 @@ BOOST_AUTO_TEST_CASE( testTransferGroup ){
 }
 
 BOOST_AUTO_TEST_CASE( testFactory ){
-  mtca4u::Device d;
+  ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  mtca4u::TransferElementAbstractor & transferElement = scalar;
+  ChimeraTK::TransferElementAbstractor & transferElement = scalar;
 
   auto decoratedScalar = getDecorator<int>(transferElement);
   BOOST_CHECK( decoratedScalar );
@@ -335,7 +335,7 @@ BOOST_AUTO_TEST_CASE( testFactory ){
 
   // fixme: at the moment we are throwing if a limiting decorator is requested
   auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), mtca4u::NotImplementedException );
+  CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), ChimeraTK::NotImplementedException );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

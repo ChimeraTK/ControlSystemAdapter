@@ -55,9 +55,9 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t, const AccessModeFlags&)}
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t, const AccessModeFlags&)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name. Throws a bad_cast exception if
      * there is a process scalar or array with the specified name but its type
@@ -65,14 +65,14 @@ namespace ChimeraTK {
      */
     template<class T>
     typename ProcessArray<T>::SharedPtr getProcessArray(
-        const mtca4u::RegisterPath& processVariableName) const;
+        const ChimeraTK::RegisterPath& processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t)},
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, std::size_t, const std::string&, const std::string&, T, bool, std::size_t, const AccessModeFlags&)},
      * or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const mtca4u::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t)}
+     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const std::string&, bool, std::size_t, const AccessModeFlags&)}
      * method. Returns a pointer to <code>null</code> if there is no process
      * scalar or array with the specified name.
      */
@@ -80,14 +80,14 @@ namespace ChimeraTK {
      * FIXME: It these should be links, but Doxygen can't resolve then, so we leave it normal to avoid
      * non-working links:
      *
-     * The {@link getProcessArray(const mtca4u::RegisterPath&)} methods should be preferred
+     * The {@link getProcessArray(const ChimeraTK::RegisterPath&)} methods should be preferred
      */
-    /** The \c getProcessScalar(const mtca4u::RegisterPath&) and
-     * \c getProcessArray(const mtca4u::RegisterPath&) methods should be preferred
+    /** The \c getProcessScalar(const ChimeraTK::RegisterPath&) and
+     * \c getProcessArray(const ChimeraTK::RegisterPath&) methods should be preferred
      * if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(
-        const mtca4u::RegisterPath& processVariableName) const;
+        const ChimeraTK::RegisterPath& processVariableName) const;
 
     /**
      * Returns a vector containing all process variables that are registered
@@ -111,7 +111,7 @@ namespace ChimeraTK {
      * notification.
      */
     ProcessVariable::SharedPtr nextNotification();
-    
+
     /**
      * Enable the persistent data storage system provided by the ControlSystemAdapter. This function requires an
      * existing instance of an ApplicationBase class.
@@ -139,7 +139,7 @@ namespace ChimeraTK {
 
   template<class T>
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
-      const mtca4u::RegisterPath& processVariableName) const {
+      const ChimeraTK::RegisterPath& processVariableName) const {
     auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
     if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
     return pv;

@@ -14,8 +14,8 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/thread/future.hpp>
 
-#include <mtca4u/NDRegisterAccessor.h>
-#include <mtca4u/VersionNumber.h>
+#include <ChimeraTK/NDRegisterAccessor.h>
+#include <ChimeraTK/VersionNumber.h>
 
 #include "ProcessVariableListener.h"
 #include "TimeStampSource.h"
@@ -32,7 +32,7 @@ namespace ChimeraTK {
    * This class is not thread-safe and should only be used from a single thread.
    */
   template<class T>
-  class ProcessArray : public mtca4u::NDRegisterAccessor<T> {
+  class ProcessArray : public ChimeraTK::NDRegisterAccessor<T> {
 
   public:
 
@@ -71,7 +71,7 @@ namespace ChimeraTK {
     /**
      * Creates a process array of the specified type.
      */
-    ProcessArray(InstanceType instanceType, const mtca4u::RegisterPath& name,
+    ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name,
         const std::string &unit, const std::string &description, const AccessModeFlags &flags);
 
     virtual ~ProcessArray();
@@ -122,19 +122,19 @@ namespace ChimeraTK {
       return true;
     }
 
-    bool mayReplaceOther(const boost::shared_ptr<const mtca4u::TransferElement>&) const override {
+    bool mayReplaceOther(const boost::shared_ptr<const ChimeraTK::TransferElement>&) const override {
       return false;  // never true as we shall return false if instance is the same
     }
 
-    std::vector<boost::shared_ptr<mtca4u::TransferElement> > getHardwareAccessingElements() override {
-      return { boost::enable_shared_from_this<mtca4u::TransferElement>::shared_from_this() };
+    std::vector<boost::shared_ptr<ChimeraTK::TransferElement> > getHardwareAccessingElements() override {
+      return { boost::enable_shared_from_this<ChimeraTK::TransferElement>::shared_from_this() };
     }
 
-    std::list<boost::shared_ptr<mtca4u::TransferElement>> getInternalElements() override {
+    std::list<boost::shared_ptr<ChimeraTK::TransferElement>> getInternalElements() override {
       return {};
     }
 
-    void replaceTransferElement(boost::shared_ptr<mtca4u::TransferElement>) override {
+    void replaceTransferElement(boost::shared_ptr<ChimeraTK::TransferElement>) override {
       // You can't replace anything here. Just do nothing.
     }
 
@@ -159,9 +159,9 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  ProcessArray<T>::ProcessArray(InstanceType instanceType, const mtca4u::RegisterPath& name, const std::string &unit,
+  ProcessArray<T>::ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name, const std::string &unit,
                                 const std::string &description, const AccessModeFlags &flags)
-    : mtca4u::NDRegisterAccessor<T>(name, unit, description),
+    : ChimeraTK::NDRegisterAccessor<T>(name, unit, description),
       _instanceType(instanceType),
       _flags(flags)
   {}

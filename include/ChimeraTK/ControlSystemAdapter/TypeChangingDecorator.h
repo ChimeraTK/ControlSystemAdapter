@@ -1,10 +1,10 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 
-#include <mtca4u/TransferElementAbstractor.h>
-#include <mtca4u/NDRegisterAccessorDecorator.h>
+#include <ChimeraTK/TransferElementAbstractor.h>
+#include <ChimeraTK/NDRegisterAccessorDecorator.h>
 #include <boost/fusion/include/for_each.hpp>
-#include <mtca4u/SupportedUserTypes.h>
+#include <ChimeraTK/SupportedUserTypes.h>
 
 namespace ChimeraTK {
   /** There are three types of TypeChanging decorators which do different data conversions
@@ -30,11 +30,11 @@ namespace ChimeraTK {
    *  @param decoratorType The type of decorator you want (see description of DecoratorType)
    */
   template<class UserType>
-  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<mtca4u::TransferElement> &transferElement,
+  boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<ChimeraTK::TransferElement> &transferElement,
                                                                        DecoratorType decoratorType =  DecoratorType::range_checking);
 
   template<class UserType>
-  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(mtca4u::TransferElementAbstractor &transferElement,
+  boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(ChimeraTK::TransferElementAbstractor &transferElement,
                                                                        DecoratorType decoratorType =  DecoratorType::range_checking) {
     return getDecorator<UserType>(transferElement.getHighLevelImplElement(), decoratorType);
   }
@@ -60,11 +60,11 @@ namespace ChimeraTK {
    *
    */
   template<class T, class IMPL_T>
-  class TypeChangingDecorator : public mtca4u::NDRegisterAccessorDecorator<T, IMPL_T>, public DecoratorTypeHolder {
+  class TypeChangingDecorator : public ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>, public DecoratorTypeHolder {
 
     public:
 
-      TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > const &target) noexcept;
+      TypeChangingDecorator(boost::shared_ptr< ChimeraTK::NDRegisterAccessor< IMPL_T> > const &target) noexcept;
 
       virtual void convertAndCopyFromImpl() = 0;
       virtual void convertAndCopyToImpl() = 0;
@@ -87,7 +87,7 @@ namespace ChimeraTK {
         _target->postWrite();
       }
 
-      bool mayReplaceOther(const boost::shared_ptr<mtca4u::TransferElement const> &other) const override {
+      bool mayReplaceOther(const boost::shared_ptr<ChimeraTK::TransferElement const> &other) const override {
         auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T,IMPL_T> const>(other);
         if(!casted) return false;
         return _target->mayReplaceOther(casted->_target);
@@ -95,7 +95,7 @@ namespace ChimeraTK {
 
     protected:
 
-      using mtca4u::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
+      using ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
   };
 
   /** This class is intended as a base class.
@@ -191,7 +191,7 @@ namespace ChimeraTK {
       }
     };
 
-    using mtca4u::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
+    using ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
 
   };
 
@@ -211,7 +211,7 @@ namespace ChimeraTK {
 
   protected:
 
-    using mtca4u::NDRegisterAccessorDecorator<T, std::string>::_target;
+    using ChimeraTK::NDRegisterAccessorDecorator<T, std::string>::_target;
 };
 
 
@@ -220,8 +220,8 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T, class IMPL_T>
-  TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(boost::shared_ptr< mtca4u::NDRegisterAccessor< IMPL_T> > const &target) noexcept
-  :  mtca4u::NDRegisterAccessorDecorator<T, IMPL_T>(target)
+  TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(boost::shared_ptr< ChimeraTK::NDRegisterAccessor< IMPL_T> > const &target) noexcept
+  :  ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>(target)
   {}
 
 /*********************************************************************************************************************/
@@ -287,7 +287,7 @@ namespace ChimeraTK {
         }
       }
 
-      using mtca4u::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
+      using ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>::_target;
 
   };
 
@@ -312,17 +312,17 @@ namespace ChimeraTK {
    *  We need it to loop up if a decorator has already been created for the transfer element,
    *  and return this if so. Multiple decorators for the same transfer element don't work.
    */
-  std::map< boost::shared_ptr<mtca4u::TransferElement>,
-            boost::shared_ptr<mtca4u::TransferElement> > & getGlobalDecoratorMap();
+  std::map< boost::shared_ptr<ChimeraTK::TransferElement>,
+            boost::shared_ptr<ChimeraTK::TransferElement> > & getGlobalDecoratorMap();
 
   template<class UserType>
   class DecoratorFactory {
     public:
-      DecoratorFactory(boost::shared_ptr< mtca4u::TransferElement > theImpl_, DecoratorType wantedDecoratorType_)
+      DecoratorFactory(boost::shared_ptr< ChimeraTK::TransferElement > theImpl_, DecoratorType wantedDecoratorType_)
         : theImpl(theImpl_), wantedDecoratorType(wantedDecoratorType_){}
-      boost::shared_ptr< mtca4u::TransferElement > theImpl;
+      boost::shared_ptr< ChimeraTK::TransferElement > theImpl;
       DecoratorType wantedDecoratorType;
-      mutable boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType> > createdDecorator;
+      mutable boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType> > createdDecorator;
 
       template<typename PAIR>
       void operator()(PAIR&) const {
@@ -331,12 +331,12 @@ namespace ChimeraTK {
 
         if (wantedDecoratorType == DecoratorType::range_checking){
           createdDecorator.reset( new TypeChangingRangeCheckingDecorator< UserType, TargetImplType> (
-            boost::dynamic_pointer_cast< mtca4u::NDRegisterAccessor<TargetImplType> >( theImpl ) ) );
+            boost::dynamic_pointer_cast< ChimeraTK::NDRegisterAccessor<TargetImplType> >( theImpl ) ) );
         }else if( wantedDecoratorType == DecoratorType::C_style_conversion){
           createdDecorator.reset( new TypeChangingDirectCastDecorator< UserType, TargetImplType> (
-            boost::dynamic_pointer_cast< mtca4u::NDRegisterAccessor<TargetImplType> >( theImpl ) )  );
+            boost::dynamic_pointer_cast< ChimeraTK::NDRegisterAccessor<TargetImplType> >( theImpl ) )  );
         }else{
-          throw mtca4u::NotImplementedException("TypeChangingDecorator with range limitation is not implemented yet.");
+          throw ChimeraTK::NotImplementedException("TypeChangingDecorator with range limitation is not implemented yet.");
         }
       }
   };
@@ -344,7 +344,7 @@ namespace ChimeraTK {
 
   // the factory function. You don't have to care about the IMPL_Type when requesting a decorator. Implementation, declared at the top of this file
   template<class UserType>
-  boost::shared_ptr<mtca4u::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<mtca4u::TransferElement> &transferElement,
+  boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(const boost::shared_ptr<ChimeraTK::TransferElement> &transferElement,
                                                                        DecoratorType decoratorType) {
 
     // check if there already is a decorator for the transfer element
@@ -352,7 +352,7 @@ namespace ChimeraTK {
     if (decoratorMapEntry != getGlobalDecoratorMap().end()) {
       // There already is a decorator for this transfer element
       // The decorator has to have a matching type, otherwise we can only throw
-      auto castedType = boost::dynamic_pointer_cast<mtca4u::NDRegisterAccessor<UserType>>(decoratorMapEntry->second);
+      auto castedType = boost::dynamic_pointer_cast<ChimeraTK::NDRegisterAccessor<UserType>>(decoratorMapEntry->second);
       if (castedType) { // User type matches,  but the decorator type also has to match
         auto decoTypeHolder = boost::dynamic_pointer_cast<DecoratorTypeHolder>(decoratorMapEntry->second);  /// @todo eliminate this cast and change map to hold DecoratorTypeHolder
         assert(decoTypeHolder);
@@ -374,7 +374,7 @@ namespace ChimeraTK {
     }
 
     DecoratorFactory< UserType > factory(transferElement, decoratorType );
-    boost::fusion::for_each(mtca4u::userTypeMap(), factory);
+    boost::fusion::for_each(ChimeraTK::userTypeMap(), factory);
     getGlobalDecoratorMap()[transferElement] = factory.createdDecorator;
     return factory.createdDecorator;
   }
