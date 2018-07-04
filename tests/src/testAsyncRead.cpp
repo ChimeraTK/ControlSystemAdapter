@@ -158,7 +158,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -174,7 +174,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -190,7 +190,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -207,7 +207,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -223,7 +223,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -239,7 +239,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -255,7 +255,7 @@ void AsyncReadTest::testReadAny() {
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.waitAny(); flag = true; });
+    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -275,12 +275,12 @@ void AsyncReadTest::testReadAny() {
     s2 = 777;
     s2.write();
     // no point to use a thread here
-    auto r = group.waitAny();
+    auto r = group.readAny();
     BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 123);
 
-    r = group.waitAny();
+    r = group.readAny();
     BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
@@ -303,28 +303,28 @@ void AsyncReadTest::testReadAny() {
     s1.write();
 
     // no point to use a thread here
-    auto r = group.waitAny();
+    auto r = group.readAny();
     BOOST_CHECK(a4.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
-    r = group.waitAny();
+    r = group.readAny();
     BOOST_CHECK(a2.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 122);
     BOOST_CHECK(a4 == 111);
 
-    r = group.waitAny();
+    r = group.readAny();
     BOOST_CHECK(a3.getId() == r);
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 222);
     BOOST_CHECK(a3 == 333);
     BOOST_CHECK(a4 == 111);
 
-    r = group.waitAny();
+    r = group.readAny();
     BOOST_CHECK(a1.getId() == r);
     BOOST_CHECK(a1 == 444);
     BOOST_CHECK(a2 == 222);
