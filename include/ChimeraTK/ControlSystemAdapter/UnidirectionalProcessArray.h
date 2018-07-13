@@ -8,12 +8,7 @@
 #include <typeinfo>
 #include <thread>
 
-#include <boost/smart_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/lockfree/queue.hpp>
-#include <boost/lockfree/spsc_queue.hpp>
-#include <boost/thread/future.hpp>
 
 #include <ChimeraTK/VersionNumber.h>
 
