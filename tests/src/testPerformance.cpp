@@ -20,7 +20,8 @@ int main() {
 
     // create sender thread
     size_t sum_sender = 0;
-    boost::thread sender( [pvars, &sum_sender] {
+    bool dataWasLost = false;
+    boost::thread sender( [pvars, &sum_sender, &dataWasLost] {
       for(size_t i=0; i<nSendsPerVar; ++i) {
         size_t k=0;
         for(auto &pv : pvars) {
@@ -31,6 +32,7 @@ int main() {
           while(true) {
             bool dataLost = pv.first->write();
             if(!dataLost) break;
+            dataWasLost = true;
           }
         }
       }
@@ -50,7 +52,13 @@ int main() {
     bool failed = false;
     if(sum_sender != sum) {
       std::cout << "ERROR sender sum = " << sum_sender << std::endl;
-      failed = true;
+      if(dataWasLost) {
+        std::cout << "-> data was overwritten on sender side, sums are expected not to match." << std::endl;
+      }
+      else {
+        std::cout << "-> no data was overwritten on sender side, sums are expected to match. Failing the test!" << std::endl;
+        failed = true;
+      }
     }
 
     auto end = std::chrono::steady_clock::now();
@@ -60,7 +68,6 @@ int main() {
     std::chrono::duration<double> diff = end-start;
     std::cout << "Time for " << nTransfers << " transfers: " << diff.count() << " s\n";
     std::cout << "Average time per transfer: " << diff.count()/(double)nTransfers * 1e6 << " us\n";
-
 
     return failed;
 
