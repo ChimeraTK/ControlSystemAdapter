@@ -8,8 +8,8 @@ using namespace ChimeraTK;
 int main() {
 
     constexpr size_t dataSize = 16384;
-    constexpr size_t nVars = 200;
-    constexpr size_t nSendsPerVar = 2000;
+    constexpr size_t nVars = 20;
+    constexpr size_t nSendsPerVar = 200;
 
     // create process variable pairs
     std::vector< std::pair< boost::shared_ptr<ProcessArray<size_t>>, boost::shared_ptr<ProcessArray<size_t>> > > pvars;
