@@ -452,7 +452,6 @@ namespace ChimeraTK {
     _sharedState(numberOfBuffers, initialValue.size()),
     _localBuffer(initialValue)
   {
-    ChimeraTK::ExperimentalFeatures::enable();
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
@@ -491,7 +490,6 @@ namespace ChimeraTK {
     _timeStampSource(timeStampSource),
     _sendNotificationListener(sendNotificationListener)
   {
-    ChimeraTK::ExperimentalFeatures::enable();
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isWriteable()) {

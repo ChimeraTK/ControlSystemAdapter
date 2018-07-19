@@ -10,15 +10,6 @@ using namespace ChimeraTK;
 #include <ChimeraTK/TransferGroup.h>
 #include <ChimeraTK/ScalarRegisterAccessor.h>
 
-//function which can be called many times but only call enable() the first time
-void enableExperimental(){
-  static bool isEnabled(false);
-  if (!isEnabled){
-    ChimeraTK::ExperimentalFeatures::enable();// still experimental.
-    isEnabled = true;
-  }
-}
-
 // always test close for floating point values. Don't rely on exact binary representations
 bool test_close(double a, double b, double tolerance = 0.0001){
   if (std::fabs(a - b) < tolerance ){
@@ -105,19 +96,18 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_CHECK( test_close(anotherScalarAccessor, expectedWriteValue+1) );
 
   //test asynchronouy reading. Check that the modification is arriving in the decorator's buffer
-  enableExperimental();
-    
+
   // just to check that the test is not producing false positives by accident
   assert( fabs(startReadValue+2 - (expectedWriteValue+1)) > 0.001 );
   anotherScalarAccessor = startReadValue+2;
   anotherScalarAccessor.write();
-  
+
   auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
   BOOST_CHECK( test_close(decoratedScalar.accessData(0), startWriteValue+1) );
   future.wait(); // this calls the post-reads correctly
   BOOST_CHECK( test_close(decoratedScalar.accessData(0), expectedReadValue+2) );
-  
+
   // FIXME: We cannot test that the decorator is relaying doReadTransfer, doReadTransferLatest and
   // do readTransferLatest correctly with the dummy backend because they all point to the same
   // implementation. Thus we intentionally do not call them to indicate them uncovered.

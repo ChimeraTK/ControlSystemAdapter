@@ -6,7 +6,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <ChimeraTK/Device.h>
-#include <ChimeraTK/ExperimentalFeatures.h>
 #include <ChimeraTK/ReadAnyGroup.h>
 
 #include "ProcessArray.h"
@@ -47,8 +46,6 @@ class  AsyncReadTestSuite : public test_suite {
 
 test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
 {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   framework::master_test_suite().p_name.value = "Async read test suite";
   framework::master_test_suite().add(new AsyncReadTestSuite);
 
