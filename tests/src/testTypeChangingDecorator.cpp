@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE( testFactory ){
 
   // fixme: at the moment we are throwing if a limiting decorator is requested
   auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), ChimeraTK::NotImplementedException );
+  CHECK_THROW_PRINT(  getDecorator<int>(scalar3, DecoratorType::limiting), ChimeraTK::logic_error );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

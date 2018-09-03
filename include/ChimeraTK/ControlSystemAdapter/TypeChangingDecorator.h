@@ -336,7 +336,7 @@ namespace ChimeraTK {
           createdDecorator.reset( new TypeChangingDirectCastDecorator< UserType, TargetImplType> (
             boost::dynamic_pointer_cast< ChimeraTK::NDRegisterAccessor<TargetImplType> >( theImpl ) )  );
         }else{
-          throw ChimeraTK::NotImplementedException("TypeChangingDecorator with range limitation is not implemented yet.");
+          throw ChimeraTK::logic_error("TypeChangingDecorator with range limitation is not implemented yet.");
         }
       }
   };
