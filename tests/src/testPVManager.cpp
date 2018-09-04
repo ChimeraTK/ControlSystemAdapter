@@ -204,21 +204,18 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       if (name == "/double") {
         BOOST_CHECK(pv->getValueType() == typeid(double));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
       } else if (name == "/int32") {
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
       } else if (name == "/floatArray") {
         BOOST_CHECK(pv->getValueType() == typeid(float));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 10);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundFloatArray = true;
@@ -240,22 +237,18 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
       if (name == "/double") {
         BOOST_CHECK(pv->getValueType() == typeid(double));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<double>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundDouble = true;
       } else if (name == "/int32") {
         BOOST_CHECK(pv->getValueType() == typeid(int32_t));
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<int32_t>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 1);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundInt32 = true;
       } else if (name == "/floatArray") {
-        BOOST_CHECK(pv->isArray() == true);
         boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
         auto pvc = boost::dynamic_pointer_cast<ProcessArray<float>, typename T::element_type>(pv);
-        BOOST_CHECK(pvc->isArray() == true);
         BOOST_CHECK(pvc->getNumberOfSamples() == 10);
         BOOST_CHECK(pvc->getNumberOfChannels() == 1);
         foundFloatArray = true;

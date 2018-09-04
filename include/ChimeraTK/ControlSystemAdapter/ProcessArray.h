@@ -113,9 +113,7 @@ namespace ChimeraTK {
       return typeid(T);
     }
 
-    bool isArray() const override {
-      return true;
-    }
+    virtual TimeStamp getTimeStamp() const = 0;
 
     bool mayReplaceOther(const boost::shared_ptr<const ChimeraTK::TransferElement>&) const override {
       return false;  // never true as we shall return false if instance is the same
