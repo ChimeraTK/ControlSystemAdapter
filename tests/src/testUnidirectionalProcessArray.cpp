@@ -12,7 +12,7 @@ using namespace boost::unit_test_framework;
 
 #include "CountingProcessVariableListener.h"
 
-#include <ChimeraTK/SupportedUserTypes.h>
+#include <boost/mpl/list.hpp>
 
 typedef boost::mpl::list<int8_t,uint8_t,
                          int16_t,uint16_t,
