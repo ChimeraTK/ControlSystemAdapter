@@ -623,27 +623,6 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     }
   };
 
-  static shared_ptr<ControlSystemPVManager> initTestDeviceLib4() {
-    pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager> > pvManagers =
-        createPVManager();
-
-    shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
-    shared_ptr<DevicePVManager> devManager = pvManagers.second;
-
-    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intA", 1);
-    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "intB", 1);
-    devManager->createProcessArray<uint32_t>(deviceToControlSystem, "index0", 1);
-    devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
-
-    TestDeviceCallable4 callable;
-    callable.pvManager = devManager;
-
-    // Start device thread.
-    boost::thread deviceThread(callable);
-
-    return csManager;
-  }
-
   struct TestDeviceCallable5 {
     shared_ptr<DevicePVManager> pvManager;
 
