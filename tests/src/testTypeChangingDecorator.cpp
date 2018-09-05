@@ -309,8 +309,8 @@ BOOST_AUTO_TEST_CASE( testFactory ){
 
   // if there already is a decorator you cannot create another one with a different user type
   // or decorator type
-  CHECK_THROW_PRINT( getDecorator<int>(transferElement, DecoratorType::C_style_conversion), std::logic_error);
-  CHECK_THROW_PRINT( getDecorator<short>(transferElement), std::logic_error);
+  CHECK_THROW_PRINT( getDecorator<int>(transferElement, DecoratorType::C_style_conversion), ChimeraTK::logic_error);
+  CHECK_THROW_PRINT( getDecorator<short>(transferElement), ChimeraTK::logic_error);
   // but you can get the same decorator again if you ask for it
   auto sameDecorator = getDecorator<int>(transferElement);
   BOOST_CHECK( sameDecorator.get() == decoratedScalar.get() );

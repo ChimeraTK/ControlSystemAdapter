@@ -6,7 +6,7 @@
  */
 
 #include <sys/stat.h>
-
+#include <boost/lexical_cast.hpp>
 #include <libxml++/libxml++.h>
 
 #include "PersistentDataStorage.h"

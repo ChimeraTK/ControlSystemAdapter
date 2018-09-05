@@ -31,23 +31,4 @@ namespace ChimeraTK {
     return _pvManager->nextDeviceNotification();
   }
 
-  bool DevicePVManager::isAutomaticReferenceTimeStampMode() const {
-    return _pvManager->isAutomaticReferenceTimeStampMode();
-  }
-
-  void DevicePVManager::setAutomaticReferenceTimeStampMode(
-      bool automaticReferenceTimeStampMode) {
-    _pvManager->setAutomaticReferenceTimeStampMode(
-        automaticReferenceTimeStampMode);
-  }
-
-  TimeStamp DevicePVManager::getReferenceTimeStamp() const {
-    return _pvManager->getReferenceTimeStamp();
-  }
-
-  void DevicePVManager::setReferenceTimeStamp(
-      const TimeStamp& referenceTimeStamp) {
-    _pvManager->setReferenceTimeStamp(referenceTimeStamp);
-  }
-
 }

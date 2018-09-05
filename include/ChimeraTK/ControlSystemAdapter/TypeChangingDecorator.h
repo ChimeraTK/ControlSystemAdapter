@@ -362,13 +362,13 @@ namespace ChimeraTK {
         }
         else {
         // sorry there is a decorator, but it's the wrong user type
-        throw std::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
+        throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
                                transferElement->getName() +" already exists as a different decorator type.");
         }
       }
       else {
         // sorry there is a decorator, but it's the wrong user type
-        throw std::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
+        throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
                                transferElement->getName() +" already exists with a different user type.");
       }
     }

@@ -10,9 +10,10 @@
 #include <boost/thread.hpp>
 #include <map>
 
-#include "ProcessArray.h"
 #include <ChimeraTK/RegisterPath.h>
 
+#include "UnidirectionalProcessArray.h"
+#include "BidirectionalProcessArray.h"
 #include "PVManagerDecl.h"
 
 namespace ChimeraTK {
@@ -66,7 +67,7 @@ namespace ChimeraTK {
      * library and the control system in both directions and registers it with
      * the PV manager. Creating a process array with a name that is already used
      * for a different process array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
+     * \c ChimeraTK::logic_error exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -95,7 +96,7 @@ namespace ChimeraTK {
      * to the control system and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
+     * \c ChimeraTK::logic_error exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -129,7 +130,7 @@ namespace ChimeraTK {
      * to the device library and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
+     * \c ChimeraTK::logic_error exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -179,7 +180,7 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created earlier
      * using one of the <code>createProcessScalar...</code> or
-     * <code>createProcessArray...</code> methods. Throws std::logic_error if there is no process scalar or array
+     * <code>createProcessArray...</code> methods. Throws ChimeraTK::logic_error if there is no process scalar or array
      * with the specified name.
      *
      * A pair of two process variables is returned: The first member of the pair
@@ -224,79 +225,7 @@ namespace ChimeraTK {
      */
     ProcessVariable::SharedPtr nextDeviceNotification();
 
-    /**
-     * Tells whether the automatic reference time-stamp mode is enabled (the
-     * default is <code>true</code>). In this mode, the method
-     * getReferenceTimeStamp() simply returns the current system time. If the
-     * automatic mode is disabled (this method returns <code>false</code>), the
-     * getReferenceTimeStamp() method returns the value set through
-     * setReferenceTimeStamp(const TimeStamp&).
-     *
-     * This method is only intended for use by the device-library thread.
-     */
-    bool isAutomaticReferenceTimeStampMode() const;
-
-    /**
-     * Enables or disables the automatic reference time-stamp mode, if the
-     * parameter is <code>true</code> or <code>false</code>. In automatic mode,
-     * the method getReferenceTimeStamp() simply returns the current system
-     * time. In manual mode, getReferenceTimeStamp() returns the value set
-     * through setReferenceTimeStamp(const TimeStamp&).
-     *
-     * This method is only intended for use by the device-library thread.
-     */
-    void setAutomaticReferenceTimeStampMode(
-        bool automaticReferenceTimeStampMode);
-
-    /**
-     * Returns the current reference time-stamp. This is the time-stamp that is
-     * associated with a process variable's value, when its value is changed.
-     * In automatic mode (isAutomaticReferenceTimeStampMode() returns
-     * <code>true</code>), the current system time is returned. In manual mode
-     * (isAutomaticReferenceTimeStamp() returns <code>false</code>), the time
-     * stamp set through setReferenceTimeStamp(const TimeStamp&) is returned.
-     *
-     * This method is only intended for use by the device-library thread.
-     */
-    TimeStamp getReferenceTimeStamp() const;
-
-    /**
-     * Updates the reference time-stamp. This means that the next call to
-     * getReferenceTimeStamp() will return the passed time stamp. Calling this
-     * method implicitly disables the automatic reference time-stamp mode.
-     *
-     * This method is only intended for use by the device-library thread.
-     */
-    void setReferenceTimeStamp(const TimeStamp& referenceTimeStamp);
-
   private:
-    /**
-     * Internal time-stamp source implementation.
-     */
-    class TimeStampSourceImpl: public TimeStampSource {
-
-    private:
-      // We use a weak reference in order to avoid circular references.
-      boost::weak_ptr<PVManager> _pvManager;
-
-    public:
-      TimeStampSourceImpl(boost::shared_ptr<PVManager> pvManager) :
-          _pvManager(pvManager) {
-      }
-
-      TimeStamp getCurrentTimeStamp() {
-        boost::shared_ptr<PVManager> pvManager = _pvManager.lock();
-        // We can only use the PV manager if it is not null. However, if it has
-        // been destroyed, the process variables that refer to this time-stamp
-        // source are not fully function anyway.
-        if (pvManager) {
-          return pvManager->getReferenceTimeStamp();
-        } else {
-          return TimeStamp::currentTime();
-        }
-      }
-
-    };
 
     /**
      * Send notification listener implementation for device-library process
@@ -430,18 +359,6 @@ namespace ChimeraTK {
      */
     boost::lockfree::queue<ControlSystemSendNotificationListenerImpl*> _deviceNotificationQueue;
 
-    /**
-     * Flag indicating whether the automatic reference time-stamp mode is
-     * enabled.
-     */
-    bool _automaticReferenceTimeStampMode;
-
-    /**
-     * Current reference time-stamp. This time stamp is only used if the
-     * automatic reference time-stamp mode is disabled.
-     */
-    TimeStamp _referenceTimeStamp;
-
   };
 
   /**
@@ -462,16 +379,11 @@ namespace ChimeraTK {
       const std::string& description, std::size_t numberOfBuffers) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
-      throw std::invalid_argument(
+      throw ChimeraTK::logic_error(
           "Process variable with name " + processVariableName
               + " already exists.");
     }
 
-    // We do not use a time-stamp source for process variables that are
-    // synchronized from the control system to the device.
-    boost::shared_ptr<TimeStampSource> timeStampSource1;
-    boost::shared_ptr<TimeStampSource> timeStampSource2 = boost::make_shared<
-        TimeStampSourceImpl>(shared_from_this());
     boost::shared_ptr<ProcessVariableListener> sendNotificationListener1 =
         boost::make_shared<ControlSystemSendNotificationListenerImpl>(
             shared_from_this());
@@ -483,7 +395,7 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr> processVariables =
         createBidirectionalSynchronizedProcessArray<T>(initialValue,
             processVariableName, unit, description, numberOfBuffers,
-            timeStampSource1, timeStampSource2, sendNotificationListener1,
+            sendNotificationListener1,
             sendNotificationListener2);
 
     _processVariables.insert(
@@ -507,13 +419,11 @@ namespace ChimeraTK {
       std::size_t numberOfBuffers, const AccessModeFlags &flags) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
-      throw std::invalid_argument(
+      throw ChimeraTK::logic_error(
           "Process variable with name " + processVariableName
               + " already exists.");
     }
 
-    boost::shared_ptr<TimeStampSource> timeStampSource = boost::make_shared<
-        TimeStampSourceImpl>(shared_from_this());
     boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
         boost::make_shared<DeviceSendNotificationListenerImpl>(
             shared_from_this());
@@ -521,8 +431,7 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
-            numberOfBuffers, maySendDestructively, timeStampSource,
-            sendNotificationListener, flags);
+            numberOfBuffers, maySendDestructively, sendNotificationListener, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName,
@@ -544,14 +453,11 @@ namespace ChimeraTK {
       std::size_t numberOfBuffers, const AccessModeFlags &flags) {
     if (_processVariables.find(processVariableName)
         != _processVariables.end()) {
-      throw std::invalid_argument(
+      throw ChimeraTK::logic_error(
           "Process variable with name " + processVariableName
               + " already exists.");
     }
 
-    // We do not use a time-stamp source for process variables that are
-    // synchronized from the control system to the device.
-    boost::shared_ptr<TimeStampSource> timeStampSource;
     boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
         boost::make_shared<ControlSystemSendNotificationListenerImpl>(
             shared_from_this());
@@ -559,7 +465,7 @@ namespace ChimeraTK {
     typename std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> processVariables =
         createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
-            numberOfBuffers, maySendDestructively, timeStampSource,
+            numberOfBuffers, maySendDestructively,
             sendNotificationListener, flags);
 
     _processVariables.insert(
@@ -585,14 +491,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr devPV = boost::dynamic_pointer_cast<
       ProcessArray<T>, ProcessVariable>(processVariable.second);
     if (!csPV || !devPV) {
-      struct bad_cast : std::bad_cast {
-      bad_cast(const std::string &description) : _what(description) {}
-        const char* what() const noexcept override {
-          return _what.c_str();
-        }
-        std::string _what;
-      };
-      throw bad_cast("PVManager::getProcessArray() called for variable '" + processVariableName +"' with type "
+      throw ChimeraTK::logic_error("PVManager::getProcessArray() called for variable '" + processVariableName +"' with type "
                      +typeid(T).name()+" which is not the original type " + processVariable.first->getValueType().name()
                      + " of this process variable.");
     }

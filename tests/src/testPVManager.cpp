@@ -90,7 +90,7 @@ static void testCreateProcessVariables(const string& name,
 
   BOOST_CHECK_THROW( devManager->createProcessArray<T>(
    static_cast<SynchronizationDirection>(-1),name + "ShouldFail", 1),
-   std::invalid_argument );
+   ChimeraTK::logic_error );
 
   string arrayName = name + "Array";
   shared_ptr<ProcessArray<T> > createdPA = devManager->createProcessArray<T>(
@@ -114,7 +114,7 @@ static void testCreateProcessVariables(const string& name,
 
   BOOST_CHECK_THROW( devManager->createProcessArray<T>(
    static_cast<SynchronizationDirection>(-1),arrayName + "ShouldFail", 5),
-   std::invalid_argument );
+   ChimeraTK::logic_error );
 
 }
 
@@ -156,10 +156,10 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     // PV name is already used.
     BOOST_CHECK_THROW(
         devManager->createProcessArray<float>(controlSystemToDevice, "double", 1),
-        std::invalid_argument);
+        ChimeraTK::logic_error);
     BOOST_CHECK_THROW(
         devManager->createProcessArray<double>(deviceToControlSystem,
-            "double", 1), std::invalid_argument);
+            "double", 1), ChimeraTK::logic_error);
   }
 
   BOOST_AUTO_TEST_CASE( testNonExistentPVName ) {
@@ -169,8 +169,8 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
     shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-    BOOST_CHECK_THROW(devManager->getProcessArray<double>("foo"), std::logic_error);
-    BOOST_CHECK_THROW(csManager->getProcessArray<double>("foo"), std::logic_error);
+    BOOST_CHECK_THROW(devManager->getProcessArray<double>("foo"), ChimeraTK::logic_error);
+    BOOST_CHECK_THROW(csManager->getProcessArray<double>("foo"), ChimeraTK::logic_error);
   }
 
   BOOST_AUTO_TEST_CASE( testInvalidCast ) {
@@ -185,13 +185,13 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     // We expect a bad_cast exception to be thrown because the specified
     // PV name points to a PV of a different type.
     BOOST_CHECK_THROW(devManager->getProcessArray<float>("double"),
-        std::bad_cast);
+        ChimeraTK::logic_error);
     BOOST_CHECK_THROW(csManager->getProcessArray<float>("double"),
-        std::bad_cast);
+        ChimeraTK::logic_error);
     BOOST_CHECK_THROW(devManager->getProcessArray<double>("floatArray"),
-        std::bad_cast);
+        ChimeraTK::logic_error);
     BOOST_CHECK_THROW(csManager->getProcessArray<double>("floatArray"),
-        std::bad_cast);
+        ChimeraTK::logic_error);
   }
 
   template<class T>
@@ -601,25 +601,13 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
 
       uint32_t nextIndexNumber = 0;
 
-      // By default, the PV manager should be in automatic time-stamp mode.
-      BOOST_CHECK(pvManager->isAutomaticReferenceTimeStampMode());
-
-      pvManager->setReferenceTimeStamp(TimeStamp::currentTime(nextIndexNumber));
       index0->accessData(0) = nextIndexNumber;
       ++nextIndexNumber;
-
-      // Setting a reference time-stamp should implicitly disable the automatic
-      // mode.
-      BOOST_CHECK(!pvManager->isAutomaticReferenceTimeStampMode());
 
       intA->accessData(0) = 0;
       intB->accessData(0) = 0;
 
       while (stopDeviceThread->accessData(0) == 0) {
-        // On each iteration, we set the current time-stamp. This should ensure
-        // that all PVs receive the same time-stamp.
-        pvManager->setReferenceTimeStamp(
-            TimeStamp::currentTime(nextIndexNumber));
         index0->accessData(0) = nextIndexNumber;
         ++nextIndexNumber;
 
@@ -654,91 +642,6 @@ BOOST_AUTO_TEST_SUITE( PVManagerTestSuite )
     boost::thread deviceThread(callable);
 
     return csManager;
-  }
-
-  BOOST_AUTO_TEST_CASE( testTimeStamps ) {
-    shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib4();
-
-    ProcessArray<uint32_t>::SharedPtr intA = pvManager->getProcessArray<
-        uint32_t>("intA");
-    ProcessArray<uint32_t>::SharedPtr intB = pvManager->getProcessArray<
-        uint32_t>("intB");
-    ProcessArray<uint32_t>::SharedPtr index0 = pvManager->getProcessArray<
-        uint32_t>("index0");
-    ProcessArray<int8_t>::SharedPtr stopDeviceThread =
-        pvManager->getProcessArray<int8_t>("stopDeviceThread");
-
-    list<ProcessVariable::SharedPtr> inboundProcessVariables;
-    inboundProcessVariables.push_back(intA);
-    inboundProcessVariables.push_back(intB);
-    inboundProcessVariables.push_back(index0);
-
-    while (index0->accessData(0) < 150) {
-      uint32_t i0 = index0->accessData(0);
-      uint32_t a = intA->accessData(0);
-      uint32_t b = intB->accessData(0);
-      TimeStamp i0TS = index0->getTimeStamp();
-      TimeStamp aTS = intA->getTimeStamp();
-      TimeStamp bTS = intB->getTimeStamp();
-      // If the numbers match, the time stamps should match and vice versa.
-      BOOST_CHECK((a == b) == (aTS == bTS));
-      // The time-stamp of index0 should always have exactly the same number for
-      // index0.
-      BOOST_CHECK(i0 == i0TS.index0);
-      // If intA has a smaller index than intB, it should also be smaller than
-      // intB (actually two times the index difference smaller) and vice versa.
-      if (a < b) {
-        BOOST_CHECK(aTS.index0 < bTS.index0);
-        BOOST_CHECK(b == (a + (bTS.index0 - aTS.index0) * 2));
-      } else {
-        BOOST_CHECK(aTS.index0 >= bTS.index0);
-        BOOST_CHECK(a == (b + (aTS.index0 - bTS.index0) * 2));
-      }
-
-      // Sleep some time in order to avoid 100 % CPU load.
-      boost::this_thread::sleep_for(boost::chrono::milliseconds(1));
-
-      // Synchronize before starting next iteration.
-      receiveAll(inboundProcessVariables);
-    }
-
-    stopDeviceThread->accessData(0) = 1;
-    stopDeviceThread->write();
-  }
-
-  BOOST_AUTO_TEST_CASE( automaticTimeStampMode ) {
-    pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager> > pvManagers =
-        createPVManager();
-
-    shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
-    shared_ptr<DevicePVManager> devManager = pvManagers.second;
-
-    ProcessArray<int32_t>::SharedPtr intAdev = devManager->createProcessArray<
-        int32_t>(deviceToControlSystem, "intA", 1);
-    ProcessArray<int32_t>::SharedPtr intBdev = devManager->createProcessArray<
-        int32_t>(deviceToControlSystem, "intB", 1, "kindOfAUnit", "any description");
-    ProcessArray<int32_t>::SharedPtr intAcs = csManager->getProcessArray<
-        int32_t>("intA");
-    ProcessArray<int32_t>::SharedPtr intBcs = csManager->getProcessArray<
-        int32_t>("intB");
-
-    // By default, the PV manager should be in automatic time-stamp mode.
-    BOOST_CHECK(devManager->isAutomaticReferenceTimeStampMode());
-
-    intAdev->write();
-
-    // We sleep slightly more than a second, this should ensure that the time
-    // changes even on systems that do not have a high precision timer.
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(1100));
-
-    intBdev->write();
-
-    // intB should have a time stamp that is greater than the time stamp of
-    // intA.
-    intAcs->readNonBlocking();
-    intBcs->readNonBlocking();
-    BOOST_CHECK(
-        intAcs->getTimeStamp().seconds < intBcs->getTimeStamp().seconds);
   }
 
   struct TestDeviceCallable5 {

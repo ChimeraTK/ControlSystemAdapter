@@ -61,7 +61,7 @@ namespace ChimeraTK {
      * Creates a new process array and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
+     * \c ChimeraTK::logic_error exception to be thrown.
      *
      * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
      * <code>false</code> by default), the <code>sendDestructively()</code>
@@ -89,7 +89,7 @@ namespace ChimeraTK {
      * Creates a new process array and registers it with the PV manager.
      * Creating a process array with a name that is already used for a different
      * process scalar or array is an error and causes an
-     * \c std::invalid_argument exception to be thrown.
+     * \c ChimeraTK::logic_error exception to be thrown.
      *
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
@@ -177,43 +177,6 @@ namespace ChimeraTK {
      */
     ProcessVariable::SharedPtr nextNotification();
 
-    /**
-     * Tells whether the automatic reference time-stamp mode is enabled (the
-     * default is <code>true</code>). In this mode, the method
-     * getReferenceTimeStamp() simply returns the current system time. If the
-     * automatic mode is disabled (this method returns <code>false</code>), the
-     * getReferenceTimeStamp() method returns the value set through
-     * setReferenceTimeStamp(const TimeStamp&).
-     */
-    bool isAutomaticReferenceTimeStampMode() const;
-
-    /**
-     * Enables or disables the automatic reference time-stamp mode, if the
-     * parameter is <code>true</code> or <code>false</code>. In automatic mode,
-     * the method getReferenceTimeStamp() simply returns the current system
-     * time. In manual mode, getReferenceTimeStamp() returns the value set
-     * through setReferenceTimeStamp(const TimeStamp&).
-     */
-    void setAutomaticReferenceTimeStampMode(
-        bool automaticReferenceTimeStampMode);
-
-    /**
-     * Returns the current reference time-stamp. This is the time-stamp that is
-     * associated with a process variable's value, when its value is changed.
-     * In automatic mode (isAutomaticReferenceTimeStampMode() returns
-     * <code>true</code>), the current system time is returned. In manual mode
-     * (isAutomaticReferenceTimeStamp() returns <code>false</code>), the time
-     * stamp set through setReferenceTimeStamp(const TimeStamp&) is returned.
-     */
-    TimeStamp getReferenceTimeStamp() const;
-
-    /**
-     * Updates the reference time-stamp. This means that the next call to
-     * getReferenceTimeStamp() will return the passed time stamp. Calling this
-     * method implicitly disables the automatic reference time-stamp mode.
-     */
-    void setReferenceTimeStamp(const TimeStamp& referenceTimeStamp);
-
   private:
     /**
      * Reference to the {@link PVManager} backing this facade for the device
@@ -241,14 +204,14 @@ namespace ChimeraTK {
             maySendDestructively, numberOfBuffers, flags).second;
       case bidirectional:
         if (maySendDestructively) {
-          throw std::logic_error(
+          throw ChimeraTK::logic_error(
               "A bidirectional process variable cannot be sent destructively.");
         }
         return _pvManager->createBidirectionalProcessArray<T>(
             processVariableName, std::vector<T>(size, initialValue), unit,
             description, numberOfBuffers).second;
       default:
-        throw std::invalid_argument("invalid SynchronizationDirection");
+        throw ChimeraTK::logic_error("invalid SynchronizationDirection");
     }
   }
 
@@ -270,14 +233,14 @@ namespace ChimeraTK {
             numberOfBuffers, {}, {}, flags).second;
       case bidirectional:
         if (maySendDestructively) {
-          throw std::logic_error(
+          throw ChimeraTK::logic_error(
               "A bidirectional process variable cannot be sent destructively.");
         }
         return _pvManager->createBidirectionalProcessArray<T>(
             processVariableName, initialValue, unit, description,
             numberOfBuffers).second;
       default:
-        throw std::invalid_argument("invalid SynchronizationDirection");
+        throw ChimeraTK::logic_error("invalid SynchronizationDirection");
     }
   }
 

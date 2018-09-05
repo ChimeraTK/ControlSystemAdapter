@@ -11,8 +11,7 @@ namespace ChimeraTK {
   using std::list;
 
   PVManager::PVManager() :
-      _controlSystemNotificationQueue(0), _deviceNotificationQueue(0), _automaticReferenceTimeStampMode(
-          true), _referenceTimeStamp(0) {
+      _controlSystemNotificationQueue(0), _deviceNotificationQueue(0) {
     /// @todo FIXME I keep this part of the code commented out, although it is not the best programming style.
     /// This performance optimisation has been turned off when changing the map key from string to RegisterPath, which does not have a hash function.
     ///  We had to change to std::map, which does not have the load factor. To re-enable the performance optimisation write a std::hash for RegisterPath.
@@ -31,7 +30,7 @@ namespace ChimeraTK {
     if (i != _processVariables.end()) {
       return i->second;
     } else {
-      throw std::logic_error("ChimeraTK::ControlSystemAdapter: Error in PVManager. Unknown process variable '"+(processVariableName)+"'");
+      throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Error in PVManager. Unknown process variable '"+(processVariableName)+"'");
     }
   }
 
@@ -72,28 +71,6 @@ namespace ChimeraTK {
     } else {
       return ProcessVariable::SharedPtr();
     }
-  }
-
-  bool PVManager::isAutomaticReferenceTimeStampMode() const {
-    return _automaticReferenceTimeStampMode;
-  }
-
-  void PVManager::setAutomaticReferenceTimeStampMode(
-      bool automaticReferenceTimeStampMode) {
-    _automaticReferenceTimeStampMode = automaticReferenceTimeStampMode;
-  }
-
-  TimeStamp PVManager::getReferenceTimeStamp() const {
-    if (_automaticReferenceTimeStampMode) {
-      return TimeStamp::currentTime();
-    } else {
-      return _referenceTimeStamp;
-    }
-  }
-
-  void PVManager::setReferenceTimeStamp(const TimeStamp& referenceTimeStamp) {
-    _automaticReferenceTimeStampMode = false;
-    _referenceTimeStamp = referenceTimeStamp;
   }
 
 }

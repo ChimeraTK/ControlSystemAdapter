@@ -8,7 +8,7 @@
 #include <ChimeraTK/Device.h>
 #include <ChimeraTK/ReadAnyGroup.h>
 
-#include "ProcessArray.h"
+#include "UnidirectionalProcessArray.h"
 
 
 using namespace boost::unit_test_framework;

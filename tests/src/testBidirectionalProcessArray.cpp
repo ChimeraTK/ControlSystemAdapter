@@ -6,8 +6,7 @@
 #include <tuple>
 
 #include "CountingProcessVariableListener.h"
-#include "CountingTimeStampSource.h"
-#include "ProcessArray.h"
+#include "BidirectionalProcessArray.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -86,11 +85,10 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     ChimeraTK::ExperimentalFeatures::enable();
 
     DoubleArray::SharedPtr pv1, pv2;
-    TimeStampSource::SharedPtr nullTimeStampSource;
     auto listener1 = make_shared<CountingProcessVariableListener>();
     auto listener2 = make_shared<CountingProcessVariableListener>();
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-        0.0, 2, nullTimeStampSource, nullTimeStampSource, listener1, listener2);
+        0.0, 2, listener1, listener2);
     // Initially, the two listeners should not have received any notifications.
     BOOST_CHECK(listener1->count == 0);
     BOOST_CHECK(!listener1->lastProcessVariable);
@@ -122,35 +120,24 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     ChimeraTK::ExperimentalFeatures::enable();
 
     DoubleArray::SharedPtr pv1, pv2;
-    // We use the same time-stamp source for both sides. The counting time-stamp
-    // source is not thread-safe, but we use the same thread for both sides, so
-    // this is okay.
-    auto timeStampSource = make_shared<CountingTimeStampSource>();
-    // We retrieve one time stamp from the source so that the first time stamp
-    // returned from the source is not zero.
-    timeStampSource->getCurrentTimeStamp();
     double initialValue = 2.0;
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-        initialValue, 2, timeStampSource, timeStampSource);
+        initialValue, 2);
     // Both sides should be initialized to zero.
     BOOST_CHECK(pv1->accessData(0) == initialValue);
     BOOST_CHECK(pv2->accessData(0) == initialValue);
     // Both sides should have the same time stamp and version number.
-    BOOST_CHECK(pv1->getTimeStamp() == pv2->getTimeStamp());
     BOOST_CHECK(pv1->getVersionNumber() == pv2->getVersionNumber());
     // We save the time stamp and version number so that we can reuse it in
     // later checks.
-    auto initialTimeStamp = pv1->getTimeStamp();
     auto initialVersionNumber = pv1->getVersionNumber();
     // Nothing has been written yet, so calling read() should not have any
     // effects.
     pv1->readNonBlocking();
     pv2->readNonBlocking();
     BOOST_CHECK(pv1->accessData(0) == initialValue);
-    BOOST_CHECK(pv1->getTimeStamp() == initialTimeStamp);
     BOOST_CHECK(pv1->getVersionNumber() == initialVersionNumber);
     BOOST_CHECK(pv2->accessData(0) == initialValue);
-    BOOST_CHECK(pv2->getTimeStamp() == initialTimeStamp);
     BOOST_CHECK(pv2->getVersionNumber() == initialVersionNumber);
     // Now we write on pv1.
     double newValue1 = 5.0;
@@ -159,20 +146,15 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     // After writing, the time stamp and version number should have increased on
     // pv1, but pv2 should not have changed.
     BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv1->getTimeStamp().index0 > initialTimeStamp.index0);
     BOOST_CHECK(pv1->getVersionNumber() > initialVersionNumber);
-    auto newTimeStamp1 = pv1->getTimeStamp();
     auto newVersionNumber1 = pv1->getVersionNumber();
     BOOST_CHECK(pv2->accessData(0) == initialValue);
-    BOOST_CHECK(pv2->getTimeStamp() == initialTimeStamp);
     BOOST_CHECK(pv2->getVersionNumber() == initialVersionNumber);
     // Now we read pv2. After this, the two PVs should match again.
     pv2->readNonBlocking();
     BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv1->getTimeStamp() == newTimeStamp1);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
     BOOST_CHECK(pv2->accessData(0) == newValue1);
-    BOOST_CHECK(pv2->getTimeStamp() == newTimeStamp1);
     BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber1);
     // Now, we write on pv2.
     double newValue2 = 42.0;
@@ -181,20 +163,15 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     // After writing, the time stamp and version number should have increased on
     // pv2, but pv1 should not have changed.
     BOOST_CHECK(pv2->accessData(0) == newValue2);
-    BOOST_CHECK(pv2->getTimeStamp().index0 > newTimeStamp1.index0);
     BOOST_CHECK(pv2->getVersionNumber() > newVersionNumber1);
-    auto newTimeStamp2 = pv2->getTimeStamp();
     auto newVersionNumber2 = pv2->getVersionNumber();
     BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv1->getTimeStamp() == newTimeStamp1);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
     // Now we read pv1. After this, the two PVs should match again.
     pv1->readNonBlocking();
     BOOST_CHECK(pv1->accessData(0) == newValue2);
-    BOOST_CHECK(pv1->getTimeStamp() == newTimeStamp2);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber2);
     BOOST_CHECK(pv2->accessData(0) == newValue2);
-    BOOST_CHECK(pv2->getTimeStamp() == newTimeStamp2);
     BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber2);
   }
 
@@ -203,23 +180,14 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     ChimeraTK::ExperimentalFeatures::enable();
 
     DoubleArray::SharedPtr pv1, pv2;
-    auto timeStampSource1 = make_shared<CountingTimeStampSource>();
-    auto timeStampSource2 = make_shared<CountingTimeStampSource>();
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-        0.0, 2, timeStampSource1, timeStampSource2);
-    // Before writing, both time-stamp sources should have a count of zero.
-    BOOST_CHECK(timeStampSource1->count == 0);
-    BOOST_CHECK(timeStampSource2->count == 0);
+        0.0, 2);
     // After writing pv1, timestampSource1 should have a count of 1.
     pv1->write();
     pv2->readNonBlocking();
-    BOOST_CHECK(timeStampSource1->count == 1);
-    BOOST_CHECK(timeStampSource2->count == 0);
     // After writing pv2, timestampSource2 should also have a count of 1.
     pv2->write();
     pv1->readNonBlocking();
-    BOOST_CHECK(timeStampSource1->count == 1);
-    BOOST_CHECK(timeStampSource2->count == 1);
   }
 
   // After you finished all test you have to end the test suite.

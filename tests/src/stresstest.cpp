@@ -1,7 +1,7 @@
 #include <signal.h>
 #include <random>
 #include <boost/thread/thread.hpp>
-#include "ProcessArray.h"
+#include "UnidirectionalProcessArray.h"
 
 using namespace ChimeraTK;
 

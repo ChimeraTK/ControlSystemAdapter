@@ -21,7 +21,7 @@ namespace ChimeraTK {
   {
     std::lock_guard<std::mutex> lock(instance_mutex);
     if(instance != nullptr) {
-      throw std::runtime_error("Multiple instances of ChimeraTK::ApplicationBase cannot be created.");
+      throw ChimeraTK::logic_error("Multiple instances of ChimeraTK::ApplicationBase cannot be created.");
     }
     instance = this;
   }
@@ -62,7 +62,7 @@ namespace ChimeraTK {
 
   ApplicationBase& ApplicationBase::getInstance() {
     if(instance == nullptr) {
-      throw std::runtime_error("No instance of ChimeraTK::ApplicationBase created, but ApplicationBase::getInstance() called.");
+      throw ChimeraTK::logic_error("No instance of ChimeraTK::ApplicationBase created, but ApplicationBase::getInstance() called.");
     }
     return *instance;
   }

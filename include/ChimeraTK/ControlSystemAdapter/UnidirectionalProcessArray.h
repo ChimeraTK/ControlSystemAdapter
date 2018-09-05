@@ -14,7 +14,6 @@
 
 #include "ProcessArray.h"
 #include "ProcessVariableListener.h"
-#include "TimeStampSource.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
@@ -80,13 +79,9 @@ namespace ChimeraTK {
       */
       UnidirectionalProcessArray(
           typename ProcessArray<T>::InstanceType instanceType,
-          bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
+          bool maySendDestructively,
           ProcessVariableListener::SharedPtr sendNotificationListener,
           UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags &flags);
-
-      TimeStamp getTimeStamp() const override {
-        return _timeStamp;
-      }
 
       ChimeraTK::VersionNumber getVersionNumber() const override {
         return _versionNumber;
@@ -126,30 +121,6 @@ namespace ChimeraTK {
       * process variable does not allow destructive sending.
       */
       bool writeDestructively(ChimeraTK::VersionNumber versionNumber={}) override; /// @todo FIXME this function must be present in TransferElement already!
-
-      /**
-      * Sends the current value to the receiver. Returns <code>true</code> if an
-      * empty buffer was available and <code>false</code> if no empty buffer was
-      * available and thus a previously sent value has been dropped in order to
-      * send the current value.
-      *
-      * The specified version number is passed to the receiver. If the receiver
-      * has a value with a version number greater than or equal to the specified
-      * version number, it silently discards this update.
-      *
-      * This version of the send operation moves the current value from the
-      * sender to the receiver without copying it. This means that after calling
-      * this method, the sender's value, time stamp, and version number are
-      * undefined. Therefore, this method must only be used if this process
-      * variable is not read (on the sender side) after sending it.
-      *
-      * The time-stamp source of this process array is ignored and the passed
-      * time stamp is used instead.
-      *
-      * Throws an exception if this process variable is not a sender or if this
-      * process variable does not allow destructive sending.
-      */
-      bool writeDestructively(ChimeraTK::TimeStamp timeStamp, ChimeraTK::VersionNumber versionNumber);
 
       void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override ;
 
@@ -194,12 +165,11 @@ namespace ChimeraTK {
         Buffer() {}
 
         Buffer(Buffer &&other)
-        : _value(std::move(other._value)), _versionNumber(other._versionNumber), _timeStamp(other._timeStamp) {}
+        : _value(std::move(other._value)), _versionNumber(other._versionNumber) {}
 
         Buffer& operator=(Buffer &&other) {
           _value = std::move(other._value);
           _versionNumber = other._versionNumber;
-          _timeStamp = other._timeStamp;
           return *this;
         }
 
@@ -208,9 +178,6 @@ namespace ChimeraTK {
 
         /** Version number of this data */
         ChimeraTK::VersionNumber _versionNumber;
-
-        /** Time stamp associated with this buffer */
-        TimeStamp _timeStamp;
 
       };
 
@@ -267,20 +234,10 @@ namespace ChimeraTK {
       VersionNumber _versionNumber;
 
       /**
-       * Local copy of the version number belonging to the NDRegisterAccessor<T>::buffer_2D
-       */
-      TimeStamp _timeStamp;
-
-      /**
       * Pointer to the receiver associated with this sender. This field is only
       * used if this process variable represents a sender.
       */
       boost::shared_ptr<UnidirectionalProcessArray> _receiver;
-
-      /**
-      * Time-stamp source used to update the time-stamp when sending a value.
-      */
-      boost::shared_ptr<TimeStampSource> _timeStampSource;
 
       /**
       * Listener that is notified when the process variable is sent.
@@ -305,7 +262,7 @@ namespace ChimeraTK {
       *
       * The return value will be true, if older data was overwritten during the send operation, or otherwise false.
       */
-      bool writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber, bool shouldCopy);
+      bool writeInternal(VersionNumber newVersionNumber, bool shouldCopy);
 
 
       /** Check thread safety. This function is used in various places inside an assert(). */
@@ -383,7 +340,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       T initialValue = T(), std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
-      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
@@ -434,7 +390,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray( const std::vector<T>& initialValue,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
-      TimeStampSource::SharedPtr timeStampSource = TimeStampSource::SharedPtr(),
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
@@ -458,19 +413,19 @@ namespace ChimeraTK {
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isReadable()) {
-      throw std::invalid_argument("This constructor may only be used for a receiver process variable.");
+      throw ChimeraTK::logic_error("This constructor may only be used for a receiver process variable.");
     }
     // We need at least two buffers for the queue (so four buffers in total)
     // in order to guarantee that we never have to block.
     if (numberOfBuffers < 2) {
-      throw std::invalid_argument("The number of buffers must be at least two.");
+      throw ChimeraTK::logic_error("The number of buffers must be at least two.");
     }
     // We have to limit the number of buffers because we cannot allocate
     // more buffers than can be represented by size_t and the total number
     // of buffers is the specified number plus one. This extra buffer is
     // needed internally by the future_queue.
     if (numberOfBuffers > (std::numeric_limits<std::size_t>::max() - 1)) {
-      throw std::invalid_argument("The number of buffers is too large.");
+      throw ChimeraTK::logic_error("The number of buffers is too large.");
     }
   }
 
@@ -478,7 +433,7 @@ namespace ChimeraTK {
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray( typename ProcessArray<T>::InstanceType instanceType,
-      bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
+      bool maySendDestructively,
       ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
       const AccessModeFlags &flags )
   : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription(), flags),
@@ -487,19 +442,18 @@ namespace ChimeraTK {
     _sharedState(receiver->_sharedState),
     _localBuffer(receiver->_localBuffer._value),
     _receiver(receiver),
-    _timeStampSource(timeStampSource),
     _sendNotificationListener(sendNotificationListener)
   {
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if (!this->isWriteable()) {
-      throw std::invalid_argument("This constructor may only be used for a sender process variable.");
+      throw ChimeraTK::logic_error("This constructor may only be used for a sender process variable.");
     }
     if (!receiver) {
-      throw std::invalid_argument("The pointer to the receiver must not be null.");
+      throw ChimeraTK::logic_error("The pointer to the receiver must not be null.");
     }
     if (!receiver->isReadable()) {
-      throw std::invalid_argument(
+      throw ChimeraTK::logic_error(
           "The pointer to the receiver must point to an instance that is actually a receiver.");
     }
     // allocate and initialise buffer of the base class
@@ -529,7 +483,7 @@ namespace ChimeraTK {
   bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
 
     if (!this->isReadable()) {
-      throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
+      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
 
     // flag if at least one of the pops was successfull
@@ -548,7 +502,7 @@ namespace ChimeraTK {
   ChimeraTK::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
 
     if (!this->isReadable()) {
-      throw std::logic_error("Receive operation is only allowed for a receiver process variable.");
+      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
     }
 
     // return the future
@@ -573,7 +527,6 @@ namespace ChimeraTK {
     // swap data out of the local buffer into the user buffer
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap( _localBuffer._value );
     _versionNumber = _localBuffer._versionNumber;
-    _timeStamp = _localBuffer._timeStamp;
 
   }
 
@@ -581,8 +534,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doWriteTransfer(ChimeraTK::VersionNumber versionNumber) {
-    auto timestamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
-    return writeInternal(timestamp, versionNumber, true);
+    return writeInternal(versionNumber, true);
   }
 
 /*********************************************************************************************************************/
@@ -590,24 +542,11 @@ namespace ChimeraTK {
   template<class T>
   bool UnidirectionalProcessArray<T>::writeDestructively(ChimeraTK::VersionNumber versionNumber) {
     if(!_maySendDestructively) {
-      throw std::runtime_error("This process variable must not be sent destructively because the corresponding flag "
-                               "has not been set.");
+      throw ChimeraTK::logic_error("This process variable must not be sent destructively because the corresponding flag "
+                                   "has not been set.");
     }
-    auto timestamp = _timeStampSource ? _timeStampSource->getCurrentTimeStamp() : TimeStamp::currentTime();
-    return writeInternal(timestamp, versionNumber, false);
+    return writeInternal(versionNumber, false);
   }
-
-  /*********************************************************************************************************************/
-
-    template<class T>
-    bool UnidirectionalProcessArray<T>::writeDestructively(ChimeraTK::TimeStamp timeStamp,
-                                                           ChimeraTK::VersionNumber versionNumber) {
-      if(!_maySendDestructively) {
-        throw std::runtime_error("This process variable must not be sent destructively because the corresponding flag "
-                                 "has not been set.");
-      }
-      return writeInternal(timeStamp, versionNumber, false);
-    }
 
 /*********************************************************************************************************************/
 
@@ -631,14 +570,13 @@ namespace ChimeraTK {
 /*********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::writeInternal(TimeStamp newTimeStamp, VersionNumber newVersionNumber,
-                                                    bool shouldCopy) {
+  bool UnidirectionalProcessArray<T>::writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
 
     // thread safety check, if enabled (only active with debug flags enabled)
     assert(checkThreadSafety());
 
     if(!this->isWriteable()) {
-      throw std::logic_error(
+      throw ChimeraTK::logic_error(
           "Send operation is only allowed for a sender process variable. Variable name: "+this->getName());
     }
 
@@ -646,7 +584,7 @@ namespace ChimeraTK {
     // right size. Otherwise, the code using the receiver might get into
     // trouble when it suddenly experiences a vector of the wrong size.
     if(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
-      throw std::logic_error(
+      throw ChimeraTK::logic_error(
           "Cannot run receive operation because the size of the vector belonging to the current buffer has been "
           "modified. Variable name: "+this->getName());
     }
@@ -655,7 +593,7 @@ namespace ChimeraTK {
     // even less than the last version number used. Such an attempt indicates
     // that there is a problem in the logic attempting the write operation.
     if (newVersionNumber < _versionNumber) {
-      throw std::logic_error(
+      throw ChimeraTK::logic_error(
           "The version number passed to write is less than or equal to the last version number used.");
     }
 
@@ -666,9 +604,7 @@ namespace ChimeraTK {
     }
 
     // Set time stamp and version number
-    _localBuffer._timeStamp = newTimeStamp;
     _localBuffer._versionNumber = newVersionNumber;
-    _timeStamp = newTimeStamp;
     _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
@@ -699,15 +635,14 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
          const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
-         std::size_t numberOfBuffers, bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
+         std::size_t numberOfBuffers, bool maySendDestructively,
          ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
   {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::RECEIVER, name, unit,
                                                                        description, std::vector<T>(size, initialValue),
                                                                        numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T> >( ProcessArray<T>::SENDER, maySendDestructively,
-                                                                      timeStampSource, sendNotificationListener,
-                                                                      receiver, flags);
+                                                                      sendNotificationListener, receiver, flags);
     return {sender, receiver};
   }
 
@@ -717,14 +652,14 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(const std::vector<T>& initialValue,
          const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description,
-         std::size_t numberOfBuffers, bool maySendDestructively, TimeStampSource::SharedPtr timeStampSource,
+         std::size_t numberOfBuffers, bool maySendDestructively,
          ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
   {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::RECEIVER, name, unit,
                                                                        description, initialValue, numberOfBuffers,
                                                                        flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::SENDER, maySendDestructively,
-                                                                     timeStampSource, sendNotificationListener,
+                                                                     sendNotificationListener,
                                                                      receiver, flags);
     return {sender, receiver};
   }

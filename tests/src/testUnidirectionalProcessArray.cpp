@@ -8,10 +8,9 @@ using namespace boost::unit_test_framework;
 #include <stdexcept>
 #include <thread>
 
-#include "ProcessArray.h"
+#include "UnidirectionalProcessArray.h"
 
 #include "CountingProcessVariableListener.h"
-#include "CountingTimeStampSource.h"
 
 typedef boost::mpl::list<int8_t,uint8_t,
                          int16_t,uint16_t,
@@ -162,7 +161,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testSendNotification, T, test_types ) {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
-          TimeStampSource::SharedPtr(), sendNotificationListener);
+          sendNotificationListener);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sendNotificationListener->count == 0);
@@ -174,25 +173,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testSendNotification, T, test_types ) {
   BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( testTimeStampSource, T, test_types ) {
-  TimeStampSource::SharedPtr timeStampSource(
-      boost::make_shared<CountingTimeStampSource>());
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
-          timeStampSource);
-  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-  sender->write();
-  receiver->readNonBlocking();
-  BOOST_CHECK(receiver->getTimeStamp().index0 == 0);
-  sender->write();
-  receiver->readNonBlocking();
-  BOOST_CHECK(receiver->getTimeStamp().index0 == 1);
-  sender->write();
-  receiver->readNonBlocking();
-  BOOST_CHECK(receiver->getTimeStamp().index0 == 2);
-}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( testSynchronization, T, test_types ) {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
@@ -300,14 +280,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testSynchronization, T, test_types ) {
           createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false);
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
-  BOOST_CHECK_THROW(sender->writeDestructively(), std::runtime_error);
+  BOOST_CHECK_THROW(sender->writeDestructively(), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( testVersionNumbers, T, test_types ) {
   typename std::pair<typename ProcessArray<T>::SharedPtr,
       typename ProcessArray<T>::SharedPtr> senderReceiver =
-        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true,
-          TimeStampSource::SharedPtr());
+        createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // After sending destructively and receiving a value, the version number on
@@ -338,7 +317,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testVersionNumbers, T, test_types ) {
   sender->writeDestructively(versionNumber);
     BOOST_ERROR("Exception expected.");
   }
-  catch(std::logic_error&) {}
+  catch(ChimeraTK::logic_error&) {}
   BOOST_CHECK(receiver->readNonBlocking() == false);
   BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
   BOOST_CHECK(receiver->accessChannel(0)[0] == 3);

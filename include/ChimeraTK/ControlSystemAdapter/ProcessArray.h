@@ -13,7 +13,6 @@
 #include <ChimeraTK/VersionNumber.h>
 
 #include "ProcessVariableListener.h"
-#include "TimeStampSource.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
@@ -113,8 +112,6 @@ namespace ChimeraTK {
       return typeid(T);
     }
 
-    virtual TimeStamp getTimeStamp() const = 0;
-
     bool mayReplaceOther(const boost::shared_ptr<const ChimeraTK::TransferElement>&) const override {
       return false;  // never true as we shall return false if instance is the same
     }
@@ -166,14 +163,5 @@ namespace ChimeraTK {
   }
 
 } // namespace ChimeraTK
-
-// We include the UnidirectionalProcessArray.h header so that code using the
-// create... functions does not have to do so explicitly. This include must be
-// after the declaration of ProcessArray because the code in
-// UnidirectionalProcessArray.h depends on it.
-#include "UnidirectionalProcessArray.h"
-// The BidirectionalProcessArray depends on the UnidirectionalProcessArray, so
-// its header has to be included second.
-#include "BidirectionalProcessArray.h"
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
