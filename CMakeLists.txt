@@ -9,6 +9,8 @@ set(${PROJECT_NAME}_MINOR_VERSION 00)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 include(cmake/set_version_numbers.cmake)
 
+include(GNUInstallDirs)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -pedantic -Wuninitialized")
 
 #use -DCMAKE_BUILD_TYPE=Debug in your cmake command to turn on the coverage option
@@ -106,40 +108,32 @@ ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 #Install the library
 install(TARGETS ${PROJECT_NAME}
-            RUNTIME DESTINATION bin
-            LIBRARY DESTINATION lib
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 #all include files go into include
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include
-        FILES_MATCHING
-            PATTERN "ChimeraTK/*.h"
-            PATTERN "ChimeraTK/ControlSystemAdapter/*.h")
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "ChimeraTK/*.h"
+                       PATTERN "ChimeraTK/ControlSystemAdapter/*.h")
 
 #We additionally install the reference test application, it's header only
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
-        FILES_MATCHING
-            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")
 
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
 #but there are none.
-set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
+set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR} ${Boost_INCLUDE_DIRS}")
 set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES}")
-set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS} ${ChimeraTK-DeviceAccess_LIBRARY_DIRS}")
+set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR} ${Boost_LIBRARY_DIRS} ${ChimeraTK-DeviceAccess_LIBRARY_DIRS}")
 set(${PROJECT_NAME}_CXX_FLAGS "${ChimeraTK-DeviceAccess_CXX_FLAGS}")
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath,${CMAKE_INSTALL_PREFIX}/lib ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
+  set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath,${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR} ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
 else()
-set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
+  set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR},--enable-new-dtags ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
 endif()
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 
-
-## The instructions to create a debian package are loaded from a separate file
-
-#include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
-
 include(${CMAKE_SOURCE_DIR}/cmake/enable_doxygen_documentation.cmake)
-
