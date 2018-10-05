@@ -324,6 +324,8 @@ namespace ChimeraTK {
       DecoratorType wantedDecoratorType;
       mutable boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType> > createdDecorator;
 
+      DecoratorFactory(const DecoratorFactory&) = delete;
+
       template<typename PAIR>
       void operator()(PAIR&) const {
         typedef typename PAIR::first_type TargetImplType;
@@ -338,6 +340,7 @@ namespace ChimeraTK {
         }else{
           throw ChimeraTK::logic_error("TypeChangingDecorator with range limitation is not implemented yet.");
         }
+
       }
   };
 
@@ -363,18 +366,23 @@ namespace ChimeraTK {
         else {
         // sorry there is a decorator, but it's the wrong user type
         throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
-                               transferElement->getName() +" already exists as a different decorator type.");
+                                     transferElement->getName() + " already exists as a different decorator type.");
         }
       }
       else {
         // sorry there is a decorator, but it's the wrong user type
         throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
-                               transferElement->getName() +" already exists with a different user type.");
+                                     transferElement->getName() + " already exists with a different user type.");
       }
     }
 
     DecoratorFactory< UserType > factory(transferElement, decoratorType );
-    boost::fusion::for_each(ChimeraTK::userTypeMap(), factory);
+    boost::fusion::for_each(ChimeraTK::userTypeMap(), std::ref(factory));
+    if(factory.createdDecorator == nullptr) {
+      throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
+                                   transferElement->getName() + " has been requested for an unknown user type: " +
+                                   typeid(UserType).name());
+    }
     getGlobalDecoratorMap()[transferElement] = factory.createdDecorator;
     return factory.createdDecorator;
   }
