@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <cstdint>
 #include <random>
 #include <boost/thread/thread.hpp>
 #include "UnidirectionalProcessArray.h"
@@ -12,10 +13,10 @@ int main() {
     constexpr size_t nSendsPerVar = 200;
 
     // create process variable pairs
-    std::vector< std::pair< boost::shared_ptr<ProcessArray<size_t>>, boost::shared_ptr<ProcessArray<size_t>> > > pvars;
+    std::vector< std::pair< boost::shared_ptr<ProcessArray<std::uint64_t>>, boost::shared_ptr<ProcessArray<std::uint64_t>> > > pvars;
     for(size_t k=0; k<nVars; ++k) {
       std::string name = "var"+std::to_string(k);
-      pvars.push_back(createSynchronizedProcessArray<size_t>(dataSize, name));
+      pvars.push_back(createSynchronizedProcessArray<std::uint64_t>(dataSize, name));
     }
 
     // create sender thread
