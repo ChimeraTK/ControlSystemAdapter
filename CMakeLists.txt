@@ -52,6 +52,9 @@ PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
 PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
 include_directories(SYSTEM "${LibXML++_INCLUDEDIR}/${LIBXML++_VERSION}" ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
 
+# libatomic is required on some patforms (and doesn't hurt on the others)
+find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
+
 #Includes inside the library are local includes, so we give the full path to the include directory
 include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
@@ -71,7 +74,7 @@ if(TESTING_IS_ENABLED)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(${executableName} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
+    target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
     set_target_properties(${executableName} PROPERTIES LINK_FLAGS ${Boost_LINK_FLAGS} ${ChimeraTK-DeviceAccess_LINK_FLAGS})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
@@ -95,7 +98,7 @@ endif(TESTING_IS_ENABLED)
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
-target_link_libraries(${PROJECT_NAME} ${LibXML++_LDFLAGS} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${atomic-library} ${LibXML++_LDFLAGS} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
 
 #Install the library
 install(TARGETS ${PROJECT_NAME}
@@ -119,7 +122,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
 #Only the reference header is needed. The other variables are for dependencies of this library,
 #but there are none.
 set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
-set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES}")
+set(${PROJECT_NAME}_LIBRARIES "${PROJECT_NAME} ${atomic-library} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES}")
 set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS} ${ChimeraTK-DeviceAccess_LIBRARY_DIRS}")
 set(${PROJECT_NAME}_CXX_FLAGS "${ChimeraTK-DeviceAccess_CXX_FLAGS}")
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
