@@ -1,9 +1,11 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_TYPE_CHANGING_DECORATOR_H
 
+#include <boost/numeric/conversion/converter.hpp>
+#include <boost/fusion/include/for_each.hpp>
+
 #include <ChimeraTK/TransferElementAbstractor.h>
 #include <ChimeraTK/NDRegisterAccessorDecorator.h>
-#include <boost/fusion/include/for_each.hpp>
 #include <ChimeraTK/SupportedUserTypes.h>
 
 namespace ChimeraTK {
