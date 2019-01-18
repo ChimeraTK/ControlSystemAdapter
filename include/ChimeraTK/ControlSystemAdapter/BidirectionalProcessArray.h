@@ -341,21 +341,48 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doReadTransfer() {
-    _receiver->doReadTransfer();
+    do {
+      _receiver->read();
+      // We only update the current value (stored in the sender) when the version
+      // number of the data that we received is greater than the current version
+      // number. This ensures that old updates (that might arrive late due to the
+      // asynchronous nature of the transfer logic) do not overwrite newer values
+      // and also helps to ensure that we do not get a feedback loop where two (or
+      // more) bidirectional process variables "play ping-pong" (see issue #2 for
+      // the full discussion).
+    } while(_receiver->getVersionNumber() < _versionNumber);
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
   bool BidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-    return _receiver->doReadTransferNonBlocking();
+    auto ret = _receiver->readNonBlocking();
+    // We only update the current value (stored in the sender) when the version
+    // number of the data that we received is greater than the current version
+    // number. This ensures that old updates (that might arrive late due to the
+    // asynchronous nature of the transfer logic) do not overwrite newer values
+    // and also helps to ensure that we do not get a feedback loop where two (or
+    // more) bidirectional process variables "play ping-pong" (see issue #2 for
+    // the full discussion).
+    if(ret && _receiver->getVersionNumber() < _versionNumber) return false;
+    return ret;
   }
 
 /*********************************************************************************************************************/
 
   template<class T>
   bool BidirectionalProcessArray<T>::doReadTransferLatest() {
-    return _receiver->doReadTransferLatest();
+    auto ret = _receiver->readLatest();
+    // We only update the current value (stored in the sender) when the version
+    // number of the data that we received is greater than the current version
+    // number. This ensures that old updates (that might arrive late due to the
+    // asynchronous nature of the transfer logic) do not overwrite newer values
+    // and also helps to ensure that we do not get a feedback loop where two (or
+    // more) bidirectional process variables "play ping-pong" (see issue #2 for
+    // the full discussion).
+    if(ret && _receiver->getVersionNumber() < _versionNumber) return false;
+    return ret;
   }
 
 /*********************************************************************************************************************/
@@ -369,26 +396,16 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doPostRead() {
-    _receiver->postRead();
-    // We only update the current value (stored in the sender) when the version
-    // number of the data that we received is greater than the current version
-    // number. This ensures that old updates (that might arrive late due to the
-    // asynchronous nature of the transfer logic) do not overwrite newer values
-    // and also helps to ensure that we do not get a feedback loop where two (or
-    // more) bidirectional process variables "play ping-pong" (see issue #2 for
-    // the full discussion).
-    if (_receiver->getVersionNumber() >= _versionNumber) {
-      this->accessChannel(0).swap(_receiver->accessChannel(0));
-      // After receiving, our new time stamp and version number are the ones
-      // that we got from the receiver.
-      _versionNumber = _receiver->getVersionNumber();
-      // If we have a persistent data-storage, we have to update it. We have to
-      // do this because a (new) value received from the other side should be
-      // treated like a value sent by this side.
-      if (_persistentDataStorage) {
-        _persistentDataStorage->updateValue(_persistentDataStorageID,
-            _sender->accessChannel(0));
-      }
+    this->accessChannel(0).swap(_receiver->accessChannel(0));
+    // After receiving, our new time stamp and version number are the ones
+    // that we got from the receiver.
+    _versionNumber = _receiver->getVersionNumber();
+    // If we have a persistent data-storage, we have to update it. We have to
+    // do this because a (new) value received from the other side should be
+    // treated like a value sent by this side.
+    if (_persistentDataStorage) {
+      _persistentDataStorage->updateValue(_persistentDataStorageID,
+          _sender->accessChannel(0));
     }
   }
 
