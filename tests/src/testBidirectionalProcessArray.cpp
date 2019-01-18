@@ -33,51 +33,51 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
         initialValue);
     // Initially, both sides should have the initial value.
-    BOOST_CHECK(pv1->accessData(0) == initialValue);
-    BOOST_CHECK(pv2->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
     // Now we write to pv1. After that, pv1 should have been updated, but pv2
     // should still have its old value.
     double newValue1 = -2.1;
     pv1->accessData(0) = newValue1;
     pv1->write();
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv2->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
     // Now we write to pv2. We do this before reading pv2. As a result, both
     // pv1 and pv2 should have their respective new values.
     double newValue2 = 1.8;
     pv2->accessData(0) = newValue2;
     pv2->write();
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv2->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
     // Now we read pv2. As the incoming update is older than the current value,
     // it should be discarded.
     BOOST_CHECK(pv2->readNonBlocking() == false);
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
-    BOOST_CHECK(pv2->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
     // Now we read pv1. The incoming update should overwrite the current value.
     pv1->read();
-    BOOST_CHECK(pv1->accessData(0) == newValue2);
-    BOOST_CHECK(pv2->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
     // Now we write another value to pv2, but before reading it on pv1, we write
     // a new value there.
     double newValue3 = 25.0;
     pv2->accessData(0) = newValue3;
     pv2->write();
-    BOOST_CHECK(pv1->accessData(0) == newValue2);
-    BOOST_CHECK(pv2->accessData(0) == newValue3);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
     double newValue4 = 100.0;
     pv1->accessData(0) = newValue4;
     pv1->write();
-    BOOST_CHECK(pv1->accessData(0) == newValue4);
-    BOOST_CHECK(pv2->accessData(0) == newValue3);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
     // Now we read pv1. The incoming update should be discarded.
     BOOST_CHECK(pv1->readNonBlocking() == false);
-    BOOST_CHECK(pv1->accessData(0) == newValue4);
-    BOOST_CHECK(pv2->accessData(0) == newValue3);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
     // Now we read pv2. The incoming update should succeed.
     pv2->read();
-    BOOST_CHECK(pv1->accessData(0) == newValue4);
-    BOOST_CHECK(pv2->accessData(0) == newValue4);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue4, 0.001);
   }
 
   // Test that passing on values (e.g. to other ApplicationCore modules) and sending back corrected values works as
@@ -174,8 +174,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
         initialValue, 2);
     // Both sides should be initialized to zero.
-    BOOST_CHECK(pv1->accessData(0) == initialValue);
-    BOOST_CHECK(pv2->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
     // Both sides should have the same time stamp and version number.
     BOOST_CHECK(pv1->getVersionNumber() == pv2->getVersionNumber());
     // We save the time stamp and version number so that we can reuse it in
@@ -185,9 +185,9 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     // effects.
     BOOST_CHECK(pv1->readNonBlocking() == false);
     BOOST_CHECK(pv2->readNonBlocking() == false);
-    BOOST_CHECK(pv1->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
     BOOST_CHECK(pv1->getVersionNumber() == initialVersionNumber);
-    BOOST_CHECK(pv2->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
     BOOST_CHECK(pv2->getVersionNumber() == initialVersionNumber);
     // Now we write on pv1.
     double newValue1 = 5.0;
@@ -195,16 +195,16 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     pv1->write();
     // After writing, the time stamp and version number should have increased on
     // pv1, but pv2 should not have changed.
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
     BOOST_CHECK(pv1->getVersionNumber() > initialVersionNumber);
     auto newVersionNumber1 = pv1->getVersionNumber();
-    BOOST_CHECK(pv2->accessData(0) == initialValue);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
     BOOST_CHECK(pv2->getVersionNumber() == initialVersionNumber);
     // Now we read pv2. After this, the two PVs should match again.
     pv2->read();
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
-    BOOST_CHECK(pv2->accessData(0) == newValue1);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue1, 0.001);
     BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber1);
     // Now, we write on pv2.
     double newValue2 = 42.0;
@@ -212,16 +212,16 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     pv2->write();
     // After writing, the time stamp and version number should have increased on
     // pv2, but pv1 should not have changed.
-    BOOST_CHECK(pv2->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
     BOOST_CHECK(pv2->getVersionNumber() > newVersionNumber1);
     auto newVersionNumber2 = pv2->getVersionNumber();
-    BOOST_CHECK(pv1->accessData(0) == newValue1);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
     // Now we read pv1. After this, the two PVs should match again.
     pv1->read();
-    BOOST_CHECK(pv1->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber2);
-    BOOST_CHECK(pv2->accessData(0) == newValue2);
+    BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
     BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber2);
   }
 
