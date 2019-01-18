@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     // Now we read pv2. As the incoming update is older than the current value,
     // it should be discarded.
-    pv2->read();
+    BOOST_CHECK(pv2->readNonBlocking() == false);
     BOOST_CHECK(pv1->accessData(0) == newValue1);
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     // Now we read pv1. The incoming update should overwrite the current value.
