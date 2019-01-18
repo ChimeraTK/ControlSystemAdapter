@@ -389,7 +389,14 @@ namespace ChimeraTK {
 
   template<class T>
   ChimeraTK::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
-    return {_receiver->readAsync(), this};
+    auto notificationQueue = ChimeraTK::detail::getFutureQueueFromTransferFuture(_receiver->readAsync());
+    auto continuation = [this]{
+      _receiver->postRead();
+      if(_receiver->getVersionNumber() < _versionNumber) {
+        throw detail::DiscardValueException();
+      }
+    };
+    return {notificationQueue.template then<void>(continuation, std::launch::deferred), this};
   }
 
 /*********************************************************************************************************************/
