@@ -51,11 +51,11 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     // Now we read pv2. As the incoming update is older than the current value,
     // it should be discarded.
-    pv2->readNonBlocking();
+    pv2->read();
     BOOST_CHECK(pv1->accessData(0) == newValue1);
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     // Now we read pv1. The incoming update should overwrite the current value.
-    pv1->readNonBlocking();
+    pv1->read();
     BOOST_CHECK(pv1->accessData(0) == newValue2);
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     // Now we write another value to pv2, but before reading it on pv1, we write
@@ -71,11 +71,11 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv1->accessData(0) == newValue4);
     BOOST_CHECK(pv2->accessData(0) == newValue3);
     // Now we read pv1. The incoming update should be discarded.
-    pv1->readNonBlocking();
+    BOOST_CHECK(pv1->readNonBlocking() == false);
     BOOST_CHECK(pv1->accessData(0) == newValue4);
     BOOST_CHECK(pv2->accessData(0) == newValue3);
     // Now we read pv2. The incoming update should succeed.
-    pv2->readNonBlocking();
+    pv2->read();
     BOOST_CHECK(pv1->accessData(0) == newValue4);
     BOOST_CHECK(pv2->accessData(0) == newValue4);
   }
@@ -183,8 +183,8 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     auto initialVersionNumber = pv1->getVersionNumber();
     // Nothing has been written yet, so calling read() should not have any
     // effects.
-    pv1->readNonBlocking();
-    pv2->readNonBlocking();
+    BOOST_CHECK(pv1->readNonBlocking() == false);
+    BOOST_CHECK(pv2->readNonBlocking() == false);
     BOOST_CHECK(pv1->accessData(0) == initialValue);
     BOOST_CHECK(pv1->getVersionNumber() == initialVersionNumber);
     BOOST_CHECK(pv2->accessData(0) == initialValue);
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv2->accessData(0) == initialValue);
     BOOST_CHECK(pv2->getVersionNumber() == initialVersionNumber);
     // Now we read pv2. After this, the two PVs should match again.
-    pv2->readNonBlocking();
+    pv2->read();
     BOOST_CHECK(pv1->accessData(0) == newValue1);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
     BOOST_CHECK(pv2->accessData(0) == newValue1);
@@ -218,26 +218,11 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv1->accessData(0) == newValue1);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber1);
     // Now we read pv1. After this, the two PVs should match again.
-    pv1->readNonBlocking();
+    pv1->read();
     BOOST_CHECK(pv1->accessData(0) == newValue2);
     BOOST_CHECK(pv1->getVersionNumber() == newVersionNumber2);
     BOOST_CHECK(pv2->accessData(0) == newValue2);
     BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber2);
-  }
-
-  // Test that time-stamp source are used correctly.
-  BOOST_AUTO_TEST_CASE( testTimeStampSources ) {
-    ChimeraTK::ExperimentalFeatures::enable();
-
-    DoubleArray::SharedPtr pv1, pv2;
-    tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-        0.0, 2);
-    // After writing pv1, timestampSource1 should have a count of 1.
-    pv1->write();
-    pv2->readNonBlocking();
-    // After writing pv2, timestampSource2 should also have a count of 1.
-    pv2->write();
-    pv1->readNonBlocking();
   }
 
   // After you finished all test you have to end the test suite.
