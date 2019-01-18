@@ -80,6 +80,56 @@ BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
     BOOST_CHECK(pv2->accessData(0) == newValue4);
   }
 
+  // Test that passing on values (e.g. to other ApplicationCore modules) and sending back corrected values works as
+  // expected
+  BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection ) {
+    ChimeraTK::ExperimentalFeatures::enable();
+
+    // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a "favoured" direction - this is only
+    // for clarification of the test scenario). Values read from Ar are passed on to Bs, after limiting the value
+    // to be >= 0. Values read from Br are multiplied with a factor of -2 and sent back.
+    DoubleArray::SharedPtr As, Ar, Bs, Br;
+    double initialValue = 0.5;
+    tie(As, Ar) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+    tie(Bs, Br) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+    // Initially, all endssides should have the initial value.
+    BOOST_CHECK_CLOSE(As->accessData(0), initialValue, 0.001);
+    BOOST_CHECK_CLOSE(Ar->accessData(0), initialValue, 0.001);
+    BOOST_CHECK_CLOSE(Bs->accessData(0), initialValue, 0.001);
+    BOOST_CHECK_CLOSE(Br->accessData(0), initialValue, 0.001);
+    // A new value is written to As and received by Ar
+    As->accessData(0) = 42.0;
+    As->write();
+    Ar->read();
+    BOOST_CHECK_CLOSE(Ar->accessData(0), 42.0, 0.001);
+    // Value is limited to be >= 0 and hence written back to Ar. It is also passed on to Bs.
+    Ar->accessData(0) = 1.0;
+    Bs->accessData(0) = 1.0;
+    Ar->write(Ar->getVersionNumber());
+    Bs->write(Ar->getVersionNumber());
+    // As and Br receive the limited value.
+    As->read();
+    BOOST_CHECK_CLOSE(As->accessData(0), 1.0, 0.001);
+    Br->read();
+    BOOST_CHECK_CLOSE(Br->accessData(0), 1.0, 0.001);
+    // The value at Br is multiplied by -2 and written back
+    Br->accessData(0) = -2.0;
+    Br->write(Br->getVersionNumber());
+    // Bs receives the multipled value, which is limited again to be >= 0 and hence written again to Bs. It ls also
+    // passed back on to Ar
+    Bs->read();
+    BOOST_CHECK_CLOSE(Bs->accessData(0), -2.0, 0.001);
+    Bs->accessData(0) = 0.0;
+    Ar->accessData(0) = 0.0;
+    Ar->write(Bs->getVersionNumber());
+    Bs->write(Bs->getVersionNumber());
+    // Both As and Br receive the multiplied and limited value.
+    As->read();
+    BOOST_CHECK_CLOSE(As->accessData(0), 0.0, 0.001);
+    Br->read();
+    BOOST_CHECK_CLOSE(Br->accessData(0), 0.0, 0.001);
+  }
+
   // Test that send notification listeners are called correctly.
   BOOST_AUTO_TEST_CASE( testListeners ) {
     ChimeraTK::ExperimentalFeatures::enable();
