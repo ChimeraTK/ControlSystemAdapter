@@ -377,7 +377,7 @@ namespace ChimeraTK {
     // and also helps to ensure that we do not get a feedback loop where two (or
     // more) bidirectional process variables "play ping-pong" (see issue #2 for
     // the full discussion).
-    if (_receiver->getVersionNumber() > _versionNumber) {
+    if (_receiver->getVersionNumber() >= _versionNumber) {
       this->accessChannel(0).swap(_receiver->accessChannel(0));
       // After receiving, our new time stamp and version number are the ones
       // that we got from the receiver.
