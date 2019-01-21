@@ -393,6 +393,7 @@ namespace ChimeraTK {
     auto continuation = [this]{
       _receiver->postRead();
       if(_receiver->getVersionNumber() < _versionNumber) {
+        _receiver->readAsync();
         throw detail::DiscardValueException();
       }
     };
