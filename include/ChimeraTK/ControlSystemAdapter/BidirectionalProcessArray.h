@@ -226,7 +226,7 @@ namespace ChimeraTK {
     }
 
     void interrupt() override {
-      _sender->interrupt();
+      _receiver->interrupt();
     }
 
   private:
