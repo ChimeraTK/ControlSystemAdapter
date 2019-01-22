@@ -225,6 +225,10 @@ namespace ChimeraTK {
       return _uniqueId;
     }
 
+    void interrupt() override {
+      _sender->interrupt();
+    }
+
   private:
 
     /**
