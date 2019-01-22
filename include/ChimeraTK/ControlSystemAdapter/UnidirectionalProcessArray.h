@@ -13,7 +13,6 @@
 #include <ChimeraTK/VersionNumber.h>
 
 #include "ProcessArray.h"
-#include "ProcessVariableListener.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
@@ -80,7 +79,6 @@ namespace ChimeraTK {
       UnidirectionalProcessArray(
           typename ProcessArray<T>::InstanceType instanceType,
           bool maySendDestructively,
-          ProcessVariableListener::SharedPtr sendNotificationListener,
           UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags &flags);
 
       ChimeraTK::VersionNumber getVersionNumber() const override {
@@ -240,11 +238,6 @@ namespace ChimeraTK {
       boost::shared_ptr<UnidirectionalProcessArray> _receiver;
 
       /**
-      * Listener that is notified when the process variable is sent.
-      */
-      boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
-
-      /**
       * Persistent data storage which needs to be informed when the process variable is sent.
       */
       boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
@@ -340,7 +333,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       T initialValue = T(), std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
-      ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
   /**
@@ -390,7 +382,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray( const std::vector<T>& initialValue,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
-      ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data});
 
 /*********************************************************************************************************************/
@@ -433,16 +424,13 @@ namespace ChimeraTK {
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray( typename ProcessArray<T>::InstanceType instanceType,
-      bool maySendDestructively,
-      ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
-      const AccessModeFlags &flags )
+      bool maySendDestructively, UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags &flags )
   : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription(), flags),
     _vectorSize(receiver->_vectorSize),
     _maySendDestructively(maySendDestructively),
     _sharedState(receiver->_sharedState),
     _localBuffer(receiver->_localBuffer._value),
-    _receiver(receiver),
-    _sendNotificationListener(sendNotificationListener)
+    _receiver(receiver)
   {
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
@@ -465,6 +453,9 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
+    if (!this->isReadable()) {
+      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
+    }
     _sharedState._queue.pop_wait(_localBuffer);
     /// @todo if wait_for_new_data is not set, make identical to doReadTransferLatest()
   }
@@ -473,6 +464,9 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
+    if (!this->isReadable()) {
+      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
+    }
     return _sharedState._queue.pop(_localBuffer);
     /// @todo if wait_for_new_data is not set, make identical to doReadTransferLatest()
   }
@@ -619,11 +613,6 @@ namespace ChimeraTK {
     // send the data to the queue
     bool dataNotLost = _sharedState._queue.push_overwrite(std::move(_localBuffer));
 
-    // notify send notification listener, if present
-    if(_sendNotificationListener) {
-      _sendNotificationListener->notify(_receiver);
-    }
-
     return !dataNotLost;
   }
 
@@ -635,14 +624,13 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(std::size_t size,
          const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
-         std::size_t numberOfBuffers, bool maySendDestructively,
-         ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
+         std::size_t numberOfBuffers, bool maySendDestructively, const AccessModeFlags &flags)
   {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::RECEIVER, name, unit,
                                                                        description, std::vector<T>(size, initialValue),
                                                                        numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T> >( ProcessArray<T>::SENDER, maySendDestructively,
-                                                                      sendNotificationListener, receiver, flags);
+                                                                      receiver, flags);
     return {sender, receiver};
   }
 
@@ -652,14 +640,12 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createSynchronizedProcessArray(const std::vector<T>& initialValue,
          const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description,
-         std::size_t numberOfBuffers, bool maySendDestructively,
-         ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags &flags)
+         std::size_t numberOfBuffers, bool maySendDestructively, const AccessModeFlags &flags)
   {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::RECEIVER, name, unit,
                                                                        description, initialValue, numberOfBuffers,
                                                                        flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>( ProcessArray<T>::SENDER, maySendDestructively,
-                                                                     sendNotificationListener,
                                                                      receiver, flags);
     return {sender, receiver};
   }

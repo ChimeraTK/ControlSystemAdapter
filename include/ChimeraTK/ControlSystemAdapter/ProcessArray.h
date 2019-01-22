@@ -12,7 +12,7 @@
 #include <ChimeraTK/NDRegisterAccessor.h>
 #include <ChimeraTK/VersionNumber.h>
 
-#include "ProcessVariableListener.h"
+#include "ProcessVariable.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {

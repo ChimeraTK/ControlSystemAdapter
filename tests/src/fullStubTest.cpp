@@ -2,7 +2,7 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include "ControlSystemSynchronizationUtility.h"
+#include "ControlSystemPVManager.h"
 #include "ReferenceTestApplication.h"
 
 using namespace boost::unit_test_framework;
@@ -10,29 +10,39 @@ using namespace ChimeraTK;
 
 struct TestApplicationFixture{
   std::pair<boost::shared_ptr<ControlSystemPVManager>,
-	    boost::shared_ptr<DevicePVManager> > pvManagers;
+            boost::shared_ptr<DevicePVManager> > pvManagers;
   boost::shared_ptr<ControlSystemPVManager> csManager;
   boost::shared_ptr<DevicePVManager> devManager;
-  
+
   ReferenceTestApplication testApplication;
 
-  ControlSystemSynchronizationUtility csSyncUtil;
-
-  TestApplicationFixture() : 
+  TestApplicationFixture() :
     pvManagers( createPVManager() ),
     csManager( pvManagers.first ),
-    devManager( pvManagers.second ),
-    csSyncUtil(csManager){
+    devManager( pvManagers.second )
+    {
      std::cout << "this is TestApplicationFixture():" << std::endl;
      testApplication.setPVManager(devManager);
      testApplication.initialise();
      testApplication.run();
      ReferenceTestApplication::initialiseManualLoopControl();
-     csSyncUtil.receiveAll();
+     receiveAll();
   }
   ~TestApplicationFixture(){
     std::cout << "this is ~TestApplicationFixture():" << std::endl;
     ReferenceTestApplication::releaseManualLoopControl();
+  }
+
+  void receiveAll() {
+    for(auto &pv : csManager->getAllProcessVariables()) {
+      if(pv->isReadable()) pv->readNonBlocking();
+    }
+  }
+
+  void sendAll() {
+    for(auto &pv : csManager->getAllProcessVariables()) {
+      if(pv->isWriteable()) pv->write();
+    }
   }
 
   template<class UserType>
@@ -44,10 +54,10 @@ struct TestApplicationFixture{
 
     toDeviceScalar->accessData(0) = previousReadValue+13;
 
-    csSyncUtil.sendAll();
+    sendAll();
     ReferenceTestApplication::runMainLoopOnce();
-    csSyncUtil.receiveAll();
-  
+    receiveAll();
+
     BOOST_CHECK( fromDeviceScalar->accessData(0) == previousReadValue+13 );
   }
 
@@ -60,13 +70,13 @@ struct TestApplicationFixture{
     for (size_t i = 0; i < inputArray->accessChannel(0).size(); ++i){
       std::stringstream errorMessage;
       errorMessage << "check failed: " << typeNamePrefix+"/CONSTANT_ARRAY["
-		   << i << "] = "<< inputArray->accessChannel(0)[i] << ", expected " << typeConstant*i*i
-		   << std::endl;
+                   << i << "] = "<< inputArray->accessChannel(0)[i] << ", expected " << typeConstant*i*i
+                   << std::endl;
       BOOST_CHECK_MESSAGE(static_cast<UserType>(typeConstant*i*i) == inputArray->accessChannel(0)[i],
-			  errorMessage.str());
+                          errorMessage.str());
     }
   }
- 
+
   template<class UserType>
   void typedWriteArrayTest(std::string typeNamePrefix){
     auto toDeviceArray = csManager->getProcessArray<UserType>(typeNamePrefix+"/TO_DEVICE_ARRAY");
@@ -83,15 +93,15 @@ struct TestApplicationFixture{
       toDeviceArray->accessChannel(0)[i] = 13 + i;
     }
 
-    csSyncUtil.sendAll();
+    sendAll();
     ReferenceTestApplication::runMainLoopOnce();
-    csSyncUtil.receiveAll();
+    receiveAll();
 
     for (size_t i = 0; i < fromDeviceArray->accessChannel(0).size(); ++i){
       BOOST_CHECK(fromDeviceArray->accessChannel(0)[i] == static_cast<UserType>(13 + i));
     }
   }
- 
+
 };
 
 BOOST_AUTO_TEST_SUITE( FullStubTestSuite )
@@ -120,25 +130,25 @@ BOOST_FIXTURE_TEST_CASE( test_write_scalar, TestApplicationFixture){
 }
 
 BOOST_FIXTURE_TEST_CASE( test_read_array, TestApplicationFixture){
-  typedReadArrayTest<int8_t>("CHAR");	 
+  typedReadArrayTest<int8_t>("CHAR");
   typedReadArrayTest<uint8_t>("UCHAR");
   typedReadArrayTest<int16_t>("SHORT");
   typedReadArrayTest<uint16_t>("USHORT");
-  typedReadArrayTest<int32_t>("INT");	 
+  typedReadArrayTest<int32_t>("INT");
   typedReadArrayTest<uint32_t>("UINT");
-  typedReadArrayTest<float>("FLOAT");	 
-  typedReadArrayTest<double>("DOUBLE");  
+  typedReadArrayTest<float>("FLOAT");
+  typedReadArrayTest<double>("DOUBLE");
 }
 
 BOOST_FIXTURE_TEST_CASE( test_write_array, TestApplicationFixture){
-  typedWriteArrayTest<int8_t>("CHAR");	 
+  typedWriteArrayTest<int8_t>("CHAR");
   typedWriteArrayTest<uint8_t>("UCHAR");
   typedWriteArrayTest<int16_t>("SHORT");
   typedWriteArrayTest<uint16_t>("USHORT");
-  typedWriteArrayTest<int32_t>("INT");	 
+  typedWriteArrayTest<int32_t>("INT");
   typedWriteArrayTest<uint32_t>("UINT");
-  typedWriteArrayTest<float>("FLOAT");	 
-  typedWriteArrayTest<double>("DOUBLE");  
+  typedWriteArrayTest<float>("FLOAT");
+  typedWriteArrayTest<double>("DOUBLE");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

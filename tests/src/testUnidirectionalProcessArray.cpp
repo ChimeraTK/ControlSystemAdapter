@@ -10,8 +10,6 @@ using namespace boost::unit_test_framework;
 
 #include "UnidirectionalProcessArray.h"
 
-#include "CountingProcessVariableListener.h"
-
 #include <boost/mpl/list.hpp>
 
 typedef boost::mpl::list<int8_t,uint8_t,
@@ -155,24 +153,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testSwap, T, test_types ) {
   for (typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK(*i == 0);
   }
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE( testSendNotification, T, test_types ) {
-  boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
-      boost::make_shared<CountingProcessVariableListener>());
-  typename std::pair<typename ProcessArray<T>::SharedPtr,
-      typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 2, false,
-          sendNotificationListener);
-  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-  BOOST_CHECK(sendNotificationListener->count == 0);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 1);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 2);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
 }
 
 

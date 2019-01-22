@@ -5,7 +5,6 @@
 
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
-#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 #include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 
@@ -25,7 +24,7 @@ struct TypedPVHolder{
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceArray;
   /** The "data type constant" is a value that depends on the data type. It is intended as
    *  'magic' constant which can be read out to test reading because the value it knows.
-   *  
+   *
    *  The value is:
    *  \li sizeof(type) for unsigned integer types
    *  \li -sizeof(type) for signed integer types
@@ -33,9 +32,9 @@ struct TypedPVHolder{
    */
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr dataTypeConstant;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
- 
+
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const & processVariableManager, std::string typeNamePrefix)
-  : toDeviceScalar( processVariableManager->createProcessArray<DataType>( 
+  : toDeviceScalar( processVariableManager->createProcessArray<DataType>(
                         ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR",1) ),
     fromDeviceScalar( processVariableManager->createProcessArray<DataType>(
                         ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR",1) ),
@@ -113,9 +112,6 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase{
   boost::scoped_ptr< boost::thread > _deviceThread;
   boost::scoped_ptr<HolderMap> _holderMap;
 
-  // the syncUtil needs to be initalised after the PVs are added to the manager
-  boost::scoped_ptr<ChimeraTK::DeviceSynchronizationUtility> syncUtil;
-
   static std::mutex & mainLoopMutex(){
     static std::mutex _mainLoopMutex;
     return _mainLoopMutex;
@@ -126,7 +122,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase{
     return _manuallyControlMainLoop;
   }
 
-  /// 
+  ///
   static bool & mainLoopExecutionRequested(){
     static bool _mainLoopExecutionRequested(false);
     return _mainLoopExecutionRequested;
@@ -162,14 +158,15 @@ inline void ReferenceTestApplication::initialise(){
       boost::fusion::make_pair<float>( TypedPVHolder<float>( _processVariableManager, "FLOAT") ),
       boost::fusion::make_pair<double>( TypedPVHolder<double>( _processVariableManager, "DOUBLE") )
    ));
-  syncUtil.reset(new ChimeraTK::DeviceSynchronizationUtility(_processVariableManager));
-  syncUtil->sendAll();
+  for(auto &pv : _processVariableManager->getAllProcessVariables()) {
+    if(pv->isWriteable()) pv->write();
+  }
 }
 
 inline void ReferenceTestApplication::run(){
   _deviceThread.reset( new boost::thread( boost::bind( &ReferenceTestApplication::mainLoop, this ) ) );
 }
-  
+
 inline ReferenceTestApplication::~ReferenceTestApplication(){
   // stop the device thread before any other destructors are called
   if (_deviceThread){
@@ -183,7 +180,7 @@ inline ReferenceTestApplication::~ReferenceTestApplication(){
 
 inline void ReferenceTestApplication::mainLoop(){
   mainLoopMutex().lock();
-  
+
   while (!boost::this_thread::interruption_requested()) {
 
     mainBody();
@@ -213,7 +210,9 @@ struct PerformInputToOutput{
 
 inline void ReferenceTestApplication::mainBody(){
 
-  syncUtil->receiveAll();
+  for(auto &pv : _processVariableManager->getAllProcessVariables()) {
+    if(pv->isReadable()) pv->readNonBlocking();
+  }
   for_each( *_holderMap, PerformInputToOutput() );
 }
 

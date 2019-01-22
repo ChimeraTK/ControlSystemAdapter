@@ -12,7 +12,6 @@
 #include <ChimeraTK/ExperimentalFeatures.h>
 
 #include "UnidirectionalProcessArray.h"
-#include "ProcessVariableListener.h"
 #include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
@@ -67,8 +66,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( std::size_t size,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       T initialValue = T(), std::size_t numberOfBuffers = 3,
-      ProcessVariableListener::SharedPtr sendNotificationListener1 = ProcessVariableListener::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener2 = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data} );
 
   /**
@@ -120,8 +117,6 @@ namespace ChimeraTK {
              typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( const std::vector<T>& initialValue,
       const ChimeraTK::RegisterPath & name = "", const std::string &unit = "", const std::string &description = "",
       std::size_t numberOfBuffers = 3,
-      ProcessVariableListener::SharedPtr sendNotificationListener1 = ProcessVariableListener::SharedPtr(),
-      ProcessVariableListener::SharedPtr sendNotificationListener2 = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags &flags={AccessMode::wait_for_new_data} );
 
   /**
@@ -149,13 +144,11 @@ namespace ChimeraTK {
     friend std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray<>(
         const std::vector<T>&, const ChimeraTK::RegisterPath &,
-        const std::string &, const std::string &, std::size_t,
-        ProcessVariableListener::SharedPtr, ProcessVariableListener::SharedPtr, const AccessModeFlags &flags);
+        const std::string &, const std::string &, std::size_t, const AccessModeFlags &flags);
     friend std::pair<typename ProcessArray<T>::SharedPtr,
         typename ProcessArray<T>::SharedPtr> createBidirectionalSynchronizedProcessArray<>(
         std::size_t, const ChimeraTK::RegisterPath &, const std::string &,
-        const std::string &, T, std::size_t, ProcessVariableListener::SharedPtr,
-        ProcessVariableListener::SharedPtr, const AccessModeFlags &flags);
+        const std::string &, T, std::size_t, const AccessModeFlags &flags);
 
     /**
      * Creates a bidirectional process array that uses the passed process arrays
@@ -168,7 +161,6 @@ namespace ChimeraTK {
         const std::string &description, bool allowPersistentDataStorage,
         typename ProcessArray<T>::SharedPtr receiver,
         typename ProcessArray<T>::SharedPtr sender,
-        ProcessVariableListener::SharedPtr sendNotificationListener,
         VersionNumber initialVersionNumber, const AccessModeFlags &flags);
 
     VersionNumber getVersionNumber() const override {
@@ -225,6 +217,10 @@ namespace ChimeraTK {
       return _uniqueId;
     }
 
+    void interrupt() override {
+      _receiver->interrupt();
+    }
+
   private:
 
     /**
@@ -270,11 +266,6 @@ namespace ChimeraTK {
     typename UnidirectionalProcessArray<T>::SharedPtr _sender;
 
     /**
-     * Listener that is notified when this process array is sent.
-     */
-    ProcessVariableListener::SharedPtr _sendNotificationListener;
-
-    /**
      * Unique ID identifying the pair to which this process array belongs.
      */
     std::size_t _uniqueId;
@@ -299,14 +290,12 @@ namespace ChimeraTK {
       const std::string &description, bool allowPersistentDataStorage,
       typename ProcessArray<T>::SharedPtr receiver,
       typename ProcessArray<T>::SharedPtr sender,
-      ProcessVariableListener::SharedPtr sendNotificationListener,
       VersionNumber initialVersionNumber,
       const AccessModeFlags &flags)
   : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description, flags),
     _allowPersistentDataStorage(allowPersistentDataStorage),
     _receiver(receiver),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
-    _sendNotificationListener(sendNotificationListener),
     _uniqueId(uniqueId),
     _versionNumber(initialVersionNumber)
   {
@@ -441,12 +430,6 @@ namespace ChimeraTK {
       _persistentDataStorage->updateValue(_persistentDataStorageID,
           _sender->accessChannel(0));
     }
-    if (_sendNotificationListener) {
-      typename ProcessArray<T>::SharedPtr partner = _partner.lock();
-      if (partner) {
-        _sendNotificationListener->notify(partner);
-      }
-    }
     return lostData;
   }
 
@@ -497,13 +480,12 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( std::size_t size,
       const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description, T initialValue,
-      std::size_t numberOfBuffers, ProcessVariableListener::SharedPtr sendNotificationListener1,
-      ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags &flags )
+      std::size_t numberOfBuffers, const AccessModeFlags &flags )
   {
     auto senderReceiver1 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, true, {}, flags);
+        description, initialValue, numberOfBuffers, true, flags);
     auto senderReceiver2 = createSynchronizedProcessArray(size, name, unit,
-        description, initialValue, numberOfBuffers, true, {}, flags);
+        description, initialValue, numberOfBuffers, true, flags);
     // We create a default-constructed version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
@@ -516,12 +498,10 @@ namespace ChimeraTK {
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv1 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
-            sendNotificationListener1,
             versionNumber, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
-            sendNotificationListener2,
             versionNumber, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
@@ -535,13 +515,12 @@ namespace ChimeraTK {
   typename std::pair< typename ProcessArray<T>::SharedPtr,
                       typename ProcessArray<T>::SharedPtr > createBidirectionalSynchronizedProcessArray( const std::vector<T>& initialValue,
       const ChimeraTK::RegisterPath & name, const std::string &unit, const std::string &description,
-      std::size_t numberOfBuffers, ProcessVariableListener::SharedPtr sendNotificationListener1,
-      ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags &flags )
+      std::size_t numberOfBuffers, const AccessModeFlags &flags )
   {
     auto senderReceiver1 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, true, {}, flags);
+        unit, description, numberOfBuffers, true, flags);
     auto senderReceiver2 = createSynchronizedProcessArray(initialValue, name,
-        unit, description, numberOfBuffers, true, {}, flags);
+        unit, description, numberOfBuffers, true, flags);
     // We create a default-constructed version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
@@ -554,11 +533,11 @@ namespace ChimeraTK {
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv1 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, true, senderReceiver2.second, senderReceiver1.first,
-            sendNotificationListener1, versionNumber, flags);
+            versionNumber, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T> > pv2 =
         boost::make_shared<BidirectionalProcessArray<T> >(uniqueId, name, unit,
             description, false, senderReceiver1.second, senderReceiver2.first,
-            sendNotificationListener2, versionNumber, flags);
+            versionNumber, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr,
