@@ -229,6 +229,14 @@ namespace ChimeraTK {
       _receiver->interrupt();
     }
 
+    /**
+     * Set a callback function which is called whenever a value is rejected because it is old. This is used by
+     * ApplicationCore testable mode to keep track of the number of values.
+     */
+    void setValueRejectCallback(std::function<void()> callback) {
+      valueRejectCallback = callback;
+    }
+
   private:
 
     /**
@@ -290,6 +298,12 @@ namespace ChimeraTK {
      */
     VersionNumber _versionNumber;
 
+    /**
+     * Callback to be called when values get rejected. This is used by ApplicationCore testable mode, since it needs
+     * to keep track of the number of values.
+     */
+    std::function<void()> valueRejectCallback;
+
   };
 
 
@@ -348,13 +362,15 @@ namespace ChimeraTK {
     do {
       _receiver->read();
       // We only update the current value (stored in the sender) when the version
-      // number of the data that we received is greater than the current version
+      // number of the data that we received is greater than or equal the current version
       // number. This ensures that old updates (that might arrive late due to the
       // asynchronous nature of the transfer logic) do not overwrite newer values
       // and also helps to ensure that we do not get a feedback loop where two (or
       // more) bidirectional process variables "play ping-pong" (see issue #2 for
       // the full discussion).
-    } while(_receiver->getVersionNumber() < _versionNumber);
+      if(_receiver->getVersionNumber() >= _versionNumber) return;
+      if(valueRejectCallback) valueRejectCallback();
+    } while(true);
   }
 
 /*********************************************************************************************************************/
@@ -363,13 +379,16 @@ namespace ChimeraTK {
   bool BidirectionalProcessArray<T>::doReadTransferNonBlocking() {
     auto ret = _receiver->readNonBlocking();
     // We only update the current value (stored in the sender) when the version
-    // number of the data that we received is greater than the current version
+    // number of the data that we received is greater than or equal the current version
     // number. This ensures that old updates (that might arrive late due to the
     // asynchronous nature of the transfer logic) do not overwrite newer values
     // and also helps to ensure that we do not get a feedback loop where two (or
     // more) bidirectional process variables "play ping-pong" (see issue #2 for
     // the full discussion).
-    if(ret && _receiver->getVersionNumber() < _versionNumber) return false;
+    if(ret && _receiver->getVersionNumber() < _versionNumber) {
+      if(valueRejectCallback) valueRejectCallback();
+      return false;
+    }
     return ret;
   }
 
@@ -385,7 +404,10 @@ namespace ChimeraTK {
     // and also helps to ensure that we do not get a feedback loop where two (or
     // more) bidirectional process variables "play ping-pong" (see issue #2 for
     // the full discussion).
-    if(ret && _receiver->getVersionNumber() < _versionNumber) return false;
+    if(ret && _receiver->getVersionNumber() < _versionNumber) {
+      if(valueRejectCallback) valueRejectCallback();
+      return false;
+    }
     return ret;
   }
 
@@ -398,6 +420,7 @@ namespace ChimeraTK {
       _receiver->postRead();
       if(_receiver->getVersionNumber() < _versionNumber) {
         _receiver->readAsync();
+        if(valueRejectCallback) valueRejectCallback();
         throw detail::DiscardValueException();
       }
     };
