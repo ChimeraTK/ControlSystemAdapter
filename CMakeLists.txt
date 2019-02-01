@@ -54,6 +54,12 @@ include_directories(SYSTEM "${LibXML++_INCLUDEDIR}/${LIBXML++_VERSION}" ${glib_I
 
 # libatomic is required on some patforms (and doesn't hurt on the others)
 find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
+# On some platforms, libatomic does not exist. In order to avoid an error when
+# we refer to the "atomic-library" variable on these platforms, we set it to the
+# empty string if it is not defined.
+if(NOT atomic-library)
+  set(atomic-library "")
+endif()
 
 #Includes inside the library are local includes, so we give the full path to the include directory
 include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
