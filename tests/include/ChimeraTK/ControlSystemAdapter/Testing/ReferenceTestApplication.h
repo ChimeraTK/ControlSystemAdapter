@@ -35,18 +35,24 @@ struct TypedPVHolder {
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
 
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix)
-  : toDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
-    fromDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1)),
-    toDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10)),
-    fromDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10)),
-    dataTypeConstant(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
-    constantArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", 10)) {
+  : toDeviceScalar(processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice,
+        typeNamePrefix + "/TO_DEVICE_SCALAR",
+        1)),
+    fromDeviceScalar(processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem,
+        typeNamePrefix + "/FROM_DEVICE_SCALAR",
+        1)),
+    toDeviceArray(processVariableManager->createProcessArray<DataType>(ChimeraTK::controlSystemToDevice,
+        typeNamePrefix + "/TO_DEVICE_ARRAY",
+        10)),
+    fromDeviceArray(processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem,
+        typeNamePrefix + "/FROM_DEVICE_ARRAY",
+        10)),
+    dataTypeConstant(processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem,
+        typeNamePrefix + "/DATA_TYPE_CONSTANT",
+        1)),
+    constantArray(processVariableManager->createProcessArray<DataType>(ChimeraTK::deviceToControlSystem,
+        typeNamePrefix + "/CONSTANT_ARRAY",
+        10)) {
     if(std::numeric_limits<DataType>::is_integer) {
       if(std::numeric_limits<DataType>::is_signed) {
         // signed int
@@ -78,9 +84,14 @@ struct TypedPVHolder {
 
 /// A boost fusion map which allows to acces the holder instances by type
 typedef boost::fusion::map<boost::fusion::pair<int8_t, TypedPVHolder<int8_t>>,
-    boost::fusion::pair<uint8_t, TypedPVHolder<uint8_t>>, boost::fusion::pair<int16_t, TypedPVHolder<int16_t>>,
-    boost::fusion::pair<uint16_t, TypedPVHolder<uint16_t>>, boost::fusion::pair<int32_t, TypedPVHolder<int32_t>>,
-    boost::fusion::pair<uint32_t, TypedPVHolder<uint32_t>>, boost::fusion::pair<float, TypedPVHolder<float>>,
+    boost::fusion::pair<uint8_t, TypedPVHolder<uint8_t>>,
+    boost::fusion::pair<int16_t, TypedPVHolder<int16_t>>,
+    boost::fusion::pair<uint16_t, TypedPVHolder<uint16_t>>,
+    boost::fusion::pair<int32_t, TypedPVHolder<int32_t>>,
+    boost::fusion::pair<uint32_t, TypedPVHolder<uint32_t>>,
+    boost::fusion::pair<int64_t, TypedPVHolder<int64_t>>,
+    boost::fusion::pair<uint64_t, TypedPVHolder<uint64_t>>,
+    boost::fusion::pair<float, TypedPVHolder<float>>,
     boost::fusion::pair<double, TypedPVHolder<double>>>
     HolderMap;
 
@@ -153,6 +164,8 @@ inline void ReferenceTestApplication::initialise() {
           boost::fusion::make_pair<uint16_t>(TypedPVHolder<uint16_t>(_processVariableManager, "USHORT")),
           boost::fusion::make_pair<int32_t>(TypedPVHolder<int32_t>(_processVariableManager, "INT")),
           boost::fusion::make_pair<uint32_t>(TypedPVHolder<uint32_t>(_processVariableManager, "UINT")),
+          boost::fusion::make_pair<int64_t>(TypedPVHolder<int64_t>(_processVariableManager, "LONG")),
+          boost::fusion::make_pair<uint64_t>(TypedPVHolder<uint64_t>(_processVariableManager, "ULONG")),
           boost::fusion::make_pair<float>(TypedPVHolder<float>(_processVariableManager, "FLOAT")),
           boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE"))));
   syncUtil.reset(new ChimeraTK::DeviceSynchronizationUtility(_processVariableManager));
