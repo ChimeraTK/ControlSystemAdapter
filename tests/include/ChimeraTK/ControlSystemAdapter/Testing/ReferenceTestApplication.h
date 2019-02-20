@@ -83,6 +83,8 @@ struct TypedPVHolder {
 };
 
 /// A boost fusion map which allows to acces the holder instances by type
+/// IMPORTANT: The order in this map determines the order in which the data is processed. This is important for some
+/// tests, so do not change the order here!
 typedef boost::fusion::map<boost::fusion::pair<int8_t, TypedPVHolder<int8_t>>,
     boost::fusion::pair<uint8_t, TypedPVHolder<uint8_t>>,
     boost::fusion::pair<int16_t, TypedPVHolder<int16_t>>,
