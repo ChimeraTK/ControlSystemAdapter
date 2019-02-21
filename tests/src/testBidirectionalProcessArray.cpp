@@ -5,8 +5,8 @@
 
 #include <tuple>
 
-#include "CountingProcessVariableListener.h"
 #include "BidirectionalProcessArray.h"
+#include "CountingProcessVariableListener.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -21,19 +21,19 @@ using std::tie;
 using DoubleArray = ProcessArray<double>;
 
 // Create a test suite which holds all your tests.
-BOOST_AUTO_TEST_SUITE( BidirectionalProcessArrayTestSuite )
+BOOST_AUTO_TEST_SUITE(BidirectionalProcessArrayTestSuite)
 
 /**********************************************************************************************************************/
 
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
-BOOST_AUTO_TEST_CASE( testConflictingUpdates ) {
+BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
   ChimeraTK::ExperimentalFeatures::enable();
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-      initialValue);
+  tie(pv1, pv2) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, both sides should have the initial value.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
@@ -86,13 +86,13 @@ BOOST_AUTO_TEST_CASE( testConflictingUpdates ) {
 
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
-BOOST_AUTO_TEST_CASE( testConflictingUpdates_readAsync ) {
+BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
   ChimeraTK::ExperimentalFeatures::enable();
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-      initialValue);
+  tie(pv1, pv2) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, both sides should have the initial value.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
@@ -143,18 +143,22 @@ BOOST_AUTO_TEST_CASE( testConflictingUpdates_readAsync ) {
 
 /**********************************************************************************************************************/
 
-// Test that passing on values (e.g. to other ApplicationCore modules) and sending back corrected values works as
-// expected
-BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection ) {
+// Test that passing on values (e.g. to other ApplicationCore modules) and
+// sending back corrected values works as expected
+BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
   ChimeraTK::ExperimentalFeatures::enable();
 
-  // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a "favoured" direction - this is only
-  // for clarification of the test scenario). Values read from Ar are passed on to Bs, after limiting the value
-  // to be >= 0. Values read from Br are multiplied with a factor of -2 and sent back.
+  // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
+  // "favoured" direction - this is only for clarification of the test
+  // scenario). Values read from Ar are passed on to Bs, after limiting the
+  // value to be >= 0. Values read from Br are multiplied with a factor of -2
+  // and sent back.
   DoubleArray::SharedPtr As, Ar, Bs, Br;
   double initialValue = 0.5;
-  tie(As, Ar) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
-  tie(Bs, Br) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(As, Ar) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(Bs, Br) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, all endssides should have the initial value.
   BOOST_CHECK_CLOSE(As->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(Ar->accessData(0), initialValue, 0.001);
@@ -165,7 +169,8 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection ) {
   As->write();
   Ar->read();
   BOOST_CHECK_CLOSE(Ar->accessData(0), 42.0, 0.001);
-  // Value is limited to be >= 0 and hence written back to Ar. It is also passed on to Bs.
+  // Value is limited to be >= 0 and hence written back to Ar. It is also passed
+  // on to Bs.
   Ar->accessData(0) = 1.0;
   Bs->accessData(0) = 1.0;
   Ar->write(Ar->getVersionNumber());
@@ -178,8 +183,8 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection ) {
   // The value at Br is multiplied by -2 and written back
   Br->accessData(0) = -2.0;
   Br->write(Br->getVersionNumber());
-  // Bs receives the multipled value, which is limited again to be >= 0 and hence written again to Bs. It ls also
-  // passed back on to Ar
+  // Bs receives the multipled value, which is limited again to be >= 0 and
+  // hence written again to Bs. It ls also passed back on to Ar
   Bs->read();
   BOOST_CHECK_CLOSE(Bs->accessData(0), -2.0, 0.001);
   Bs->accessData(0) = 0.0;
@@ -195,18 +200,22 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection ) {
 
 /**********************************************************************************************************************/
 
-// Test that passing on values (e.g. to other ApplicationCore modules) and sending back corrected values works as
-// expected
-BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection_readAsync ) {
+// Test that passing on values (e.g. to other ApplicationCore modules) and
+// sending back corrected values works as expected
+BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
   ChimeraTK::ExperimentalFeatures::enable();
 
-  // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a "favoured" direction - this is only
-  // for clarification of the test scenario). Values read from Ar are passed on to Bs, after limiting the value
-  // to be >= 0. Values read from Br are multiplied with a factor of -2 and sent back.
+  // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
+  // "favoured" direction - this is only for clarification of the test
+  // scenario). Values read from Ar are passed on to Bs, after limiting the
+  // value to be >= 0. Values read from Br are multiplied with a factor of -2
+  // and sent back.
   DoubleArray::SharedPtr As, Ar, Bs, Br;
   double initialValue = 0.5;
-  tie(As, Ar) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
-  tie(Bs, Br) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(As, Ar) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(Bs, Br) =
+      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, all endssides should have the initial value.
   BOOST_CHECK_CLOSE(As->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(Ar->accessData(0), initialValue, 0.001);
@@ -217,7 +226,8 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection_readAsync ) {
   As->write();
   Ar->readAsync().wait();
   BOOST_CHECK_CLOSE(Ar->accessData(0), 42.0, 0.001);
-  // Value is limited to be >= 0 and hence written back to Ar. It is also passed on to Bs.
+  // Value is limited to be >= 0 and hence written back to Ar. It is also passed
+  // on to Bs.
   Ar->accessData(0) = 1.0;
   Bs->accessData(0) = 1.0;
   Ar->write(Ar->getVersionNumber());
@@ -230,8 +240,8 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection_readAsync ) {
   // The value at Br is multiplied by -2 and written back
   Br->accessData(0) = -2.0;
   Br->write(Br->getVersionNumber());
-  // Bs receives the multipled value, which is limited again to be >= 0 and hence written again to Bs. It ls also
-  // passed back on to Ar
+  // Bs receives the multipled value, which is limited again to be >= 0 and
+  // hence written again to Bs. It ls also passed back on to Ar
   Bs->readAsync().wait();
   BOOST_CHECK_CLOSE(Bs->accessData(0), -2.0, 0.001);
   Bs->accessData(0) = 0.0;
@@ -248,14 +258,14 @@ BOOST_AUTO_TEST_CASE( testPassingOnWithCorrection_readAsync ) {
 /**********************************************************************************************************************/
 
 // Test that send notification listeners are called correctly.
-BOOST_AUTO_TEST_CASE( testListeners ) {
+BOOST_AUTO_TEST_CASE(testListeners) {
   ChimeraTK::ExperimentalFeatures::enable();
 
   DoubleArray::SharedPtr pv1, pv2;
   auto listener1 = make_shared<CountingProcessVariableListener>();
   auto listener2 = make_shared<CountingProcessVariableListener>();
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-      0.0, 2, listener1, listener2);
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(
+      1, "", "", "", 0.0, 2, listener1, listener2);
   // Initially, the two listeners should not have received any notifications.
   BOOST_CHECK(listener1->count == 0);
   BOOST_CHECK(!listener1->lastProcessVariable);
@@ -285,13 +295,13 @@ BOOST_AUTO_TEST_CASE( testListeners ) {
 /**********************************************************************************************************************/
 
 // Test that the data-transfer mechanism works.
-BOOST_AUTO_TEST_CASE( testSync ) {
+BOOST_AUTO_TEST_CASE(testSync) {
   ChimeraTK::ExperimentalFeatures::enable();
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 2.0;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-      initialValue, 2);
+                                                              initialValue, 2);
   // Both sides should be initialized to zero.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);

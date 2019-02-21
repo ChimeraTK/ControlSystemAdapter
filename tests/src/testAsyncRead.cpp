@@ -1,15 +1,14 @@
 #include <algorithm>
-#include <thread>
 #include <atomic>
+#include <thread>
 
-#include <boost/thread.hpp>
 #include <boost/test/included/unit_test.hpp>
+#include <boost/thread.hpp>
 
 #include <ChimeraTK/Device.h>
 #include <ChimeraTK/ReadAnyGroup.h>
 
 #include "UnidirectionalProcessArray.h"
-
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -17,35 +16,33 @@ using namespace ChimeraTK;
 
 /**********************************************************************************************************************/
 class AsyncReadTest {
-  public:
+public:
+  /// test normal asychronous read
+  void testAsyncRead();
 
-    /// test normal asychronous read
-    void testAsyncRead();
+  /// test the readAny() function on ProcessArrays
+  void testReadAny();
 
-    /// test the readAny() function on ProcessArrays
-    void testReadAny();
-
-    /// test mixing asynchronous with synchronous reads
-    void testMixedRead();
-
+  /// test mixing asynchronous with synchronous reads
+  void testMixedRead();
 };
 
 /**********************************************************************************************************************/
 
-class  AsyncReadTestSuite : public test_suite {
-  public:
-    AsyncReadTestSuite() : test_suite("Async read test suite") {
-      boost::shared_ptr<AsyncReadTest> asyncReadTest( new AsyncReadTest );
+class AsyncReadTestSuite : public test_suite {
+public:
+  AsyncReadTestSuite() : test_suite("Async read test suite") {
+    boost::shared_ptr<AsyncReadTest> asyncReadTest(new AsyncReadTest);
 
-      add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testAsyncRead, asyncReadTest ) );
-      add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testReadAny, asyncReadTest ) );
-      add( BOOST_CLASS_TEST_CASE( &AsyncReadTest::testMixedRead, asyncReadTest ) );
-    }};
+    add(BOOST_CLASS_TEST_CASE(&AsyncReadTest::testAsyncRead, asyncReadTest));
+    add(BOOST_CLASS_TEST_CASE(&AsyncReadTest::testReadAny, asyncReadTest));
+    add(BOOST_CLASS_TEST_CASE(&AsyncReadTest::testMixedRead, asyncReadTest));
+  }
+};
 
 /**********************************************************************************************************************/
 
-test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/ [] )
-{
+test_suite *init_unit_test_suite(int /*argc*/, char * /*argv*/ []) {
   framework::master_test_suite().p_name.value = "Async read test suite";
   framework::master_test_suite().add(new AsyncReadTestSuite);
 
@@ -71,50 +68,56 @@ void AsyncReadTest::testAsyncRead() {
   senderAccessor.write();
   future = accessor.readAsync();
   future.wait();
-  BOOST_CHECK( accessor == 5 );
+  BOOST_CHECK(accessor == 5);
 
   senderAccessor = 6;
   senderAccessor.write();
   future = accessor.readAsync();
   future.wait();
-  BOOST_CHECK( accessor == 6 );
+  BOOST_CHECK(accessor == 6);
 
-  // check that future's wait() function won't return before the read is complete
-  for(int i=0; i<5; ++i) {
-    senderAccessor = 42+i;
+  // check that future's wait() function won't return before the read is
+  // complete
+  for (int i = 0; i < 5; ++i) {
+    senderAccessor = 42 + i;
     future = accessor.readAsync();
     std::atomic<bool> flag;
     flag = false;
-    std::thread thread([&future, &flag] { future.wait(); flag = true; });
+    std::thread thread([&future, &flag] {
+      future.wait();
+      flag = true;
+    });
     usleep(100000);
     BOOST_CHECK(flag == false);
     senderAccessor.write();
     thread.join();
-    BOOST_CHECK( accessor == 42+i );
+    BOOST_CHECK(accessor == 42 + i);
   }
 
   // check that obtaining the same future multiple times works properly
   senderAccessor = 666;
-  for(int i=0; i<5; ++i) {
+  for (int i = 0; i < 5; ++i) {
     future = accessor.readAsync();
-    BOOST_CHECK( accessor == 46 );    // still the old value from the last test part
+    BOOST_CHECK(accessor == 46); // still the old value from the last test part
   }
   senderAccessor.write();
   future.wait();
-  BOOST_CHECK( accessor == 666 );
+  BOOST_CHECK(accessor == 666);
 
   // now try another asynchronous transfer
   senderAccessor = 999;
   future = accessor.readAsync();
   std::atomic<bool> flag;
   flag = false;
-  std::thread thread([&future, &flag] { future.wait(); flag = true; });
+  std::thread thread([&future, &flag] {
+    future.wait();
+    flag = true;
+  });
   usleep(100000);
   BOOST_CHECK(flag == false);
   senderAccessor.write();
   thread.join();
-  BOOST_CHECK( accessor == 999 );
-
+  BOOST_CHECK(accessor == 999);
 }
 
 /**********************************************************************************************************************/
@@ -149,13 +152,16 @@ void AsyncReadTest::testReadAny() {
   s4 = 345;
 
   // create ReadAnyGroup
-  ChimeraTK::ReadAnyGroup group({a1,a2,a3,a4});
+  ChimeraTK::ReadAnyGroup group({a1, a2, a3, a4});
 
   // variable Test1
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -164,14 +170,17 @@ void AsyncReadTest::testReadAny() {
     // write register and check that readAny() completes
     s1.write();
     thread.join();
-    BOOST_CHECK( a1 == 42 );
+    BOOST_CHECK(a1 == 42);
   }
 
   // variable Test3
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -180,14 +189,17 @@ void AsyncReadTest::testReadAny() {
     // write register and check that readAny() completes
     s3.write();
     thread.join();
-    BOOST_CHECK( a3 == 120 );
+    BOOST_CHECK(a3 == 120);
   }
 
   // variable Test3 again
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -197,14 +209,17 @@ void AsyncReadTest::testReadAny() {
     s3 = 121;
     s3.write();
     thread.join();
-    BOOST_CHECK( a3 == 121 );
+    BOOST_CHECK(a3 == 121);
   }
 
   // variable Test2
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -213,14 +228,17 @@ void AsyncReadTest::testReadAny() {
     // write register and check that readAny() completes
     s2.write();
     thread.join();
-    BOOST_CHECK( a2 == 123 );
+    BOOST_CHECK(a2 == 123);
   }
 
   // variable Test4
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -229,14 +247,17 @@ void AsyncReadTest::testReadAny() {
     // write register and check that readAny() completes
     s4.write();
     thread.join();
-    BOOST_CHECK( a4 == 345 );
+    BOOST_CHECK(a4 == 345);
   }
 
   // variable Test4 again
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -245,14 +266,17 @@ void AsyncReadTest::testReadAny() {
     // write register and check that readAny() completes
     s4.write();
     thread.join();
-    BOOST_CHECK( a4 == 345 );
+    BOOST_CHECK(a4 == 345);
   }
 
   // variable Test3 a 3rd time
   {
     // launch the readAny in a background thread
     std::atomic<bool> flag{false};
-    std::thread thread([&group,&flag] { group.readAny(); flag = true; });
+    std::thread thread([&group, &flag] {
+      group.readAny();
+      flag = true;
+    });
 
     // check that it doesn't return too soon
     usleep(100000);
@@ -262,10 +286,11 @@ void AsyncReadTest::testReadAny() {
     s3 = 122;
     s3.write();
     thread.join();
-    BOOST_CHECK( a3 == 122 );
+    BOOST_CHECK(a3 == 122);
   }
 
-  // Test1 and then Test2 (order should be guaranteed) - this time write first to check if order is properly kept
+  // Test1 and then Test2 (order should be guaranteed) - this time write first
+  // to check if order is properly kept
   {
     s1 = 666;
     s1.write();
@@ -332,9 +357,7 @@ void AsyncReadTest::testReadAny() {
     BOOST_CHECK(a2.readNonBlocking() == false);
     BOOST_CHECK(a3.readNonBlocking() == false);
     BOOST_CHECK(a4.readNonBlocking() == false);
-
   }
-
 }
 
 /**********************************************************************************************************************/
@@ -357,36 +380,36 @@ void AsyncReadTest::testMixedRead() {
   senderAccessor.write();
   future = accessor.readAsync();
   future.wait();
-  BOOST_CHECK( accessor == 5 );
+  BOOST_CHECK(accessor == 5);
 
   senderAccessor = 6;
   senderAccessor.write();
   accessor.read();
-  BOOST_CHECK( accessor == 6 );
+  BOOST_CHECK(accessor == 6);
 
   senderAccessor = 7;
   senderAccessor.write();
   future = accessor.readAsync();
   future.wait();
-  BOOST_CHECK( accessor == 7 );
+  BOOST_CHECK(accessor == 7);
 
   senderAccessor = 8;
   senderAccessor.write();
   accessor.read();
-  BOOST_CHECK( accessor == 8 );
+  BOOST_CHECK(accessor == 8);
 
   future = accessor.readAsync();
   senderAccessor = 9;
   senderAccessor.write();
   future.wait();
-  BOOST_CHECK( accessor == 9 );
+  BOOST_CHECK(accessor == 9);
 
   senderAccessor = 10;
   senderAccessor.write();
   accessor.read();
-  BOOST_CHECK( accessor == 10 );
+  BOOST_CHECK(accessor == 10);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
   // mixing with read() when future stays unfulfilled
   future = accessor.readAsync();
@@ -398,13 +421,13 @@ void AsyncReadTest::testMixedRead() {
   usleep(10000);
 
   accessor.read();
-  BOOST_CHECK( accessor == 11 );
+  BOOST_CHECK(accessor == 11);
   senderAccessor = 12;
   senderAccessor.write();
   accessor.read();
-  BOOST_CHECK( accessor == 12 );
+  BOOST_CHECK(accessor == 12);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
   // mixing with read() when future stays unfulfilled, different order
   future = accessor.readAsync();
@@ -418,12 +441,12 @@ void AsyncReadTest::testMixedRead() {
   usleep(10000);
 
   accessor.read();
-  BOOST_CHECK( accessor == 13 );
+  BOOST_CHECK(accessor == 13);
 
   accessor.read();
-  BOOST_CHECK( accessor == 14 );
+  BOOST_CHECK(accessor == 14);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
   // readAsync with data already present, then discard the future
   senderAccessor = 15;
@@ -431,11 +454,12 @@ void AsyncReadTest::testMixedRead() {
   future = accessor.readAsync();
   usleep(10000);
   accessor.read();
-  BOOST_CHECK( accessor == 15 );
+  BOOST_CHECK(accessor == 15);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
-  // readAsync with data already present, then discard the future, with more data
+  // readAsync with data already present, then discard the future, with more
+  // data
   senderAccessor = 16;
   senderAccessor.write();
   senderAccessor = 17;
@@ -443,11 +467,11 @@ void AsyncReadTest::testMixedRead() {
   future = accessor.readAsync();
   usleep(10000);
   accessor.read();
-  BOOST_CHECK( accessor == 16 );
+  BOOST_CHECK(accessor == 16);
   accessor.read();
-  BOOST_CHECK( accessor == 17 );
+  BOOST_CHECK(accessor == 17);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
   // mixing with readNonBlocking() when future stays unfulfilled
   future = accessor.readAsync();
@@ -460,20 +484,21 @@ void AsyncReadTest::testMixedRead() {
   senderAccessor.write();
   usleep(10000);
 
-  BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 18 );
+  BOOST_CHECK(accessor.readNonBlocking() == true);
+  BOOST_CHECK(accessor == 18);
 
-  BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 19 );
+  BOOST_CHECK(accessor.readNonBlocking() == true);
+  BOOST_CHECK(accessor == 19);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
-  // mixing with readNonBlocking() when future stays unfulfilled and a readNonBlocking() also is unsuccessfull
+  // mixing with readNonBlocking() when future stays unfulfilled and a
+  // readNonBlocking() also is unsuccessfull
   future = accessor.readAsync();
   usleep(10000);
   BOOST_CHECK(future.hasNewData() == false);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
   senderAccessor = 20;
   senderAccessor.write();
@@ -481,22 +506,22 @@ void AsyncReadTest::testMixedRead() {
   senderAccessor.write();
   usleep(10000);
 
-  BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 20 );
+  BOOST_CHECK(accessor.readNonBlocking() == true);
+  BOOST_CHECK(accessor == 20);
 
-  BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 21 );
+  BOOST_CHECK(accessor.readNonBlocking() == true);
+  BOOST_CHECK(accessor == 21);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 
-  // readAsync with data already present, then discard the future - readNonBlocking() version
+  // readAsync with data already present, then discard the future -
+  // readNonBlocking() version
   senderAccessor = 22;
   senderAccessor.write();
   future = accessor.readAsync();
   usleep(10000);
-  BOOST_CHECK( accessor.readNonBlocking() == true );
-  BOOST_CHECK( accessor == 22 );
+  BOOST_CHECK(accessor.readNonBlocking() == true);
+  BOOST_CHECK(accessor == 22);
 
-  BOOST_CHECK( accessor.readNonBlocking() == false );
-
+  BOOST_CHECK(accessor.readNonBlocking() == false);
 }

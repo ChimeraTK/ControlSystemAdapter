@@ -1,14 +1,16 @@
 #include "TypeChangingDecorator.h"
 
-namespace ChimeraTK{
+namespace ChimeraTK {
 
 // The global instance of the map
-std::map< boost::shared_ptr<ChimeraTK::TransferElement>,
-          boost::shared_ptr<ChimeraTK::TransferElement> > globalDecoratorMap;
+std::map<boost::shared_ptr<ChimeraTK::TransferElement>,
+         boost::shared_ptr<ChimeraTK::TransferElement>>
+    globalDecoratorMap;
 
-std::map< boost::shared_ptr<ChimeraTK::TransferElement>, boost::shared_ptr<ChimeraTK::TransferElement> > &
-getGlobalDecoratorMap(){
+std::map<boost::shared_ptr<ChimeraTK::TransferElement>,
+         boost::shared_ptr<ChimeraTK::TransferElement>> &
+getGlobalDecoratorMap() {
   return globalDecoratorMap;
 }
 
-}// namespace ChimeraTK
+} // namespace ChimeraTK
