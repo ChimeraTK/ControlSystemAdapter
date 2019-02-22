@@ -14,9 +14,8 @@ using namespace ChimeraTK;
 BOOST_AUTO_TEST_SUITE(IndependentControlCoreTestSuite)
 
 BOOST_AUTO_TEST_CASE(independentControlCoreTest) {
-  std::pair<boost::shared_ptr<ControlSystemPVManager>,
-            boost::shared_ptr<DevicePVManager>>
-      pvManagers = createPVManager();
+  std::pair<boost::shared_ptr<ControlSystemPVManager>, boost::shared_ptr<DevicePVManager>> pvManagers =
+      createPVManager();
   boost::shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
@@ -24,10 +23,8 @@ BOOST_AUTO_TEST_CASE(independentControlCoreTest) {
 
   ControlSystemSynchronizationUtility syncUtil(csManager);
 
-  ProcessScalar<int>::SharedPtr targetVoltage =
-      csManager->getProcessScalar<int>("TARGET_VOLTAGE");
-  ProcessScalar<int>::SharedPtr monitorVoltage =
-      csManager->getProcessScalar<int>("MONITOR_VOLTAGE");
+  ProcessScalar<int>::SharedPtr targetVoltage = csManager->getProcessScalar<int>("TARGET_VOLTAGE");
+  ProcessScalar<int>::SharedPtr monitorVoltage = csManager->getProcessScalar<int>("MONITOR_VOLTAGE");
 
   // start with -1 for both voltages
   *targetVoltage = -1;
@@ -40,9 +37,9 @@ BOOST_AUTO_TEST_CASE(independentControlCoreTest) {
   // Note: as waitForNotification does not work as expected, the functionality
   // is
   // done manually for just the one variable we are receiving.
-  for (size_t i = 0; i < 100; ++i) {
+  for(size_t i = 0; i < 100; ++i) {
     boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-    if (monitorVoltage->receive()) {
+    if(monitorVoltage->receive()) {
       break;
     }
   }
@@ -59,11 +56,11 @@ BOOST_AUTO_TEST_CASE(independentControlCoreTest) {
   // there. This is not nevessarily the case on the first read, so we put a
   // limit to 10. Note that the number of actual receive attempty is higher,
   // because we read every 10 ms while the other side is sending every 100 ms.
-  for (size_t receiveCounter = 0; receiveCounter < 10; /*empty*/) {
+  for(size_t receiveCounter = 0; receiveCounter < 10; /*empty*/) {
     boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-    if (monitorVoltage->receive()) {
+    if(monitorVoltage->receive()) {
       ++receiveCounter;
-      if (*monitorVoltage == 42) {
+      if(*monitorVoltage == 42) {
         break;
       }
     }

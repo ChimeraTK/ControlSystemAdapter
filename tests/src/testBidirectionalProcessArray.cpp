@@ -32,8 +32,7 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
-  tie(pv1, pv2) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, both sides should have the initial value.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
@@ -91,8 +90,7 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
-  tie(pv1, pv2) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, both sides should have the initial value.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
@@ -155,10 +153,8 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
   // and sent back.
   DoubleArray::SharedPtr As, Ar, Bs, Br;
   double initialValue = 0.5;
-  tie(As, Ar) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
-  tie(Bs, Br) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(As, Ar) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(Bs, Br) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, all endssides should have the initial value.
   BOOST_CHECK_CLOSE(As->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(Ar->accessData(0), initialValue, 0.001);
@@ -212,10 +208,8 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
   // and sent back.
   DoubleArray::SharedPtr As, Ar, Bs, Br;
   double initialValue = 0.5;
-  tie(As, Ar) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
-  tie(Bs, Br) =
-      createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(As, Ar) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
+  tie(Bs, Br) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
   // Initially, all endssides should have the initial value.
   BOOST_CHECK_CLOSE(As->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(Ar->accessData(0), initialValue, 0.001);
@@ -264,8 +258,7 @@ BOOST_AUTO_TEST_CASE(testListeners) {
   DoubleArray::SharedPtr pv1, pv2;
   auto listener1 = make_shared<CountingProcessVariableListener>();
   auto listener2 = make_shared<CountingProcessVariableListener>();
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(
-      1, "", "", "", 0.0, 2, listener1, listener2);
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", 0.0, 2, listener1, listener2);
   // Initially, the two listeners should not have received any notifications.
   BOOST_CHECK(listener1->count == 0);
   BOOST_CHECK(!listener1->lastProcessVariable);
@@ -300,8 +293,7 @@ BOOST_AUTO_TEST_CASE(testSync) {
 
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 2.0;
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "",
-                                                              initialValue, 2);
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue, 2);
   // Both sides should be initialized to zero.
   BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);

@@ -31,10 +31,8 @@ BOOST_AUTO_TEST_CASE(testInt32_t) {
 
   ControlSystemSynchronizationUtility csSyncUtil(csManager);
 
-  auto toDeviceScalar =
-      csManager->getProcessArray<int32_t>("INT/TO_DEVICE_SCALAR");
-  auto fromDeviceScalar =
-      csManager->getProcessArray<int32_t>("INT/FROM_DEVICE_SCALAR");
+  auto toDeviceScalar = csManager->getProcessArray<int32_t>("INT/TO_DEVICE_SCALAR");
+  auto fromDeviceScalar = csManager->getProcessArray<int32_t>("INT/FROM_DEVICE_SCALAR");
 
   int32_t previousReadValue = fromDeviceScalar->accessData(0);
 
@@ -46,9 +44,9 @@ BOOST_AUTO_TEST_CASE(testInt32_t) {
   // time. If it is not true after 1000 waiting periods we declare this test as
   // failed.
   int i = 0;
-  for (; i < 1000; ++i) {
+  for(; i < 1000; ++i) {
     csSyncUtil.receiveAll();
-    if (fromDeviceScalar->accessData(0) == previousReadValue + 13) {
+    if(fromDeviceScalar->accessData(0) == previousReadValue + 13) {
       break;
     }
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));

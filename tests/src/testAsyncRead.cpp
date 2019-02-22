@@ -16,7 +16,7 @@ using namespace ChimeraTK;
 
 /**********************************************************************************************************************/
 class AsyncReadTest {
-public:
+ public:
   /// test normal asychronous read
   void testAsyncRead();
 
@@ -30,7 +30,7 @@ public:
 /**********************************************************************************************************************/
 
 class AsyncReadTestSuite : public test_suite {
-public:
+ public:
   AsyncReadTestSuite() : test_suite("Async read test suite") {
     boost::shared_ptr<AsyncReadTest> asyncReadTest(new AsyncReadTest);
 
@@ -42,7 +42,7 @@ public:
 
 /**********************************************************************************************************************/
 
-test_suite *init_unit_test_suite(int /*argc*/, char * /*argv*/ []) {
+test_suite* init_unit_test_suite(int /*argc*/, char* /*argv*/ []) {
   framework::master_test_suite().p_name.value = "Async read test suite";
   framework::master_test_suite().add(new AsyncReadTestSuite);
 
@@ -78,7 +78,7 @@ void AsyncReadTest::testAsyncRead() {
 
   // check that future's wait() function won't return before the read is
   // complete
-  for (int i = 0; i < 5; ++i) {
+  for(int i = 0; i < 5; ++i) {
     senderAccessor = 42 + i;
     future = accessor.readAsync();
     std::atomic<bool> flag;
@@ -96,7 +96,7 @@ void AsyncReadTest::testAsyncRead() {
 
   // check that obtaining the same future multiple times works properly
   senderAccessor = 666;
-  for (int i = 0; i < 5; ++i) {
+  for(int i = 0; i < 5; ++i) {
     future = accessor.readAsync();
     BOOST_CHECK(accessor == 46); // still the old value from the last test part
   }

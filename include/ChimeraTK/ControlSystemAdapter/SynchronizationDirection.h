@@ -3,29 +3,29 @@
 
 namespace ChimeraTK {
 
-/**
- * Direction when synchronizing process variables. A process variable may be
- * synchronized from the device library to the control system (input) or from
- * the control system to the device library (output).
- */
-enum SynchronizationDirection {
-
   /**
-   * Synchronize from the control system to the device library.
+   * Direction when synchronizing process variables. A process variable may be
+   * synchronized from the device library to the control system (input) or from
+   * the control system to the device library (output).
    */
-  controlSystemToDevice,
+  enum SynchronizationDirection {
 
-  /**
-   * Synchronize from the device library to the control system.
-   */
-  deviceToControlSystem,
+    /**
+     * Synchronize from the control system to the device library.
+     */
+    controlSystemToDevice,
 
-  /**
-   * Synchronize in both directions.
-   */
-  bidirectional
+    /**
+     * Synchronize from the device library to the control system.
+     */
+    deviceToControlSystem,
 
-};
+    /**
+     * Synchronize in both directions.
+     */
+    bidirectional
+
+  };
 
 } // namespace ChimeraTK
 

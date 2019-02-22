@@ -18,7 +18,7 @@
 class Hardware {
   int _voltage;
 
-public:
+ public:
   void setVoltage(int v) { _voltage = v; }
   int getVoltage() const { return _voltage; }
   Hardware() : _voltage(42) {}
@@ -31,7 +31,7 @@ public:
  *  real code!
  */
 class IndependentControlCore {
-private:
+ private:
   ChimeraTK::DevicePVManager::SharedPtr _processVariableManager;
 
   /** The target voltage to be transmitted to the hardware */
@@ -46,28 +46,25 @@ private:
 
   void mainLoop();
 
-public:
+ public:
   /** The constructor gets an instance of the variable factory to use.
    *  The variables in the factory should already be initialised because the
    * hardware is initialised here.
    */
-  IndependentControlCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const
-                             &processVariableManager)
-      // initialise all process variables, using the factory
-      : _processVariableManager(processVariableManager),
-        _targetVoltage(processVariableManager->createProcessScalar<int>(
-            ChimeraTK::controlSystemToDevice, "TARGET_VOLTAGE")),
-        _monitorVoltage(processVariableManager->createProcessScalar<int>(
-            ChimeraTK::deviceToControlSystem, "MONITOR_VOLTAGE")) {
-
+  IndependentControlCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager)
+  // initialise all process variables, using the factory
+  : _processVariableManager(processVariableManager),
+    _targetVoltage(
+        processVariableManager->createProcessScalar<int>(ChimeraTK::controlSystemToDevice, "TARGET_VOLTAGE")),
+    _monitorVoltage(
+        processVariableManager->createProcessScalar<int>(ChimeraTK::deviceToControlSystem, "MONITOR_VOLTAGE")) {
     // initialise the hardware here
     *_targetVoltage = 0;
     *_monitorVoltage = 0;
     _hardware.setVoltage(*_targetVoltage);
 
     // start the device thread, which is executing the main loop
-    _deviceThread.reset(new boost::thread(
-        boost::bind(&IndependentControlCore::mainLoop, this)));
+    _deviceThread.reset(new boost::thread(boost::bind(&IndependentControlCore::mainLoop, this)));
   }
 
   ~IndependentControlCore() {
@@ -80,7 +77,7 @@ public:
 inline void IndependentControlCore::mainLoop() {
   ChimeraTK::DeviceSynchronizationUtility syncUtil(_processVariableManager);
 
-  while (!boost::this_thread::interruption_requested()) {
+  while(!boost::this_thread::interruption_requested()) {
     syncUtil.receiveAll();
     *_monitorVoltage = _hardware.getVoltage();
 

@@ -2,7 +2,7 @@
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_VARIABLE_DECL_H
 
 namespace ChimeraTK {
-class ProcessVariable;
+  class ProcessVariable;
 }
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_VARIABLE_DECL_H

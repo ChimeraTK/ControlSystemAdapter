@@ -13,18 +13,20 @@ using namespace ChimeraTK;
 // always test close for floating point values. Don't rely on exact binary
 // representations
 bool test_close(double a, double b, double tolerance = 0.0001) {
-  if (std::fabs(a - b) < tolerance) {
+  if(std::fabs(a - b) < tolerance) {
     return true;
-  } else {
+  }
+  else {
     std::cout << a << " - " << b << " is not < " << tolerance << std::endl;
     return false;
   }
 }
 
 bool test_not_close(double a, double b, double tolerance = 0.0001) {
-  if (std::fabs(a - b) > tolerance) {
+  if(std::fabs(a - b) > tolerance) {
     return true;
-  } else {
+  }
+  else {
     std::cout << a << " - " << b << " is not > " << tolerance << std::endl;
     return false;
   }
@@ -35,21 +37,15 @@ BOOST_AUTO_TEST_SUITE(TypeChangingDecoratorTestSuite)
 // the startReadValue and expectedWriteValue are from the register in the dummy
 // device, which is 32 bit fixed point singed with 16 fractional bits, thus we
 // talk to it as double from the test
-template <class T, class IMPL_T,
-          template <typename, typename>
-          class DECORATOR_TYPE = TypeChangingRangeCheckingDecorator>
-void testDecorator(double startReadValue, T expectedReadValue,
-                   T startWriteValue, double expectedWriteValue) {
+template<class T, class IMPL_T, template<typename, typename> class DECORATOR_TYPE = TypeChangingRangeCheckingDecorator>
+void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue, double expectedWriteValue) {
   ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
-  auto anotherScalarAccessor =
-      d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  auto anotherImplTAccessor =
-      d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
+  auto anotherScalarAccessor = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
+  auto anotherImplTAccessor = d.getScalarRegisterAccessor<IMPL_T>("/SOME/SCALAR");
 
-  auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<IMPL_T>>(
-      scalar.getHighLevelImplElement());
+  auto ndAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<IMPL_T>>(scalar.getHighLevelImplElement());
   DECORATOR_TYPE<T, IMPL_T> decoratedScalar(ndAccessor);
 
   BOOST_REQUIRE(decoratedScalar.getNumberOfChannels() == 1);
@@ -86,7 +82,7 @@ void testDecorator(double startReadValue, T expectedReadValue,
   anotherScalarAccessor = startReadValue + 1;
   anotherScalarAccessor.write();
   decoratedScalar.preRead();
-  for (auto &hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
+  for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->read();
   }
   // still nothing has changed on the user buffer
@@ -99,7 +95,7 @@ void testDecorator(double startReadValue, T expectedReadValue,
   // nothing changed on the device yet
   anotherScalarAccessor.read();
   BOOST_CHECK(test_close(anotherScalarAccessor, startReadValue + 1));
-  for (auto &hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
+  for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->write();
   }
   decoratedScalar.postWrite();
@@ -127,16 +123,12 @@ void testDecorator(double startReadValue, T expectedReadValue,
   // intentionally do not call them to indicate them uncovered. We would have to
   // use the control system adapter implementations with the queues to test it.
 
-  BOOST_CHECK(!decoratedScalar.mayReplaceOther(
-      anotherImplTAccessor.getHighLevelImplElement()));
+  BOOST_CHECK(!decoratedScalar.mayReplaceOther(anotherImplTAccessor.getHighLevelImplElement()));
   auto anotherNdAccessor =
-      boost::dynamic_pointer_cast<NDRegisterAccessor<IMPL_T>>(
-          anotherImplTAccessor.getHighLevelImplElement());
-  BOOST_CHECK(anotherNdAccessor->mayReplaceOther(
-      ndAccessor)); // unrelated check just to make sure the test is doing the
-                    // right thing...
-  auto anotherDecoratedScalar =
-      boost::make_shared<DECORATOR_TYPE<T, IMPL_T>>(anotherNdAccessor);
+      boost::dynamic_pointer_cast<NDRegisterAccessor<IMPL_T>>(anotherImplTAccessor.getHighLevelImplElement());
+  BOOST_CHECK(anotherNdAccessor->mayReplaceOther(ndAccessor)); // unrelated check just to make sure the test is doing
+                                                               // the right thing...
+  auto anotherDecoratedScalar = boost::make_shared<DECORATOR_TYPE<T, IMPL_T>>(anotherNdAccessor);
   BOOST_CHECK(decoratedScalar.mayReplaceOther(anotherDecoratedScalar));
 
   // OK, I give up. I would have to repeat all tests ever written for a
@@ -175,19 +167,15 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<float, std::string>(101.1, 101.1, 112.2, 112.2);
   testDecorator<double, std::string>(201.1, 201.1, 212.2, 212.2);
 
-  testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201,
-                                                                   212, 212);
-  testDecorator<float, std::string, TypeChangingDirectCastDecorator>(202, 202,
-                                                                     213, 213);
-  testDecorator<double, std::string, TypeChangingDirectCastDecorator>(203, 203,
-                                                                      214, 214);
-  testDecorator<int, float, TypeChangingDirectCastDecorator>(218.5, 218, 228,
-                                                             228);
-  testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 239.6,
-                                                             239);
+  testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201, 212, 212);
+  testDecorator<float, std::string, TypeChangingDirectCastDecorator>(202, 202, 213, 213);
+  testDecorator<double, std::string, TypeChangingDirectCastDecorator>(203, 203, 214, 214);
+  testDecorator<int, float, TypeChangingDirectCastDecorator>(218.5, 218, 228, 228);
+  testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 239.6, 239);
 }
 
-template <template <typename, typename> class DECORATOR_TYPE> void loopTest() {
+template<template<typename, typename> class DECORATOR_TYPE>
+void loopTest() {
   // Test loops for numeric data types. One type is enough because it's template
   // code We don't have to test the string specialisations, arrays of strings
   // are not allowed
@@ -205,8 +193,7 @@ template <template <typename, typename> class DECORATOR_TYPE> void loopTest() {
   anotherAccessor.write();
 
   // device under test (dut)
-  auto impl = boost::dynamic_pointer_cast<NDRegisterAccessor<double>>(
-      twoD.getHighLevelImplElement());
+  auto impl = boost::dynamic_pointer_cast<NDRegisterAccessor<double>>(twoD.getHighLevelImplElement());
   DECORATOR_TYPE<int, double> dut(impl);
 
   BOOST_REQUIRE(dut.getNumberOfChannels() == 3);
@@ -244,14 +231,14 @@ BOOST_AUTO_TEST_CASE(testLoops) {
   loopTest<TypeChangingDirectCastDecorator>();
 }
 
-#define CHECK_THROW_PRINT(command, exception_type)                             \
-  try {                                                                        \
-    command;                                                                   \
-    BOOST_ERROR(std::string(#command) + " did not throw as excepted.");        \
-  } catch (exception_type & e) {                                               \
-    std::cout << "** For manually checking the exeption message of "           \
-              << #command << ":\n"                                             \
-              << "   " << e.what() << std::endl;                               \
+#define CHECK_THROW_PRINT(command, exception_type)                                                                     \
+  try {                                                                                                                \
+    command;                                                                                                           \
+    BOOST_ERROR(std::string(#command) + " did not throw as excepted.");                                                \
+  }                                                                                                                    \
+  catch(exception_type & e) {                                                                                          \
+    std::cout << "** For manually checking the exeption message of " << #command << ":\n"                              \
+              << "   " << e.what() << std::endl;                                                                       \
   }
 
 BOOST_AUTO_TEST_CASE(testRangeChecks) {
@@ -260,25 +247,21 @@ BOOST_AUTO_TEST_CASE(testRangeChecks) {
   ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto myInt = d.getScalarRegisterAccessor<int32_t>("/SOME/INT");
-  auto myIntDummy = d.getScalarRegisterAccessor<int32_t>(
-      "/SOME/INT"); // the second accessor for the test
+  auto myIntDummy = d.getScalarRegisterAccessor<int32_t>("/SOME/INT"); // the second accessor for the test
   auto myUInt = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
   auto myUIntDummy = d.getScalarRegisterAccessor<uint32_t>("/SOME/UINT");
 
-  auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<int32_t>>(
-      myInt.getHighLevelImplElement());
+  auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<int32_t>>(myInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
-  TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(
-      intNDAccessor); // don't try this at home: putting the same NDAccessor
-                      // into different decorators can cause trouble
+  TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor); // don't try this at home: putting the
+                                                                               // same NDAccessor into different
+                                                                               // decorators can cause trouble
 
-  auto uintNDAccessor =
-      boost::dynamic_pointer_cast<NDRegisterAccessor<uint32_t>>(
-          myUInt.getHighLevelImplElement());
+  auto uintNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<uint32_t>>(myUInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
-  TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(
-      uintNDAccessor); // don't try this at home: putting the same NDAccessor
-                       // into different decorators can cause trouble
+  TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor); // don't try this at home: putting the
+                                                                                // same NDAccessor into different
+                                                                                // decorators can cause trouble
 
   // the bit content is the same, but the interpretation is different.
   myIntDummy = 0xFFFFFFFF;
@@ -311,10 +294,8 @@ BOOST_AUTO_TEST_CASE(testTransferGroup) {
   wholeArray[1] = 12346;
   wholeArray.write();
 
-  ChimeraTK::ScalarRegisterAccessor<int> decorated0(
-      getDecorator<int>(partial0));
-  ChimeraTK::ScalarRegisterAccessor<int> decorated1(
-      getDecorator<int>(partial1));
+  ChimeraTK::ScalarRegisterAccessor<int> decorated0(getDecorator<int>(partial0));
+  ChimeraTK::ScalarRegisterAccessor<int> decorated1(getDecorator<int>(partial1));
 
   TransferGroup group;
   group.addAccessor(decorated0);
@@ -337,22 +318,18 @@ BOOST_AUTO_TEST_CASE(testFactory) {
   ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
   auto scalar = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  ChimeraTK::TransferElementAbstractor &transferElement = scalar;
+  ChimeraTK::TransferElementAbstractor& transferElement = scalar;
 
   auto decoratedScalar = getDecorator<int>(transferElement);
   BOOST_CHECK(decoratedScalar);
   // factory must detect the type of scalar and create the correct decorator
-  auto castedScalar = boost::dynamic_pointer_cast<
-      TypeChangingRangeCheckingDecorator<int, double>>(decoratedScalar);
+  auto castedScalar = boost::dynamic_pointer_cast<TypeChangingRangeCheckingDecorator<int, double>>(decoratedScalar);
   BOOST_CHECK(castedScalar);
 
   // if there already is a decorator you cannot create another one with a
   // different user type or decorator type
-  CHECK_THROW_PRINT(
-      getDecorator<int>(transferElement, DecoratorType::C_style_conversion),
-      ChimeraTK::logic_error);
-  CHECK_THROW_PRINT(getDecorator<short>(transferElement),
-                    ChimeraTK::logic_error);
+  CHECK_THROW_PRINT(getDecorator<int>(transferElement, DecoratorType::C_style_conversion), ChimeraTK::logic_error);
+  CHECK_THROW_PRINT(getDecorator<short>(transferElement), ChimeraTK::logic_error);
   // but you can get the same decorator again if you ask for it
   auto sameDecorator = getDecorator<int>(transferElement);
   BOOST_CHECK(sameDecorator.get() == decoratedScalar.get());
@@ -360,18 +337,15 @@ BOOST_AUTO_TEST_CASE(testFactory) {
   // Test for direct convertion decorator type
   // we have to use a different transfer element for this to work
   auto scalar2 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  auto decoratedDirectConvertingScalar =
-      getDecorator<int>(scalar2, DecoratorType::C_style_conversion);
+  auto decoratedDirectConvertingScalar = getDecorator<int>(scalar2, DecoratorType::C_style_conversion);
   BOOST_CHECK(decoratedDirectConvertingScalar);
   auto castedDCScalar =
-      boost::dynamic_pointer_cast<TypeChangingDirectCastDecorator<int, double>>(
-          decoratedDirectConvertingScalar);
+      boost::dynamic_pointer_cast<TypeChangingDirectCastDecorator<int, double>>(decoratedDirectConvertingScalar);
   BOOST_CHECK(castedDCScalar);
 
   // fixme: at the moment we are throwing if a limiting decorator is requested
   auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  CHECK_THROW_PRINT(getDecorator<int>(scalar3, DecoratorType::limiting),
-                    ChimeraTK::logic_error);
+  CHECK_THROW_PRINT(getDecorator<int>(scalar3, DecoratorType::limiting), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
