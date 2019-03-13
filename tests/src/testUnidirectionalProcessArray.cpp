@@ -14,7 +14,8 @@ using namespace boost::unit_test_framework;
 
 #include <boost/mpl/list.hpp>
 
-typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, float, double> test_types;
+typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double>
+    test_types;
 
 using namespace ChimeraTK;
 
