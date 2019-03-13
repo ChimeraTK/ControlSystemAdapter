@@ -66,8 +66,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/test");
   for(typename std::vector<T>::const_iterator i = receiver->accessChannel(0).begin();
-      i != receiver->accessChannel(0).end();
-      ++i) {
+      i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK(*i == SOME_NUMBER);
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);

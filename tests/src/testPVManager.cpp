@@ -45,11 +45,8 @@ static void sendAll(list<ProcessVariable::SharedPtr> const& processVariables) {
 }
 
 template<class T>
-static void testCreateProcessVariables(const string& name,
-    shared_ptr<DevicePVManager>
-        devManager,
-    shared_ptr<ControlSystemPVManager>
-        csManager) {
+static void testCreateProcessVariables(
+    const string& name, shared_ptr<DevicePVManager> devManager, shared_ptr<ControlSystemPVManager> csManager) {
   shared_ptr<ProcessArray<T>> createdPV =
       devManager->createProcessArray<T>(deviceToControlSystem, name + "In", 1, "kindOfAUnit", "any description");
   // Although process variables are/ can be created without a leading '/', the
