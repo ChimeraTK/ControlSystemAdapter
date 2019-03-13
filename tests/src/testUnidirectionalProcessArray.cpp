@@ -15,6 +15,8 @@ using namespace boost::unit_test_framework;
 #include <boost/mpl/list.hpp>
 
 typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double>
+    test_types_no_string;
+typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double, std::string>
     test_types;
 
 using namespace ChimeraTK;
@@ -26,12 +28,22 @@ static size_t const N_ELEMENTS = 12;
 // that it can be used with references.
 static size_t const SOME_NUMBER = 42;
 
+template<class T>
+T toType(int input){
+  return input;
+}
+
+template<>
+std::string toType<std::string>(int input){
+  return std::to_string(input);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   std::vector<T> referenceVector;
-  referenceVector.push_back(0);
-  referenceVector.push_back(1);
-  referenceVector.push_back(2);
-  referenceVector.push_back(3);
+  referenceVector.push_back(toType<T>(0));
+  referenceVector.push_back(toType<T>(1));
+  referenceVector.push_back(toType<T>(2));
+  referenceVector.push_back(toType<T>(3));
 
   // Now we repeat the tests but for a sender / receiver pair. We do not test
   // the notification listener and time-stamp source because there is no
@@ -40,35 +52,37 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
       createSynchronizedProcessArray<T>(N_ELEMENTS);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-  BOOST_CHECK(sender->getName() == "/");
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
+  BOOST_CHECK(sender->getName() == "/"); 
+  //sender has default-constructed elements
+ for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == 0);
+    BOOST_CHECK_EQUAL(*i, T());
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/");
+  //sender has default-constructed elements
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == 0);
+    BOOST_CHECK_EQUAL(*i, T());
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(!sender->isReadable());
   BOOST_CHECK(sender->isWriteable());
   BOOST_CHECK(receiver->isReadable());
   BOOST_CHECK(!receiver->isWriteable());
-  senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test", "", "", SOME_NUMBER, 5);
+  senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test", "", "", toType<T>(SOME_NUMBER), 5);
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/test");
   for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/test");
   for(typename std::vector<T>::const_iterator i = receiver->accessChannel(0).begin();
       i != receiver->accessChannel(0).end(); ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
   senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test", "", "", 5, false);
@@ -83,9 +97,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
       std::equal(receiver->accessChannel(0).begin(), receiver->accessChannel(0).end(), referenceVector.begin()));
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types_no_string) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", SOME_NUMBER);
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", toType<T>(SOME_NUMBER));
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   sender->accessChannel(0);
@@ -93,45 +107,45 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
   typename std::vector<T>& v = sender->accessChannel(0);
   typename std::vector<T> const& cv = sender->accessChannel(0);
   for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER));
   }
   for(typename std::vector<T>::const_iterator i = cv.begin(); i != cv.end(); ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK(toType<T>(*i) == toType<T>(SOME_NUMBER));
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSet, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testSet, T, test_types_no_string) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
   // Test the assignment of a vector.
-  std::vector<T> v(N_ELEMENTS, SOME_NUMBER + 1);
+  std::vector<T> v(N_ELEMENTS, toType<T>(SOME_NUMBER) + 1);
   sender->accessChannel(0) = v;
   receiver->accessChannel(0) = v;
   for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 1);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 1);
   }
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 1);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 1);
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types_no_string) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
   // Test swapping with a vector
-  typename std::vector<T> v(N_ELEMENTS, SOME_NUMBER);
+  typename std::vector<T> v(N_ELEMENTS, toType<T>(SOME_NUMBER));
   sender->accessChannel(0).swap(v);
   for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER));
   }
   for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK(*i == 0);
@@ -140,14 +154,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
   receiver->accessChannel(0).swap(v);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER));
   }
   for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK(*i == 0);
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types_no_string) {
   boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
       boost::make_shared<CountingProcessVariableListener>());
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
@@ -163,7 +177,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
   BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types_no_string) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
@@ -171,29 +185,29 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // If we send three values consecutively, they all should be received because
   // the queue length is two and there is the additional atomic triple buffer
   // holding a third value
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER));
   sender->writeDestructively();
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 1);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 1);
   sender->writeDestructively();
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 2);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 2);
   sender->writeDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 1);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 1);
   }
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 2);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 2);
   }
   // We have received all values, so no more values should be available.
   BOOST_CHECK(!receiver->readNonBlocking());
@@ -201,67 +215,67 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // Now we try to send four values consecutively. This should result in the
   // last but one value being dropped. The latest value should be preserved,
   // since it is in the atomic triple buffer
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 3);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 3);
   sender->writeDestructively();
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 4);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 4);
   sender->writeDestructively();
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 5);
   sender->writeDestructively();
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 6);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 6);
   sender->writeDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 3);
+    BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER) + 3);
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 4);
+    BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER) + 4);
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK_EQUAL(*i, SOME_NUMBER + 6);
+    BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER) + 6);
   }
   // We have received all values, so no more values should be available.
   BOOST_CHECK(!receiver->readNonBlocking());
 
   // Same as before but this time with more values
   for(int i = 0; i < 10; ++i) {
-    sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + i);
+    sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + i);
     sender->writeDestructively();
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 0);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 0);
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 1);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 1);
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 9);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 9);
   }
   // We have received all values, so no more values should be available.
   BOOST_CHECK(!receiver->readNonBlocking());
 
   // When we send non-destructively, the value should also be preserved on the
   // sender side.
-  sender->accessChannel(0).assign(N_ELEMENTS, SOME_NUMBER + 5);
+  sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER) + 5);
   sender->write();
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 5);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 5);
   }
   for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
       ++i) {
-    BOOST_CHECK(*i == SOME_NUMBER + 5);
+    BOOST_CHECK(*i == toType<T>(SOME_NUMBER) + 5);
   }
 
   // Calling writeDestructively() on a sender that has not the corresponding
@@ -272,7 +286,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   BOOST_CHECK_THROW(sender->writeDestructively(), ChimeraTK::logic_error);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types_no_string) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
@@ -341,7 +355,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   BOOST_CHECK(!(receiver->readNonBlocking()));
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testBlockingRead, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testBlockingRead, T, test_types_no_string) {
   auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", 0, 3, true);
   auto sender = senderReceiver.first;
   auto receiver = senderReceiver.second;
@@ -380,7 +394,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testBlockingRead, T, test_types) {
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
+BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types_no_string) {
   auto senderReceiver = createSynchronizedProcessArray<T>(1);
   auto sender = senderReceiver.first;
   auto receiver = senderReceiver.second;
