@@ -8,6 +8,17 @@
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
+// helper class to covert string to double (abstraced by template)
+template<class UserType>
+double toDouble(UserType input){
+  return input;
+}
+
+template<>
+double toDouble<std::string>(std::string input){
+  return std::stod(input);
+}
+  
 struct TestApplicationFixture {
   std::pair<boost::shared_ptr<ControlSystemPVManager>, boost::shared_ptr<DevicePVManager>> pvManagers;
   boost::shared_ptr<ControlSystemPVManager> csManager;
@@ -36,29 +47,32 @@ struct TestApplicationFixture {
     auto toDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/TO_DEVICE_SCALAR");
     auto fromDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/FROM_DEVICE_SCALAR");
 
-    UserType previousReadValue = fromDeviceScalar->accessData(0);
-
-    toDeviceScalar->accessData(0) = previousReadValue + 13;
+    // check that the test is actually sensitive to writing. We could add 13 to a numeric value, but what is
+    // sting + 13? So we just check that there was something different before.
+    BOOST_CHECK( fromDeviceScalar->accessData(0) != toType<UserType>(13) );
+    
+    toDeviceScalar->accessData(0) = toType<UserType>(13);
 
     csSyncUtil.sendAll();
     ReferenceTestApplication::runMainLoopOnce();
     csSyncUtil.receiveAll();
 
-    BOOST_CHECK(fromDeviceScalar->accessData(0) == previousReadValue + 13);
+    BOOST_CHECK_EQUAL(fromDeviceScalar->accessData(0), toType<UserType>(13));
   }
 
   template<class UserType>
   void typedReadArrayTest(std::string typeNamePrefix) {
     UserType typeConstant = csManager->getProcessArray<UserType>(typeNamePrefix + "/DATA_TYPE_CONSTANT")->accessData(0);
-
+    double typeIdentiyingDouble = toDouble(typeConstant);
+    
     auto inputArray = csManager->getProcessArray<UserType>(typeNamePrefix + "/CONSTANT_ARRAY");
     BOOST_REQUIRE(inputArray);
     for(size_t i = 0; i < inputArray->accessChannel(0).size(); ++i) {
       std::stringstream errorMessage;
       errorMessage << "check failed: " << typeNamePrefix + "/CONSTANT_ARRAY[" << i
-                   << "] = " << inputArray->accessChannel(0)[i] << ", expected " << typeConstant * i * i << std::endl;
+                   << "] = " << inputArray->accessChannel(0)[i] << ", expected " << toType<UserType>(typeIdentiyingDouble * i * i) << std::endl;
       BOOST_CHECK_MESSAGE(
-          static_cast<UserType>(typeConstant * i * i) == inputArray->accessChannel(0)[i], errorMessage.str());
+          toType<UserType>(typeIdentiyingDouble * i * i) == inputArray->accessChannel(0)[i], errorMessage.str());
     }
   }
 
@@ -69,13 +83,13 @@ struct TestApplicationFixture {
     BOOST_REQUIRE(toDeviceArray);
     BOOST_REQUIRE(fromDeviceArray);
 
-    // first check that there are all zeros in (startup condition)
+    // first check that there are all zeros/default constructed in (startup condition)
     for(auto& t : toDeviceArray->accessChannel(0)) {
-      BOOST_CHECK(t == 0);
+      BOOST_CHECK_EQUAL(t, UserType());
     }
 
     for(size_t i = 0; i < toDeviceArray->accessChannel(0).size(); ++i) {
-      toDeviceArray->accessChannel(0)[i] = 13 + i;
+      toDeviceArray->accessChannel(0)[i] = toType<UserType>(13 + i);
     }
 
     csSyncUtil.sendAll();
@@ -83,7 +97,7 @@ struct TestApplicationFixture {
     csSyncUtil.receiveAll();
 
     for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size(); ++i) {
-      BOOST_CHECK(fromDeviceArray->accessChannel(0)[i] == static_cast<UserType>(13 + i));
+      BOOST_CHECK(fromDeviceArray->accessChannel(0)[i] == toType<UserType>(13 + i));
     }
   }
 };
@@ -93,14 +107,17 @@ BOOST_AUTO_TEST_SUITE(FullStubTestSuite)
 BOOST_FIXTURE_TEST_CASE(test_read_scalar, TestApplicationFixture) {
   // just after creation of the fixture the constants should be available to the
   // control system
-  BOOST_CHECK(csManager->getProcessArray<int8_t>("CHAR/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == -1);
-  BOOST_CHECK(csManager->getProcessArray<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == 1);
-  BOOST_CHECK(csManager->getProcessArray<int16_t>("SHORT/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == -2);
-  BOOST_CHECK(csManager->getProcessArray<uint16_t>("USHORT/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == 2);
-  BOOST_CHECK(csManager->getProcessArray<int32_t>("INT/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == -4);
-  BOOST_CHECK(csManager->getProcessArray<uint32_t>("UINT/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == 4);
-  BOOST_CHECK(csManager->getProcessArray<float>("FLOAT/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == 1. / 4);
-  BOOST_CHECK(csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->accessChannel(0)[0] == 1. / 8);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<int8_t>("CHAR/DATA_TYPE_CONSTANT")->accessChannel(0)[0], -1);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<uint8_t>("UCHAR/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<int16_t>("SHORT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], -2);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<uint16_t>("USHORT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 2);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<int32_t>("INT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], -4);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<uint32_t>("UINT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 4);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<int64_t>("LONG/DATA_TYPE_CONSTANT")->accessChannel(0)[0], -8);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<uint64_t>("ULONG/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 8);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<float>("FLOAT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 4);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 8);
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<std::string>("STRING/DATA_TYPE_CONSTANT")->accessChannel(0)[0], std::to_string(42.));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_write_scalar, TestApplicationFixture) {
@@ -110,8 +127,11 @@ BOOST_FIXTURE_TEST_CASE(test_write_scalar, TestApplicationFixture) {
   typedWriteScalarTest<uint16_t>("USHORT");
   typedWriteScalarTest<int32_t>("INT");
   typedWriteScalarTest<uint32_t>("UINT");
+  typedWriteScalarTest<int64_t>("LONG");
+  typedWriteScalarTest<uint64_t>("ULONG");
   typedWriteScalarTest<float>("FLOAT");
   typedWriteScalarTest<double>("DOUBLE");
+  typedWriteScalarTest<std::string>("STRING");
 }
 
 BOOST_FIXTURE_TEST_CASE(test_read_array, TestApplicationFixture) {
@@ -121,8 +141,11 @@ BOOST_FIXTURE_TEST_CASE(test_read_array, TestApplicationFixture) {
   typedReadArrayTest<uint16_t>("USHORT");
   typedReadArrayTest<int32_t>("INT");
   typedReadArrayTest<uint32_t>("UINT");
+  typedReadArrayTest<int64_t>("LONG");
+  typedReadArrayTest<uint64_t>("ULONG");
   typedReadArrayTest<float>("FLOAT");
   typedReadArrayTest<double>("DOUBLE");
+  typedReadArrayTest<std::string>("STRING");
 }
 
 BOOST_FIXTURE_TEST_CASE(test_write_array, TestApplicationFixture) {
@@ -132,8 +155,11 @@ BOOST_FIXTURE_TEST_CASE(test_write_array, TestApplicationFixture) {
   typedWriteArrayTest<uint16_t>("USHORT");
   typedWriteArrayTest<int32_t>("INT");
   typedWriteArrayTest<uint32_t>("UINT");
+  typedWriteArrayTest<int64_t>("LONG");
+  typedWriteArrayTest<uint64_t>("ULONG");
   typedWriteArrayTest<float>("FLOAT");
   typedWriteArrayTest<double>("DOUBLE");
+  typedWriteArrayTest<std::string>("STRING");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
