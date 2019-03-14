@@ -17,6 +17,8 @@
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/map.hpp>
 
+#include "toType.h"
+
 template<class DataType>
 struct TypedPVHolder {
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceScalar;
@@ -48,22 +50,31 @@ struct TypedPVHolder {
         ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
     constantArray(processVariableManager->createProcessArray<DataType>(
         ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", 10)) {
-    if(std::numeric_limits<DataType>::is_integer) {
-      if(std::numeric_limits<DataType>::is_signed) {
-        // signed int
-        dataTypeConstant->accessData(0) = static_cast<DataType>(-sizeof(DataType));
-      }
-      else {
-        // unsigned int
-        dataTypeConstant->accessData(0) = sizeof(DataType);
-      }
+
+    double typeIdentifyingConstant=0;
+    if(typeid(DataType) == typeid(std::string)) {
+      typeIdentifyingConstant = 42;
     }
     else {
-      // floating point
-      dataTypeConstant->accessData(0) = 1. / sizeof(DataType);
+      if(std::numeric_limits<DataType>::is_integer) {
+        if(std::numeric_limits<DataType>::is_signed) {
+          // signed int
+          typeIdentifyingConstant = -static_cast<int64_t>(sizeof(DataType));
+        }
+        else {
+          // unsigned int
+          typeIdentifyingConstant = sizeof(DataType);
+        }
+      }
+      else {
+        // floating point
+        typeIdentifyingConstant = 1. / sizeof(DataType);
+      }
     }
+    dataTypeConstant->accessData(0) = toType<DataType>(typeIdentifyingConstant);
+    
     for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
-      constantArray->accessChannel(0)[i] = dataTypeConstant->accessData(0) * i * i;
+      constantArray->accessChannel(0)[i] = toType<DataType>(typeIdentifyingConstant * i * i);
     }
   }
 
@@ -86,7 +97,7 @@ typedef boost::fusion::map<boost::fusion::pair<int8_t, TypedPVHolder<int8_t>>,
     boost::fusion::pair<uint16_t, TypedPVHolder<uint16_t>>, boost::fusion::pair<int32_t, TypedPVHolder<int32_t>>,
     boost::fusion::pair<uint32_t, TypedPVHolder<uint32_t>>, boost::fusion::pair<int64_t, TypedPVHolder<int64_t>>,
     boost::fusion::pair<uint64_t, TypedPVHolder<uint64_t>>, boost::fusion::pair<float, TypedPVHolder<float>>,
-    boost::fusion::pair<double, TypedPVHolder<double>>>
+    boost::fusion::pair<double, TypedPVHolder<double>>, boost::fusion::pair<std::string, TypedPVHolder<std::string>>>
     HolderMap;
 
 class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
@@ -163,7 +174,8 @@ inline void ReferenceTestApplication::initialise() {
           boost::fusion::make_pair<int64_t>(TypedPVHolder<int64_t>(_processVariableManager, "LONG")),
           boost::fusion::make_pair<uint64_t>(TypedPVHolder<uint64_t>(_processVariableManager, "ULONG")),
           boost::fusion::make_pair<float>(TypedPVHolder<float>(_processVariableManager, "FLOAT")),
-          boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE"))));
+          boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE")),
+          boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING"))));
   syncUtil.reset(new ChimeraTK::DeviceSynchronizationUtility(_processVariableManager));
   syncUtil->sendAll();
 }

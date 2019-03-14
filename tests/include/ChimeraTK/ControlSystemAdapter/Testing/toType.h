@@ -6,13 +6,13 @@
  *  which don't have an implcit converstion.
  */
 template<class T>
-T toType(int input) {
+T toType(double input) {
   return input;
 }
 
 /// Template specialisation for strings
 template<>
-inline std::string toType<std::string>(int input) {
+inline std::string toType<std::string>(double input) {
   return std::to_string(input);
 }
 
