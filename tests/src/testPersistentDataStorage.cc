@@ -23,7 +23,6 @@ class MyTestApplication : public ApplicationBase {
 
 BOOST_AUTO_TEST_SUITE(PersistentDataStorageTestSuite)
 
-#if 0
 /**
  *  @todo FIXME No exception tests are yet done. They should be implemented asap!
  */
@@ -183,7 +182,6 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
   }
 }
-#endif
 
 size_t countLinesInFile(const std::string& filename) {
   std::ifstream inFile(filename);
