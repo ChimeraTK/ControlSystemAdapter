@@ -11,6 +11,7 @@ using namespace boost::unit_test_framework;
 #include "UnidirectionalProcessArray.h"
 
 #include "CountingProcessVariableListener.h"
+#include "toType.h"
 
 #include <boost/mpl/list.hpp>
 
@@ -26,16 +27,6 @@ static size_t const N_ELEMENTS = 12;
 // declare and define this constant outside of the ProcessArrayTest class, so
 // that it can be used with references.
 static size_t const SOME_NUMBER = 42;
-
-template<class T>
-T toType(int input) {
-  return input;
-}
-
-template<>
-std::string toType<std::string>(int input) {
-  return std::to_string(input);
-}
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   std::vector<T> referenceVector;
