@@ -121,7 +121,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include
 #We additionally install the reference test application, it's header only
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
         FILES_MATCHING
-            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/ReferenceTestApplication.h")
+            PATTERN "ChimeraTK/ControlSystemAdapter/Testing/*.h")
 
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
