@@ -74,10 +74,8 @@ namespace ChimeraTK {
      * readNonBlocking() method to be called. The process
      * variable passed to the listener is the receiver and not the sender.
      */
-    UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType,
-        bool maySendDestructively,
-        ProcessVariableListener::SharedPtr sendNotificationListener,
-        UnidirectionalProcessArray::SharedPtr receiver,
+    UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType, bool maySendDestructively,
+        ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
         const AccessModeFlags& flags);
 
     ChimeraTK::VersionNumber getVersionNumber() const override { return _versionNumber; }
@@ -288,8 +286,8 @@ namespace ChimeraTK {
 
   /**
    * Creates a synchronized process array. A synchronized process array works
-   * as a pair of two process arrays, where one process array acts as a sender
-   * and the other one acts as a receiver.
+   * as a pair of two process arrays, where the pair's first acts as a sender
+   * and the second one acts as a receiver.
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
@@ -336,8 +334,8 @@ namespace ChimeraTK {
 
   /**
    * Creates a synchronized process array. A synchronized process array works
-   * as a pair of two process arrays, where one process array acts as a sender
-   * and the other one acts as a receiver.
+   * as a pair of two process arrays, where pair's first acts as a sender
+   * and the second one acts as a receiver.
    *
    * The sender allows full read-write access. Changes that have been made to
    * the sender can be sent to the receiver through the
@@ -420,10 +418,8 @@ namespace ChimeraTK {
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType,
-      bool maySendDestructively,
-      ProcessVariableListener::SharedPtr sendNotificationListener,
-      UnidirectionalProcessArray::SharedPtr receiver,
-      const AccessModeFlags& flags)
+      bool maySendDestructively, ProcessVariableListener::SharedPtr sendNotificationListener,
+      UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription(), flags),
     _vectorSize(receiver->_vectorSize), _maySendDestructively(maySendDestructively),
     _sharedState(receiver->_sharedState), _localBuffer(receiver->_localBuffer._value), _receiver(receiver),
