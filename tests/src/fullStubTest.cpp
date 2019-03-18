@@ -4,21 +4,11 @@
 
 #include "ControlSystemSynchronizationUtility.h"
 #include "ReferenceTestApplication.h"
+#include "toDouble.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
-// helper class to covert string to double (abstraced by template)
-template<class UserType>
-double toDouble(UserType input){
-  return input;
-}
-
-template<>
-double toDouble<std::string>(std::string input){
-  return std::stod(input);
-}
-  
 struct TestApplicationFixture {
   std::pair<boost::shared_ptr<ControlSystemPVManager>, boost::shared_ptr<DevicePVManager>> pvManagers;
   boost::shared_ptr<ControlSystemPVManager> csManager;

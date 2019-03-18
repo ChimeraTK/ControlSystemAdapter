@@ -9,20 +9,28 @@ using namespace ChimeraTK;
 #include <ChimeraTK/Device.h>
 #include <ChimeraTK/ScalarRegisterAccessor.h>
 #include <ChimeraTK/TransferGroup.h>
+#include "toType.h"
+#include "toDouble.h"
 
-// always test close for floating point values. Don't rely on exact binary
-// representations
-bool test_close(double a, double b, double tolerance = 0.0001) {
-  if(std::fabs(a - b) < tolerance) {
-    return true;
-  }
-  else {
-    std::cout << a << " - " << b << " is not < " << tolerance << std::endl;
-    return false;
-  }
+template<typename T>
+void check_equal_or_close(T a, T b){
+  BOOST_CHECK_EQUAL(a, b);
 }
 
-bool test_not_close(double a, double b, double tolerance = 0.0001) {
+template<>
+void check_equal_or_close<double>(double a, double b){
+  BOOST_CHECK_CLOSE(a, b,0.0001);
+}
+
+template<>
+void check_equal_or_close<float>(float a, float b){
+  BOOST_CHECK_CLOSE(a, b,0.0001);
+}
+
+
+
+template<typename T=double>
+bool test_not_close(T a, T b, T tolerance =  toType<T>(0.0001)) {
   if(std::fabs(a - b) > tolerance) {
     return true;
   }
@@ -30,6 +38,11 @@ bool test_not_close(double a, double b, double tolerance = 0.0001) {
     std::cout << a << " - " << b << " is not > " << tolerance << std::endl;
     return false;
   }
+}
+
+template<>
+bool test_not_close<std::string>(std::string a, std::string b, std::string /*tolerance*/) {
+  return (a != b);
 }
 
 BOOST_AUTO_TEST_SUITE(TypeChangingDecoratorTestSuite)
@@ -64,12 +77,12 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_CHECK(test_not_close(decoratedScalar.accessData(0), expectedReadValue));
   decoratedScalar.read();
   // internal precision of the register is 16 fractional bits fixed point
-  BOOST_CHECK(test_close(decoratedScalar.accessData(0), expectedReadValue));
+  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue);
 
   decoratedScalar.accessData(0) = startWriteValue;
   decoratedScalar.write();
   anotherScalarAccessor.read();
-  BOOST_CHECK(test_close(anotherScalarAccessor, expectedWriteValue));
+  BOOST_CHECK_CLOSE( toDouble(anotherScalarAccessor), expectedWriteValue, 0.0001);
 
   // repeat the read / write tests with all different functions
 
@@ -86,22 +99,22 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
     hwAccessor->read();
   }
   // still nothing has changed on the user buffer
-  BOOST_CHECK(test_close(decoratedScalar.accessData(0), startWriteValue));
+  check_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue);
   decoratedScalar.postRead();
-  BOOST_CHECK(test_close(decoratedScalar.accessData(0), expectedReadValue + 1));
+  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue + 1);
 
   decoratedScalar.accessData(0) = startWriteValue + 1;
   decoratedScalar.preWrite();
   // nothing changed on the device yet
   anotherScalarAccessor.read();
-  BOOST_CHECK(test_close(anotherScalarAccessor, startReadValue + 1));
+  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), startReadValue + 1, 0.0001);
   for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->write();
   }
   decoratedScalar.postWrite();
 
   anotherScalarAccessor.read();
-  BOOST_CHECK(test_close(anotherScalarAccessor, expectedWriteValue + 1));
+  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue + 1, 0.0001);
 
   // test asynchronouy reading. Check that the modification is arriving in the
   // decorator's buffer
@@ -113,9 +126,9 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
-  BOOST_CHECK(test_close(decoratedScalar.accessData(0), startWriteValue + 1));
+  check_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue + 1);
   future.wait(); // this calls the post-reads correctly
-  BOOST_CHECK(test_close(decoratedScalar.accessData(0), expectedReadValue + 2));
+  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue + 2);
 
   // FIXME: We cannot test that the decorator is relaying doReadTransfer,
   // doReadTransferLatest and do readTransferLatest correctly with the dummy
@@ -144,6 +157,8 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<int, uint16_t>(15, 15, 25, 25);
   testDecorator<int, int32_t>(16, 16, 26, 26);
   testDecorator<int, uint32_t>(17, 17, 27, 27);
+  testDecorator<int, int64_t>(36, 36, -46, -46);
+  testDecorator<int, uint64_t>(37, 37, 47, 47);
   testDecorator<int, float>(18.5, 19, 28, 28);
   testDecorator<int, float>(18.4, 18, 28, 28);
   testDecorator<int, double>(19.5, 20, 29, 29);
@@ -162,10 +177,33 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<float, int32_t>(116, 116, -126.5, -127);
   testDecorator<float, uint32_t>(117, 117, 127.4, 127);
   testDecorator<float, uint32_t>(117, 117, 127.5, 128);
+  testDecorator<float, int64_t>(136, 136, -146.4, -146);
+  testDecorator<float, int64_t>(136, 136, -146.5, -147);
+  testDecorator<float, uint64_t>(137, 137, 147.4, 147);
+  testDecorator<float, uint64_t>(137, 137, 147.5, 148);
   testDecorator<float, float>(118.5, 118.5, 128.6, 128.6);
   testDecorator<float, double>(119.5, 119.5, 129.6, 129.6);
   testDecorator<float, std::string>(101.1, 101.1, 112.2, 112.2);
   testDecorator<double, std::string>(201.1, 201.1, 212.2, 212.2);
+
+  //  testDecorator<std::string, int8_t>(112, "112", "-122.4", -122);
+//  testDecorator<std::string, int8_t>(112, 112, -122.5, -123);
+//  testDecorator<std::string, uint8_t>(113, 113, 123.4, 123);
+//  testDecorator<std::string, uint8_t>(113, 113, 123.5, 124);
+//  testDecorator<std::string, int16_t>(114, 114, -124.4, -124);
+//  testDecorator<std::string, int16_t>(114, 114, -124.5, -125);
+//  testDecorator<std::string, uint16_t>(115, 115, 125.4, 125);
+//  testDecorator<std::string, uint16_t>(115, 115, 125.5, 126);
+//  testDecorator<std::string, int32_t>(116, 116, -126.4, -126);
+//  testDecorator<std::string, int32_t>(116, 116, -126.5, -127);
+//  testDecorator<std::string, uint32_t>(117, 117, 127.4, 127);
+//  testDecorator<std::string, uint32_t>(117, 117, 127.5, 128);
+//  testDecorator<std::string, int64_t>(136, 136, -146.4, -146);
+//  testDecorator<std::string, int64_t>(136, 136, -146.5, -147);
+//  testDecorator<std::string, uint64_t>(137, 137, 147.4, 147);
+//  testDecorator<std::string, uint64_t>(137, 137, 147.5, 148);
+//  testDecorator<std::string, float>(118.5, 118.5, 128.6, 128.6);
+//  testDecorator<std::string, double>(119.5, 119.5, 129.6, 129.6);
 
   testDecorator<int, std::string, TypeChangingDirectCastDecorator>(201, 201, 212, 212);
   testDecorator<float, std::string, TypeChangingDirectCastDecorator>(202, 202, 213, 213);
@@ -201,12 +239,12 @@ void loopTest() {
 
   dut.read();
 
-  BOOST_CHECK(dut.accessData(0, 0) == 100);
-  BOOST_CHECK(dut.accessData(0, 1) == 101);
-  BOOST_CHECK(dut.accessData(1, 0) == 110);
-  BOOST_CHECK(dut.accessData(1, 1) == 112);
-  BOOST_CHECK(dut.accessData(2, 0) == 120);
-  BOOST_CHECK(dut.accessData(2, 1) == 122);
+  BOOST_CHECK_EQUAL(dut.accessData(0, 0), 100);
+  BOOST_CHECK_EQUAL(dut.accessData(0, 1), 101);
+  BOOST_CHECK_EQUAL(dut.accessData(1, 0), 110);
+  BOOST_CHECK_EQUAL(dut.accessData(1, 1), 112);
+  BOOST_CHECK_EQUAL(dut.accessData(2, 0), 120);
+  BOOST_CHECK_EQUAL(dut.accessData(2, 1), 122);
 
   dut.accessData(0, 0) = 200;
   dut.accessData(0, 1) = 201;
@@ -218,12 +256,12 @@ void loopTest() {
 
   anotherAccessor.read();
 
-  BOOST_CHECK(test_close(anotherAccessor[0][0], 200));
-  BOOST_CHECK(test_close(anotherAccessor[0][1], 201));
-  BOOST_CHECK(test_close(anotherAccessor[1][0], 210));
-  BOOST_CHECK(test_close(anotherAccessor[1][1], 212));
-  BOOST_CHECK(test_close(anotherAccessor[2][0], 220));
-  BOOST_CHECK(test_close(anotherAccessor[2][1], 222));
+  BOOST_CHECK_CLOSE(anotherAccessor[0][0], 200., 0.0001);
+  BOOST_CHECK_CLOSE(anotherAccessor[0][1], 201., 0.0001);
+  BOOST_CHECK_CLOSE(anotherAccessor[1][0], 210., 0.0001);
+  BOOST_CHECK_CLOSE(anotherAccessor[1][1], 212., 0.0001);
+  BOOST_CHECK_CLOSE(anotherAccessor[2][0], 220., 0.0001);
+  BOOST_CHECK_CLOSE(anotherAccessor[2][1], 222., 0.0001);
 }
 
 BOOST_AUTO_TEST_CASE(testLoops) {
@@ -310,8 +348,8 @@ BOOST_AUTO_TEST_CASE(testTransferGroup) {
   group.write();
 
   wholeArray.read();
-  BOOST_CHECK(test_close(wholeArray[0], 4321));
-  BOOST_CHECK(test_close(wholeArray[1], 4322));
+  BOOST_CHECK_CLOSE(wholeArray[0], 4321., 0.0001);
+  BOOST_CHECK_CLOSE(wholeArray[1], 4322., 0.0001);
 }
 
 BOOST_AUTO_TEST_CASE(testFactory) {
