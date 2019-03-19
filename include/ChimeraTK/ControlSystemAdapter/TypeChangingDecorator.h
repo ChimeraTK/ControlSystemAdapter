@@ -214,14 +214,13 @@ namespace ChimeraTK {
   class TypeChangingRangeCheckingDecorator<T, std::string> : public TypeChangingStringImplDecorator<T, std::string> {
    public:
     using TypeChangingStringImplDecorator<T, std::string>::TypeChangingStringImplDecorator;
-    void convertAndCopyFromImpl() override {
-      TypeChangingStringImplDecorator<T, std::string>::convertAndCopyFromImpl();
-    }
-    void convertAndCopyToImpl() override { TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl(); }
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<T, std::string>
+
     DecoratorType getDecoratorType() const override { return DecoratorType::range_checking; }
 
    protected:
-    using ChimeraTK::NDRegisterAccessorDecorator<T, std::string>::_target;
+    //    using ChimeraTK::NDRegisterAccessorDecorator<T, std::string>::_target;
   };
 
   /*********************************************************************************************************************/
@@ -316,10 +315,6 @@ namespace ChimeraTK {
   class TypeChangingDirectCastDecorator<T, std::string> : public TypeChangingStringImplDecorator<T, std::string> {
    public:
     using TypeChangingStringImplDecorator<T, std::string>::TypeChangingStringImplDecorator;
-    void convertAndCopyFromImpl() override {
-      TypeChangingStringImplDecorator<T, std::string>::convertAndCopyFromImpl();
-    }
-    void convertAndCopyToImpl() override { TypeChangingStringImplDecorator<T, std::string>::convertAndCopyToImpl(); }
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
   };
 
