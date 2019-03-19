@@ -177,6 +177,27 @@ namespace ChimeraTK {
     }
   };
 
+  /** The actual partial implementation for strings as user type */
+  template<class IMPL_T>
+    class TypeChangingStringImplDecorator<std::string, IMPL_T> : public TypeChangingDecorator<std::string, IMPL_T> {
+   public:
+    using TypeChangingDecorator<std::string, IMPL_T>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->buffer_2D[i][j] = csa_helpers::T_ToString(this->_target->accessChannel(i)[j]);
+        }
+      }
+    }
+    void convertAndCopyToImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->_target->accessChannel(i)[j] = csa_helpers::stringToT<IMPL_T>(this->buffer_2D[i][j]);
+        }
+      }
+    }
+  };
+
   /** This decorator uses the boost numeric converter which performs two tasks:
    *
    *  - a range check (throws boost::numeric::bad_numeric_cast if out of range)
@@ -221,6 +242,18 @@ namespace ChimeraTK {
 
    protected:
     //    using ChimeraTK::NDRegisterAccessorDecorator<T, std::string>::_target;
+  };
+
+  template<class IMPL_T>
+  class TypeChangingRangeCheckingDecorator<std::string, IMPL_T> : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
+   public:
+    using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<T, std::string>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::range_checking; }
+
+   protected:
   };
 
   /*********************************************************************************************************************/
@@ -315,6 +348,15 @@ namespace ChimeraTK {
   class TypeChangingDirectCastDecorator<T, std::string> : public TypeChangingStringImplDecorator<T, std::string> {
    public:
     using TypeChangingStringImplDecorator<T, std::string>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** Partial template specialisation for strings as impl type.
+   */
+  template<class IMPL_T>
+    class TypeChangingDirectCastDecorator<std::string, IMPL_T> : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
+   public:
+    using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
   };
 

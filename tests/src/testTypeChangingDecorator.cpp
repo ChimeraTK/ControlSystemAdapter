@@ -13,23 +13,39 @@ using namespace ChimeraTK;
 #include "toDouble.h"
 
 template<typename T>
-void check_equal_or_close(T a, T b){
-  BOOST_CHECK_EQUAL(a, b);
+bool test_equal_or_close(T a, T b){
+  if (a == b){
+    return true;
+  }
+  else{
+    std::cout << "checking for equality failed: " << a << " != " << b << std::endl;
+    return false;
+  }
 }
 
 template<>
-void check_equal_or_close<double>(double a, double b){
-  BOOST_CHECK_CLOSE(a, b,0.0001);
+bool test_equal_or_close<double>(double a, double b){
+  if (std::fabs(a-b) < 0.0001){
+    return true;
+  }
+  else{
+    std::cout << "checking for being close failed: " << a << " - " << b << " >= 0.0001" << std::endl;
+    return false;
+  }
 }
 
 template<>
-void check_equal_or_close<float>(float a, float b){
-  BOOST_CHECK_CLOSE(a, b,0.0001);
+bool test_equal_or_close<float>(float a, float b){
+  if (std::fabs(a-b) < 0.0001){
+    return true;
+  }
+  else{
+    std::cout << "checking for being close failed: " << a << " - " << b << " >= 0.0001" << std::endl;
+    return false;
+  }
 }
 
-
-
-template<typename T=double>
+template<typename T>
 bool test_not_close(T a, T b, T tolerance =  toType<T>(0.0001)) {
   if(std::fabs(a - b) > tolerance) {
     return true;
@@ -43,6 +59,16 @@ bool test_not_close(T a, T b, T tolerance =  toType<T>(0.0001)) {
 template<>
 bool test_not_close<std::string>(std::string a, std::string b, std::string /*tolerance*/) {
   return (a != b);
+}
+
+template<typename T>
+T add(T startVal, int increment){
+  return startVal + increment;
+}
+
+template<>
+std::string add<std::string>(std::string startVal, int increment){
+  return std::to_string(std::stoi(startVal) + increment);
 }
 
 BOOST_AUTO_TEST_SUITE(TypeChangingDecoratorTestSuite)
@@ -77,7 +103,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_CHECK(test_not_close(decoratedScalar.accessData(0), expectedReadValue));
   decoratedScalar.read();
   // internal precision of the register is 16 fractional bits fixed point
-  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue));
 
   decoratedScalar.accessData(0) = startWriteValue;
   decoratedScalar.write();
@@ -99,11 +125,11 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
     hwAccessor->read();
   }
   // still nothing has changed on the user buffer
-  check_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
   decoratedScalar.postRead();
-  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue + 1);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), add(expectedReadValue,1)));
 
-  decoratedScalar.accessData(0) = startWriteValue + 1;
+  decoratedScalar.accessData(0) = add(startWriteValue, 1);
   decoratedScalar.preWrite();
   // nothing changed on the device yet
   anotherScalarAccessor.read();
@@ -126,9 +152,9 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
-  check_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue + 1);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), add(startWriteValue, 1)));
   future.wait(); // this calls the post-reads correctly
-  check_equal_or_close<T>(decoratedScalar.accessData(0), expectedReadValue + 2);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), add(expectedReadValue, 2)));
 
   // FIXME: We cannot test that the decorator is relaying doReadTransfer,
   // doReadTransferLatest and do readTransferLatest correctly with the dummy
@@ -190,7 +216,7 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
 //  testDecorator<std::string, int8_t>(112, 112, -122.5, -123);
 //  testDecorator<std::string, uint8_t>(113, 113, 123.4, 123);
 //  testDecorator<std::string, uint8_t>(113, 113, 123.5, 124);
-//  testDecorator<std::string, int16_t>(114, 114, -124.4, -124);
+  testDecorator<std::string, int16_t>(114, "114", "-124.4", -124);
 //  testDecorator<std::string, int16_t>(114, 114, -124.5, -125);
 //  testDecorator<std::string, uint16_t>(115, 115, 125.4, 125);
 //  testDecorator<std::string, uint16_t>(115, 115, 125.5, 126);
