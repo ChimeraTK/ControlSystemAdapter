@@ -139,6 +139,14 @@ namespace ChimeraTK {
       return t;
     }
 
+    /// special treatment for int8_t, which is otherwise treated as a character/letter
+    template<>
+    int8_t stringToT<int8_t>(std::string const& input);
+
+    /// special treatment for uint8_t, which is otherwise treated as a character/letter
+    template<>
+    uint8_t stringToT<uint8_t>(std::string const& input);
+
     template<class T>
     std::string T_ToString(T input) {
       std::stringstream s;
@@ -147,6 +155,14 @@ namespace ChimeraTK {
       s >> output;
       return output;
     }
+
+    /// special treatment for uint8_t, which is otherwise treated as a character/letter
+    template<>
+    std::string T_ToString<uint8_t>(uint8_t input);
+
+    /// special treatment for int8_t, which is otherwise treated as a character/letter
+    template<>
+    std::string T_ToString<int8_t>(int8_t input);
 
     template<class S>
     struct Round {
@@ -179,7 +195,7 @@ namespace ChimeraTK {
 
   /** The actual partial implementation for strings as user type */
   template<class IMPL_T>
-    class TypeChangingStringImplDecorator<std::string, IMPL_T> : public TypeChangingDecorator<std::string, IMPL_T> {
+  class TypeChangingStringImplDecorator<std::string, IMPL_T> : public TypeChangingDecorator<std::string, IMPL_T> {
    public:
     using TypeChangingDecorator<std::string, IMPL_T>::TypeChangingDecorator;
     void convertAndCopyFromImpl() override {
@@ -245,7 +261,8 @@ namespace ChimeraTK {
   };
 
   template<class IMPL_T>
-  class TypeChangingRangeCheckingDecorator<std::string, IMPL_T> : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
+  class TypeChangingRangeCheckingDecorator<std::string, IMPL_T>
+  : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
    public:
     using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
     // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
@@ -270,11 +287,8 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   void TypeChangingRangeCheckingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
-    typedef boost::numeric::converter<T,
-        IMPL_T,
-        boost::numeric::conversion_traits<T, IMPL_T>,
-        boost::numeric::def_overflow_handler,
-        csa_helpers::Round<double>>
+    typedef boost::numeric::converter<T, IMPL_T, boost::numeric::conversion_traits<T, IMPL_T>,
+        boost::numeric::def_overflow_handler, csa_helpers::Round<double>>
         FromImplConverter;
     // fixme: are iterartors more efficient?
     try {
@@ -297,11 +311,8 @@ namespace ChimeraTK {
 
   template<class T, class IMPL_T>
   void TypeChangingRangeCheckingDecorator<T, IMPL_T>::convertAndCopyToImpl() {
-    typedef boost::numeric::converter<IMPL_T,
-        T,
-        boost::numeric::conversion_traits<IMPL_T, T>,
-        boost::numeric::def_overflow_handler,
-        csa_helpers::Round<double>>
+    typedef boost::numeric::converter<IMPL_T, T, boost::numeric::conversion_traits<IMPL_T, T>,
+        boost::numeric::def_overflow_handler, csa_helpers::Round<double>>
         ToImplConverter;
     for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
       for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
@@ -354,7 +365,8 @@ namespace ChimeraTK {
   /** Partial template specialisation for strings as impl type.
    */
   template<class IMPL_T>
-    class TypeChangingDirectCastDecorator<std::string, IMPL_T> : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
+  class TypeChangingDirectCastDecorator<std::string, IMPL_T>
+  : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
    public:
     using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
@@ -403,8 +415,7 @@ namespace ChimeraTK {
   // requesting a decorator. Implementation, declared at the top of this file
   template<class UserType>
   boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(
-      const boost::shared_ptr<ChimeraTK::TransferElement>& transferElement,
-      DecoratorType decoratorType) {
+      const boost::shared_ptr<ChimeraTK::TransferElement>& transferElement, DecoratorType decoratorType) {
     // check if there already is a decorator for the transfer element
     auto decoratorMapEntry = getGlobalDecoratorMap().find(transferElement);
     if(decoratorMapEntry != getGlobalDecoratorMap().end()) {

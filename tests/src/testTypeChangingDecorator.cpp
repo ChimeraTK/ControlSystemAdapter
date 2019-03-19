@@ -13,40 +13,40 @@ using namespace ChimeraTK;
 #include "toDouble.h"
 
 template<typename T>
-bool test_equal_or_close(T a, T b){
-  if (a == b){
+bool test_equal_or_close(T a, T b) {
+  if(a == b) {
     return true;
   }
-  else{
+  else {
     std::cout << "checking for equality failed: " << a << " != " << b << std::endl;
     return false;
   }
 }
 
 template<>
-bool test_equal_or_close<double>(double a, double b){
-  if (std::fabs(a-b) < 0.0001){
+bool test_equal_or_close<double>(double a, double b) {
+  if(std::fabs(a - b) < 0.0001) {
     return true;
   }
-  else{
+  else {
     std::cout << "checking for being close failed: " << a << " - " << b << " >= 0.0001" << std::endl;
     return false;
   }
 }
 
 template<>
-bool test_equal_or_close<float>(float a, float b){
-  if (std::fabs(a-b) < 0.0001){
+bool test_equal_or_close<float>(float a, float b) {
+  if(std::fabs(a - b) < 0.0001) {
     return true;
   }
-  else{
+  else {
     std::cout << "checking for being close failed: " << a << " - " << b << " >= 0.0001" << std::endl;
     return false;
   }
 }
 
 template<typename T>
-bool test_not_close(T a, T b, T tolerance =  toType<T>(0.0001)) {
+bool test_not_close(T a, T b, T tolerance = toType<T>(0.0001)) {
   if(std::fabs(a - b) > tolerance) {
     return true;
   }
@@ -61,24 +61,51 @@ bool test_not_close<std::string>(std::string a, std::string b, std::string /*tol
   return (a != b);
 }
 
-
 template<typename T, typename IMPL_T>
-struct Adder{
-  static T add(T startVal, int increment){
-    return startVal + increment;
-  }
+struct Adder {
+  static T add(T startVal, int increment) { return startVal + increment; }
 };
 
 template<typename IMPL_T>
-struct Adder<std::string, IMPL_T>{
-  static std::string add(std::string startVal, int increment){
+struct Adder<std::string, IMPL_T> {
+  static std::string add(std::string startVal, int increment) {
     std::stringstream s_in, s_out;
     s_in << startVal;
     IMPL_T startValImplT;
-    s_in  >> startValImplT;
-    
+    s_in >> startValImplT;
+
     s_out << startValImplT + increment;
-    
+
+    return s_out.str();
+  }
+};
+
+// we need a special implementation for int8, which otherwise is treated as a character/letter
+template<>
+struct Adder<std::string, int8_t> {
+  static std::string add(std::string startVal, int increment) {
+    std::stringstream s_in, s_out;
+    s_in << startVal;
+    int32_t startValImplT;
+    s_in >> startValImplT;
+
+    s_out << startValImplT + increment;
+
+    return s_out.str();
+  }
+};
+
+// we need a special implementation for uint8, which otherwise is treated as a character/letter
+template<>
+struct Adder<std::string, uint8_t> {
+  static std::string add(std::string startVal, int increment) {
+    std::stringstream s_in, s_out;
+    s_in << startVal;
+    uint32_t startValImplT;
+    s_in >> startValImplT;
+
+    s_out << startValImplT + increment;
+
     return s_out.str();
   }
 };
@@ -120,7 +147,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   decoratedScalar.accessData(0) = startWriteValue;
   decoratedScalar.write();
   anotherScalarAccessor.read();
-  BOOST_CHECK_CLOSE( toDouble(anotherScalarAccessor), expectedWriteValue, 0.0001);
+  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue, 0.0001);
 
   // repeat the read / write tests with all different functions
 
@@ -139,9 +166,9 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // still nothing has changed on the user buffer
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
   decoratedScalar.postRead();
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T,IMPL_T>::add(expectedReadValue,1)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 1)));
 
-  decoratedScalar.accessData(0) = Adder<T,IMPL_T>::add(startWriteValue, 1);
+  decoratedScalar.accessData(0) = Adder<T, IMPL_T>::add(startWriteValue, 1);
   decoratedScalar.preWrite();
   // nothing changed on the device yet
   anotherScalarAccessor.read();
@@ -164,9 +191,9 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T,IMPL_T>::add(startWriteValue, 1)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(startWriteValue, 1)));
   future.wait(); // this calls the post-reads correctly
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T,IMPL_T>::add(expectedReadValue, 2)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
 
   // FIXME: We cannot test that the decorator is relaying doReadTransfer,
   // doReadTransferLatest and do readTransferLatest correctly with the dummy
@@ -224,22 +251,22 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<float, std::string>(101.1, 101.1, 112.2, 112.2);
   testDecorator<double, std::string>(201.1, 201.1, 212.2, 212.2);
 
-  //testDecorator<std::string, int8_t>(112, "112", "-122.4", -122);
-//  testDecorator<std::string, int8_t>(112, 112, -122.5, -123);
-//  testDecorator<std::string, uint8_t>(113, 113, 123.4, 123);
-//  testDecorator<std::string, uint8_t>(113, 113, 123.5, 124);
+  testDecorator<std::string, int8_t>(112, "112", "-122.4", -122);
+  testDecorator<std::string, int8_t>(112, "112", "-122.5", -122); // no proper rounding for strings
+  testDecorator<std::string, uint8_t>(113, "113", "123.4", 123);
+  testDecorator<std::string, uint8_t>(113, "113", "123.5", 123); // no proper rounding for strings
   testDecorator<std::string, int16_t>(114, "114", "-124.4", -124);
-  testDecorator<std::string, int16_t>(114, "114", "-124.5", -124);// no proper rounding for strings
+  testDecorator<std::string, int16_t>(114, "114", "-124.5", -124); // no proper rounding for strings
   testDecorator<std::string, uint16_t>(115, "115", "125.4", 125);
-  testDecorator<std::string, uint16_t>(115, "115", "125.5", 125);// no proper rounding for strings
+  testDecorator<std::string, uint16_t>(115, "115", "125.5", 125); // no proper rounding for strings
   testDecorator<std::string, int32_t>(116, "116", "-126.4", -126);
-  testDecorator<std::string, int32_t>(116, "116", "-126.5", -126);// no proper rounding for strings
+  testDecorator<std::string, int32_t>(116, "116", "-126.5", -126); // no proper rounding for strings
   testDecorator<std::string, uint32_t>(117, "117", "127.4", 127);
-  testDecorator<std::string, uint32_t>(117, "117", "127.5", 127);// no proper rounding for strings
+  testDecorator<std::string, uint32_t>(117, "117", "127.5", 127); // no proper rounding for strings
   testDecorator<std::string, int64_t>(136, "136", "-146.4", -146);
-  testDecorator<std::string, int64_t>(136, "136", "-146.5", -146);// no proper rounding for strings
+  testDecorator<std::string, int64_t>(136, "136", "-146.5", -146); // no proper rounding for strings
   testDecorator<std::string, uint64_t>(137, "137", "147.4", 147);
-  testDecorator<std::string, uint64_t>(137, "137", "147.5", 147);// no proper rounding for strings
+  testDecorator<std::string, uint64_t>(137, "137", "147.5", 147); // no proper rounding for strings
   testDecorator<std::string, float>(118.5, "118.5", "128.6", 128.6);
   testDecorator<std::string, double>(119.5, "119.5", "129.6", 129.6);
 
