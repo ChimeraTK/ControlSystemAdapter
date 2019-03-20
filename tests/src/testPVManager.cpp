@@ -126,8 +126,11 @@ BOOST_AUTO_TEST_CASE(testCreatePVs) {
   testCreateProcessVariables<uint16_t>("uint16", devManager, csManager);
   testCreateProcessVariables<int32_t>("int32", devManager, csManager);
   testCreateProcessVariables<uint32_t>("uint32", devManager, csManager);
+  testCreateProcessVariables<int64_t>("int64", devManager, csManager);
+  testCreateProcessVariables<uint64_t>("uint64", devManager, csManager);
   testCreateProcessVariables<float>("float", devManager, csManager);
   testCreateProcessVariables<double>("double", devManager, csManager);
+  testCreateProcessVariables<std::string>("string", devManager, csManager);
 }
 
 BOOST_AUTO_TEST_CASE(testDoublePVName) {
