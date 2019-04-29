@@ -79,12 +79,17 @@ struct TypedPVHolder {
   }
 
   void inputToOutput() {
-    fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
-    fromDeviceScalar->write();
-    for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size(); ++i) {
-      fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
+    if (toDeviceScalar->readLatest()) {
+      fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
+      fromDeviceScalar->write();
     }
-    fromDeviceArray->write();
+
+    if (toDeviceArray->readLatest()) {
+      for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size(); ++i) {
+        fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
+      }
+      fromDeviceArray->write();
+    }
   }
 };
 
@@ -113,7 +118,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   static void runMainLoopOnce();
 
   ReferenceTestApplication(std::string const& applicationName_ = "ReferenceTest");
-  ~ReferenceTestApplication();
+  ~ReferenceTestApplication() override;
 
   /// Inherited from ApplicationBase
   void initialise() override;
@@ -125,9 +130,6 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   boost::scoped_ptr<boost::thread> _deviceThread;
   boost::scoped_ptr<HolderMap> _holderMap;
-
-  // the syncUtil needs to be initalised after the PVs are added to the manager
-  boost::scoped_ptr<ChimeraTK::DeviceSynchronizationUtility> syncUtil;
 
   static std::mutex& mainLoopMutex() {
     static std::mutex _mainLoopMutex;
@@ -176,8 +178,11 @@ inline void ReferenceTestApplication::initialise() {
           boost::fusion::make_pair<float>(TypedPVHolder<float>(_processVariableManager, "FLOAT")),
           boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE")),
           boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING"))));
-  syncUtil.reset(new ChimeraTK::DeviceSynchronizationUtility(_processVariableManager));
-  syncUtil->sendAll();
+
+  for (auto const& variable : _processVariableManager->getAllProcessVariables()) {
+    if (variable->isWriteable())
+      variable->write();
+  }
 }
 
 inline void ReferenceTestApplication::run() {
@@ -226,7 +231,6 @@ struct PerformInputToOutput {
 };
 
 inline void ReferenceTestApplication::mainBody() {
-  syncUtil->receiveAll();
   for_each(*_holderMap, PerformInputToOutput());
 }
 
