@@ -16,6 +16,7 @@
 #include <boost/fusion/include/at_key.hpp>
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/map.hpp>
+#include <boost/optional.hpp>
 
 #include "toType.h"
 
@@ -78,17 +79,17 @@ struct TypedPVHolder {
     }
   }
 
-  void inputToOutput() {
+  void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version) {
     if (toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
-      fromDeviceScalar->write();
+      fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
     }
 
     if (toDeviceArray->readLatest()) {
       for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size(); ++i) {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
-      fromDeviceArray->write();
+      fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()));
     }
   }
 };
@@ -124,6 +125,8 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   void initialise() override;
   /// Inherited from ApplicationBase
   void run() override;
+
+  boost::optional<ChimeraTK::VersionNumber> versionNumber;
 
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
@@ -224,14 +227,19 @@ inline void ReferenceTestApplication::mainLoop() {
 }
 
 struct PerformInputToOutput {
+  PerformInputToOutput(boost::optional<ChimeraTK::VersionNumber> version)
+    : _version(version) {}
+
   template<typename T>
   void operator()(T& t) const {
-    t.second.inputToOutput();
+    t.second.inputToOutput(_version);
   }
+
+  boost::optional<ChimeraTK::VersionNumber> _version;
 };
 
 inline void ReferenceTestApplication::mainBody() {
-  for_each(*_holderMap, PerformInputToOutput());
+  for_each(*_holderMap, PerformInputToOutput(versionNumber));
 }
 
 inline void ReferenceTestApplication::runMainLoopOnce() {
