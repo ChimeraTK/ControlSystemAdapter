@@ -62,11 +62,6 @@ namespace ChimeraTK {
      * process scalar or array is an error and causes an
      * \c ChimeraTK::logic_error exception to be thrown.
      *
-     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-     * <code>false</code> by default), the <code>sendDestructively()</code>
-     * method may be used to transfer values without copying but losing them on
-     * the sender side.
-     *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
      * larger number make loss of data less likely but increases the memory
@@ -80,7 +75,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr createProcessArray(SynchronizationDirection synchronizationDirection,
         const ChimeraTK::RegisterPath& processVariableName, std::size_t size,
         const std::string& unit = ChimeraTK::TransferElement::unitNotSet, const std::string& description = "",
-        T initialValue = T(), bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+        T initialValue = T(), std::size_t numberOfBuffers = 3,
         const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
     /**
@@ -92,11 +87,6 @@ namespace ChimeraTK {
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
-     *
-     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-     * <code>false</code> by default), the <code>sendDestructively()</code>
-     * method may be used to transfer values without copying but losing them on
-     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -111,8 +101,7 @@ namespace ChimeraTK {
     typename ProcessArray<T>::SharedPtr createProcessArray(SynchronizationDirection synchronizationDirection,
         const ChimeraTK::RegisterPath& processVariableName, const std::vector<T>& initialValue,
         const std::string& unit = ChimeraTK::TransferElement::unitNotSet, const std::string& description = "",
-        bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
-        const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
+        std::size_t numberOfBuffers = 3, const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -191,22 +180,19 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection, const ChimeraTK::RegisterPath& processVariableName,
       std::size_t size, const std::string& unit, const std::string& description, T initialValue,
-      bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags& flags) {
+      std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     switch(synchronizationDirection) {
       case controlSystemToDevice:
         return _pvManager
-            ->createProcessArrayControlSystemToDevice<T>(processVariableName, std::vector<T>(size, initialValue), unit,
-                description, maySendDestructively, numberOfBuffers, flags)
+            ->createProcessArrayControlSystemToDevice<T>(
+                processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers, flags)
             .second;
       case deviceToControlSystem:
         return _pvManager
-            ->createProcessArrayDeviceToControlSystem<T>(processVariableName, std::vector<T>(size, initialValue), unit,
-                description, maySendDestructively, numberOfBuffers, flags)
+            ->createProcessArrayDeviceToControlSystem<T>(
+                processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers, flags)
             .second;
       case bidirectional:
-        if(maySendDestructively) {
-          throw ChimeraTK::logic_error("A bidirectional process variable cannot be sent destructively.");
-        }
         return _pvManager
             ->createBidirectionalProcessArray<T>(
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers)
@@ -220,22 +206,19 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr DevicePVManager::createProcessArray(
       SynchronizationDirection synchronizationDirection, const ChimeraTK::RegisterPath& processVariableName,
       const std::vector<T>& initialValue, const std::string& unit, const std::string& description,
-      bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags& flags) {
+      std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     switch(synchronizationDirection) {
       case controlSystemToDevice:
         return _pvManager
-            ->createProcessArrayControlSystemToDevice<T>(processVariableName, initialValue, unit, description,
-                maySendDestructively, numberOfBuffers, {}, {}, flags)
+            ->createProcessArrayControlSystemToDevice<T>(
+                processVariableName, initialValue, unit, description, numberOfBuffers, {}, {}, flags)
             .second;
       case deviceToControlSystem:
         return _pvManager
-            ->createProcessArrayDeviceToControlSystem<T>(processVariableName, initialValue, unit, description,
-                maySendDestructively, numberOfBuffers, {}, {}, flags)
+            ->createProcessArrayDeviceToControlSystem<T>(
+                processVariableName, initialValue, unit, description, numberOfBuffers, {}, {}, flags)
             .second;
       case bidirectional:
-        if(maySendDestructively) {
-          throw ChimeraTK::logic_error("A bidirectional process variable cannot be sent destructively.");
-        }
         return _pvManager
             ->createBidirectionalProcessArray<T>(processVariableName, initialValue, unit, description, numberOfBuffers)
             .second;

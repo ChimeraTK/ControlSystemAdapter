@@ -102,11 +102,6 @@ namespace ChimeraTK {
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
      *
-     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-     * <code>false</code> by default), the <code>sendDestructively()</code>
-     * method may be used to transfer values without copying but losing them on
-     * the sender side.
-     *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
      * larger number make loss of data less likely but increases the memory
@@ -121,7 +116,7 @@ namespace ChimeraTK {
     std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
         createProcessArrayDeviceToControlSystem(ChimeraTK::RegisterPath const& processVariableName,
             const std::vector<T>& initialValue, const std::string& unit = ChimeraTK::TransferElement::unitNotSet,
-            const std::string& description = "", bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+            const std::string& description = "", std::size_t numberOfBuffers = 3,
             const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
     /**
@@ -134,11 +129,6 @@ namespace ChimeraTK {
      * The array's size is set to the number of elements stored in the vector
      * provided for initialization and all elements are initialized with the
      * values provided by this vector.
-     *
-     * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-     * <code>false</code> by default), the <code>sendDestructively()</code>
-     * method may be used to transfer values without copying but losing them on
-     * the sender side.
      *
      * The number of buffers (the minimum and default value is two) is the max.
      * number of values that can be queued in the transfer queue. Specifying a
@@ -154,7 +144,7 @@ namespace ChimeraTK {
     std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
         createProcessArrayControlSystemToDevice(ChimeraTK::RegisterPath const& processVariableName,
             const std::vector<T>& initialValue, const std::string& unit = ChimeraTK::TransferElement::unitNotSet,
-            const std::string& description = "", bool maySendDestructively = false, std::size_t numberOfBuffers = 3,
+            const std::string& description = "", std::size_t numberOfBuffers = 3,
             const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
     /**
@@ -386,7 +376,7 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> PVManager::
       createProcessArrayDeviceToControlSystem(ChimeraTK::RegisterPath const& processVariableName,
           const std::vector<T>& initialValue, const std::string& unit, const std::string& description,
-          bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags& flags) {
+          std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     if(_processVariables.find(processVariableName) != _processVariables.end()) {
       throw ChimeraTK::logic_error("Process variable with name " + processVariableName + " already exists.");
     }
@@ -395,8 +385,8 @@ namespace ChimeraTK {
         boost::make_shared<DeviceSendNotificationListenerImpl>(shared_from_this());
 
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description, numberOfBuffers,
-            maySendDestructively, sendNotificationListener, flags);
+        createSynchronizedProcessArray<T>(
+            initialValue, processVariableName, unit, description, numberOfBuffers, sendNotificationListener, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName, std::make_pair(processVariables.second, processVariables.first)));
@@ -413,7 +403,7 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> PVManager::
       createProcessArrayControlSystemToDevice(ChimeraTK::RegisterPath const& processVariableName,
           const std::vector<T>& initialValue, const std::string& unit, const std::string& description,
-          bool maySendDestructively, std::size_t numberOfBuffers, const AccessModeFlags& flags) {
+          std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     if(_processVariables.find(processVariableName) != _processVariables.end()) {
       throw ChimeraTK::logic_error("Process variable with name " + processVariableName + " already exists.");
     }
@@ -422,8 +412,8 @@ namespace ChimeraTK {
         boost::make_shared<ControlSystemSendNotificationListenerImpl>(shared_from_this());
 
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description, numberOfBuffers,
-            maySendDestructively, sendNotificationListener, flags);
+        createSynchronizedProcessArray<T>(
+            initialValue, processVariableName, unit, description, numberOfBuffers, sendNotificationListener, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName, std::make_pair(processVariables.first, processVariables.second)));

@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
   boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
       boost::make_shared<CountingProcessVariableListener>());
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 2, false, sendNotificationListener);
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 2, sendNotificationListener);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sendNotificationListener->count == 0);
@@ -169,18 +169,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, true);
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // If we send three values consecutively, they all should be received because
   // the queue length is two and there is the additional atomic triple buffer
   // holding a third value
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 1));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 2));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0).size(), N_ELEMENTS);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
@@ -206,13 +206,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // last but one value being dropped. The latest value should be preserved,
   // since it is in the atomic triple buffer
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 3));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 4));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 5));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 6));
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // Same as before but this time with more values
   for(int i = 0; i < 10; ++i) {
     sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + i));
-    sender->writeDestructively();
+    sender->doWriteTransferDestructively();
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
@@ -267,25 +267,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
       ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 5));
   }
-
-  // Calling writeDestructively() on a sender that has not the corresponding
-  // flag set should result in an exception.
-  senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 2, false);
-  sender = senderReceiver.first;
-  receiver = senderReceiver.second;
-  BOOST_CHECK_THROW(sender->writeDestructively(), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, true);
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // After sending destructively and receiving a value, the version number on
   // the receiver should be greater.
   VersionNumber initialVersionNumber = receiver->getVersionNumber();
   sender->accessChannel(0)[0] = toType<T>(1);
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   VersionNumber versionNumber = receiver->getVersionNumber();
   BOOST_CHECK(versionNumber > initialVersionNumber);
@@ -293,14 +286,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // When we send again specifying the same version number, there should still
   // be the update of the receiver.
   sender->accessChannel(0)[0] = toType<T>(2);
-  sender->writeDestructively(versionNumber);
+  sender->doWriteTransferDestructively(versionNumber);
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(versionNumber == receiver->getVersionNumber());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(2));
   // When we explicitly use a greater version number, the receiver should be
   // updated again.
   sender->accessChannel(0)[0] = toType<T>(3);
-  sender->writeDestructively();
+  sender->doWriteTransferDestructively();
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(3));
@@ -308,7 +301,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // receive an exception
   sender->accessChannel(0)[0] = toType<T>(4);
   try {
-    sender->writeDestructively(versionNumber);
+    sender->doWriteTransferDestructively(versionNumber);
     BOOST_ERROR("Exception expected.");
   }
   catch(ChimeraTK::logic_error&) {
@@ -346,7 +339,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testBlockingRead, T, test_types) {
-  auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, true);
+  auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
   auto sender = senderReceiver.first;
   auto receiver = senderReceiver.second;
 

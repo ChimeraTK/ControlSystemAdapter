@@ -184,29 +184,6 @@ namespace ChimeraTK {
 
     void doPostWrite() override;
 
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * The specified version number is passed to the receiver. If the receiver
-     * has a value with a version number greater than or equal to the specified
-     * version number, it silently discards this update.
-     *
-     * This version of the send operation moves the current value from the
-     * sender to the receiver without copying it. This means that after calling
-     * this method, the sender's value, time stamp, and version number are
-     * undefined. Therefore, this method must only be used if this process
-     * variable is not read (on the sender side) after sending it.
-     *
-     * Throws an exception if this process variable is not a sender or if this
-     * process variable does not allow destructive sending.
-     */
-    bool writeDestructively(ChimeraTK::VersionNumber versionNumber = {}) override; /// @todo FIXME this function must be
-                                                                                   /// present in TransferElement
-                                                                                   /// already!
-
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
     /**
@@ -436,7 +413,7 @@ namespace ChimeraTK {
     _sender->accessChannel(0) = this->accessChannel(0);
     // We already copied the value, so the sender does not have to copy the
     // value again.
-    bool lostData = _sender->writeDestructively(versionNumber);
+    bool lostData = _sender->doWriteTransferDestructively(versionNumber);
     // After sending the new value, our current version number are the one from
     // the sender.
     _versionNumber = versionNumber;
@@ -457,14 +434,6 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doPostWrite() {}
-
-  /*********************************************************************************************************************/
-
-  template<class T>
-  bool BidirectionalProcessArray<T>::writeDestructively(ChimeraTK::VersionNumber) {
-    throw ChimeraTK::runtime_error("This process variable must not be sent destructively because it is a "
-                                   "bidirectional process variable.");
-  }
 
   /*********************************************************************************************************************/
 
@@ -500,9 +469,9 @@ namespace ChimeraTK {
           ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
     auto senderReceiver1 =
-        createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, true, {}, flags);
+        createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
-        createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, true, {}, flags);
+        createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
     // We create a default-constructed version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.
@@ -532,9 +501,9 @@ namespace ChimeraTK {
           std::size_t numberOfBuffers, ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
     auto senderReceiver1 =
-        createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, true, {}, flags);
+        createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
-        createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, true, {}, flags);
+        createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
     // We create a default-constructed version number because we
     // want to be sure that initially both sides have the same time stamp and
     // version number.

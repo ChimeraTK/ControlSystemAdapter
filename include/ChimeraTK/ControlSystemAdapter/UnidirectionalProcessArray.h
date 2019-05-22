@@ -64,17 +64,13 @@ namespace ChimeraTK {
      * it. It uses the buffers and queues that have been created by the
      * receiver.
      *
-     * If the <code>maySendDestructively</code> flag is <code>true</code>, the
-     * {@link ProcessArray::writeDestructively()} method may be used to transfer
-     * values without copying but losing them on the sender side.
-     *
      * The optional send-notification listener is notified every time the
      * sender's ProcessArray::write() method is called. It can be
      * used to queue a request for the receiver's
      * readNonBlocking() method to be called. The process
      * variable passed to the listener is the receiver and not the sender.
      */
-    UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType, bool maySendDestructively,
+    UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType,
         ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
         const AccessModeFlags& flags);
 
@@ -113,9 +109,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool writeDestructively(ChimeraTK::VersionNumber versionNumber = {}) override; /// @todo FIXME this function must be
-                                                                                   /// present in TransferElement
-                                                                                   /// already!
+    bool doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber = {}) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
@@ -176,12 +170,6 @@ namespace ChimeraTK {
      * Number of elements that each vector (and thus this array) has.
      */
     std::size_t _vectorSize;
-
-    /**
-     * Flag indicating whether the {@code sendDestructively} methods may be used
-     * on this process array.
-     */
-    bool _maySendDestructively;
 
     /**
      * The state shared between the sender and the receiver
@@ -279,10 +267,9 @@ namespace ChimeraTK {
     std::atomic<bool> threadSafetyCheckInitialised; // std::atomic<bool> defaults to false
   };
 
-  /*********************************************************************************************************************/
-  /*** Non-member functions below this line
-   * ****************************************************************************/
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
+  /*** Non-member functions below this line ***************************************************************************/
+  /********************************************************************************************************************/
 
   /**
    * Creates a synchronized process array. A synchronized process array works
@@ -306,11 +293,6 @@ namespace ChimeraTK {
    * in a row without losing data when readNonBlocking() is not
    * called in between.
    *
-   * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-   * <code>false</code> by default), the {@link
-   * ProcessArray::writeDestructively()} method may be used to transfer values
-   * without copying but losing them on the sender side.
-   *
    * The specified time-stamp source is used for determining the current time
    * when sending a value. The receiver will be updated with this time stamp
    * when receiving the value. If no time-stamp source is specified, the current
@@ -328,7 +310,6 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       std::size_t size, const ChimeraTK::RegisterPath& name = "", const std::string& unit = "",
       const std::string& description = "", T initialValue = T(), std::size_t numberOfBuffers = 3,
-      bool maySendDestructively = false,
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
@@ -354,11 +335,6 @@ namespace ChimeraTK {
    * in a row without losing data when readNonBlocking() is not
    * called in between.
    *
-   * If the <code>maySendDestructively</code> flag is <code>true</code> (it is
-   * <code>false</code> by default), the {@link
-   * ProcessArray::writeDestructively()} method may be used to transfer values
-   * without copying but losing them on the senderdoWriteTransfer side.
-   *
    * The specified time-stamp source is used for determining the current time
    * when sending a value. The receiver will be updated with this time stamp
    * when receiving the value. If no time-stamp source is specified, the current
@@ -377,21 +353,20 @@ namespace ChimeraTK {
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> createSynchronizedProcessArray(
       const std::vector<T>& initialValue, const ChimeraTK::RegisterPath& name = "", const std::string& unit = "",
-      const std::string& description = "", std::size_t numberOfBuffers = 3, bool maySendDestructively = false,
+      const std::string& description = "", std::size_t numberOfBuffers = 3,
       ProcessVariableListener::SharedPtr sendNotificationListener = ProcessVariableListener::SharedPtr(),
       const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
-  /*********************************************************************************************************************/
-  /*** Implementations of member functions below this line
-   * *************************************************************/
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
+  /*** Implementations of member functions below this line ************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType,
       const ChimeraTK::RegisterPath& name, const std::string& unit, const std::string& description,
       const std::vector<T>& initialValue, std::size_t numberOfBuffers, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, name, unit, description, flags), _vectorSize(initialValue.size()),
-    _maySendDestructively(false), _sharedState(numberOfBuffers, initialValue.size()), _localBuffer(initialValue) {
+    _sharedState(numberOfBuffers, initialValue.size()), _localBuffer(initialValue) {
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
@@ -414,15 +389,15 @@ namespace ChimeraTK {
     }
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   UnidirectionalProcessArray<T>::UnidirectionalProcessArray(typename ProcessArray<T>::InstanceType instanceType,
-      bool maySendDestructively, ProcessVariableListener::SharedPtr sendNotificationListener,
-      UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags& flags)
+      ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
+      const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription(), flags),
-    _vectorSize(receiver->_vectorSize), _maySendDestructively(maySendDestructively),
-    _sharedState(receiver->_sharedState), _localBuffer(receiver->_localBuffer._value), _receiver(receiver),
+    _vectorSize(receiver->_vectorSize), _sharedState(receiver->_sharedState),
+    _localBuffer(receiver->_localBuffer._value), _receiver(receiver),
     _sendNotificationListener(sendNotificationListener) {
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
@@ -441,7 +416,7 @@ namespace ChimeraTK {
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
@@ -450,7 +425,7 @@ namespace ChimeraTK {
     /// doReadTransferLatest()
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
@@ -459,7 +434,7 @@ namespace ChimeraTK {
     /// doReadTransferLatest()
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
@@ -477,7 +452,7 @@ namespace ChimeraTK {
     return receivedData;
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   ChimeraTK::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
@@ -493,7 +468,7 @@ namespace ChimeraTK {
     /// doReadTransferLatest() (but asynchronous)
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::doPostRead() {
@@ -509,26 +484,21 @@ namespace ChimeraTK {
     _versionNumber = _localBuffer._versionNumber;
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doWriteTransfer(ChimeraTK::VersionNumber versionNumber) {
     return writeInternal(versionNumber, true);
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
-  bool UnidirectionalProcessArray<T>::writeDestructively(ChimeraTK::VersionNumber versionNumber) {
-    if(!_maySendDestructively) {
-      throw ChimeraTK::logic_error("This process variable must not be sent "
-                                   "destructively because the corresponding flag "
-                                   "has not been set.");
-    }
+  bool UnidirectionalProcessArray<T>::doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber) {
     return writeInternal(versionNumber, false);
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   void UnidirectionalProcessArray<T>::setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
@@ -548,7 +518,7 @@ namespace ChimeraTK {
     }
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   bool UnidirectionalProcessArray<T>::writeInternal(VersionNumber newVersionNumber, bool shouldCopy) {
@@ -610,35 +580,33 @@ namespace ChimeraTK {
     return !dataNotLost;
   }
 
-  /*********************************************************************************************************************/
-  /*** Implementations of non-member functions below this line
-   * *********************************************************/
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
+  /*** Implementations of non-member functions below this line ********************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
       createSynchronizedProcessArray(std::size_t size, const ChimeraTK::RegisterPath& name, const std::string& unit,
-          const std::string& description, T initialValue, std::size_t numberOfBuffers, bool maySendDestructively,
+          const std::string& description, T initialValue, std::size_t numberOfBuffers,
           ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags) {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::RECEIVER, name, unit, description, std::vector<T>(size, initialValue), numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
-        ProcessArray<T>::SENDER, maySendDestructively, sendNotificationListener, receiver, flags);
+        ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
     return {sender, receiver};
   }
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
       createSynchronizedProcessArray(const std::vector<T>& initialValue, const ChimeraTK::RegisterPath& name,
           const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
-          bool maySendDestructively, ProcessVariableListener::SharedPtr sendNotificationListener,
-          const AccessModeFlags& flags) {
+          ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags) {
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::RECEIVER, name, unit, description, initialValue, numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
-        ProcessArray<T>::SENDER, maySendDestructively, sendNotificationListener, receiver, flags);
+        ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
     return {sender, receiver};
   }
 

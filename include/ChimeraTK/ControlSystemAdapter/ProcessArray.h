@@ -74,29 +74,6 @@ namespace ChimeraTK {
 
     bool isReadOnly() const override { return !isWriteable(); }
 
-    /**
-     * Sends the current value to the receiver. Returns <code>true</code> if an
-     * empty buffer was available and <code>false</code> if no empty buffer was
-     * available and thus a previously sent value has been dropped in order to
-     * send the current value.
-     *
-     * The specified version number is passed to the receiver. If the receiver
-     * has a value with a version number greater than or equal to the specified
-     * version number, it silently discards this update.
-     *
-     * This version of the send operation moves the current value from the
-     * sender to the receiver without copying it. This means that after calling
-     * this method, the sender's value, time stamp, and version number are
-     * undefined. Therefore, this method must only be used if this process
-     * variable is not read (on the sender side) after sending it.
-     *
-     * Throws an exception if this process variable is not a sender or if this
-     * process variable does not allow destructive sending.
-     */
-    virtual bool writeDestructively(ChimeraTK::VersionNumber versionNumber = {}) = 0; /// @todo FIXME this function must
-                                                                                      /// be present in TransferElement
-                                                                                      /// already!
-
     /** Return a unique ID of this process variable, which will be indentical for
      * the receiver and sender side of the same variable but different for any
      * other process variable within the same process. The unique ID will not be
@@ -131,20 +108,16 @@ namespace ChimeraTK {
     AccessModeFlags _flags;
   };
 
-  /*********************************************************************************************************************/
-  /*** Implementations of member functions below this line
-   * *************************************************************/
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
+  /*** Implementations of member functions below this line ************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
-  ProcessArray<T>::ProcessArray(InstanceType instanceType,
-      const ChimeraTK::RegisterPath& name,
-      const std::string& unit,
-      const std::string& description,
-      const AccessModeFlags& flags)
+  ProcessArray<T>::ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name, const std::string& unit,
+      const std::string& description, const AccessModeFlags& flags)
   : ChimeraTK::NDRegisterAccessor<T>(name, unit, description), _instanceType(instanceType), _flags(flags) {}
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T>
   ProcessArray<T>::~ProcessArray() {}
