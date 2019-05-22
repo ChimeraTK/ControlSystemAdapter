@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
-  senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test", "", "", 5, false);
+  senderReceiver = createSynchronizedProcessArray<T>(referenceVector, "test", "", "", 5);
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/test");
