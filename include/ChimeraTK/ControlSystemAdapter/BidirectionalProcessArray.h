@@ -9,8 +9,6 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include <ChimeraTK/ExperimentalFeatures.h>
-
 #include "PersistentDataStorage.h"
 #include "ProcessVariableListener.h"
 #include "UnidirectionalProcessArray.h"
@@ -57,10 +55,6 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
-   *
-   * Note: biderectional process arrays are still experimental, so experimental
-   * features must be enable when using this function (see
-   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
@@ -110,10 +104,6 @@ namespace ChimeraTK {
    * Of the two returned process arrays, only the first one can take an
    * optional persistent data storage. Trying to set a persistent data storage
    * on the first one results in an exception.
-   *
-   * Note: biderectional process arrays are still experimental, so experimental
-   * features must be enable when using this function (see
-   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
@@ -129,10 +119,6 @@ namespace ChimeraTK {
    * directions.
    *
    * This class is not thread-safe and should only be used from a single thread.
-   *
-   * Note: biderectional process arrays are still experimental, so experimental
-   * features must be enable when using this class (see
-   * ChimeraTK::ExperimentalFeatures in DeviceAccess).
    */
   template<class T>
   class BidirectionalProcessArray : public ProcessArray<T> {
@@ -285,7 +271,6 @@ namespace ChimeraTK {
     _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(receiver),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId), _versionNumber(initialVersionNumber) {
-    ChimeraTK::ExperimentalFeatures::check("BidirectionalProcessArray");
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
     if(sender && !_sender) {

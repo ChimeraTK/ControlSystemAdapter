@@ -28,8 +28,6 @@ BOOST_AUTO_TEST_SUITE(BidirectionalProcessArrayTestSuite)
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
 BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
@@ -86,8 +84,6 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
 BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
@@ -144,8 +140,6 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
 // Test that passing on values (e.g. to other ApplicationCore modules) and
 // sending back corrected values works as expected
 BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
   // "favoured" direction - this is only for clarification of the test
   // scenario). Values read from Ar are passed on to Bs, after limiting the
@@ -199,8 +193,6 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
 // Test that passing on values (e.g. to other ApplicationCore modules) and
 // sending back corrected values works as expected
 BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
   // "favoured" direction - this is only for clarification of the test
   // scenario). Values read from Ar are passed on to Bs, after limiting the
@@ -253,8 +245,6 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
 
 // Test that send notification listeners are called correctly.
 BOOST_AUTO_TEST_CASE(testListeners) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   DoubleArray::SharedPtr pv1, pv2;
   auto listener1 = make_shared<CountingProcessVariableListener>();
   auto listener2 = make_shared<CountingProcessVariableListener>();
@@ -289,8 +279,6 @@ BOOST_AUTO_TEST_CASE(testListeners) {
 
 // Test that the data-transfer mechanism works.
 BOOST_AUTO_TEST_CASE(testSync) {
-  ChimeraTK::ExperimentalFeatures::enable();
-
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 2.0;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue, 2);
