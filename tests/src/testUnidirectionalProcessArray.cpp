@@ -476,3 +476,34 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
     }
   }
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(testValidiy, T, test_types) {
+  typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
+    createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
+  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
+  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
+
+  /* Check that the initial state is "ok" */
+  BOOST_CHECK(sender->dataValidity() == ChimeraTK::DataValidity::ok);
+  BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::ok);
+
+  /* Check that the fault state is transported correctly from sender to receiver */
+  sender->setDataValidity(ChimeraTK::DataValidity::faulty);
+  sender->write();
+  receiver->read();
+  BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::faulty);
+
+  /* Check that intermediate fault states are dropped if readLatest() is used */
+  sender->write();
+  for(int k = 0; k < 10; ++k) {
+    sender->accessData(0) = toType<T>(k);
+    sender->write();
+  }
+  sender->setDataValidity(ChimeraTK::DataValidity::ok);
+  sender->write();
+  receiver->readLatest();
+  BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::ok);
+
+  /* Check that you cannot set validity on a read-only ProcessArray */
+  BOOST_CHECK_THROW(receiver->setDataValidity(ChimeraTK::DataValidity::faulty), ChimeraTK::logic_error);
+}

@@ -277,6 +277,31 @@ BOOST_AUTO_TEST_CASE(testListeners) {
 
 /**********************************************************************************************************************/
 
+BOOST_AUTO_TEST_CASE(testValidity) {
+  DoubleArray::SharedPtr pv1, pv2;
+  double initialValue = 2.0;
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue, 2);
+  // Both sides should be initialized to zero.
+  BOOST_CHECK_CLOSE(pv1->accessData(0), initialValue, 0.001);
+  BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
+
+  /* Check that the initial state is "ok" */
+  BOOST_CHECK(pv1->dataValidity() == ChimeraTK::DataValidity::ok);
+  BOOST_CHECK(pv2->dataValidity() == ChimeraTK::DataValidity::ok);
+
+  /* Check that the fault state is transported correctly from sender to receiver */
+  pv1->setDataValidity(ChimeraTK::DataValidity::faulty);
+  pv1->write();
+  pv2->read();
+  BOOST_CHECK(pv2->dataValidity() == ChimeraTK::DataValidity::faulty);
+
+  /* Check that the state is propagated back to pv1 if not reset */
+  pv1->setDataValidity(ChimeraTK::DataValidity::ok);
+  pv2->write();
+  pv1->read();
+  BOOST_CHECK(pv1->dataValidity() == ChimeraTK::DataValidity::faulty);
+}
+
 // Test that the data-transfer mechanism works.
 BOOST_AUTO_TEST_CASE(testSync) {
   DoubleArray::SharedPtr pv1, pv2;

@@ -152,6 +152,12 @@ namespace ChimeraTK {
 
     VersionNumber getVersionNumber() const override { return _versionNumber; }
 
+    void setDataValidity(ChimeraTK::DataValidity valid) {
+      _dataValidity = valid;
+    }
+
+    ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
+
     void doPreRead() override;
 
     void doReadTransfer() override;
@@ -247,6 +253,11 @@ namespace ChimeraTK {
      * to be used. This is why we store a separate copy of the version number.
      */
     VersionNumber _versionNumber;
+
+    /**
+     * Flag for data validity.
+     */
+    DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
 
     /**
      * Callback to be called when values get rejected. This is used by
@@ -376,6 +387,9 @@ namespace ChimeraTK {
     // After receiving, our new time stamp and version number are the ones
     // that we got from the receiver.
     _versionNumber = _receiver->getVersionNumber();
+
+    // Same applies to the data validity flag
+    _dataValidity = _receiver->dataValidity();
     // If we have a persistent data-storage, we have to update it. We have to
     // do this because a (new) value received from the other side should be
     // treated like a value sent by this side.
@@ -402,6 +416,10 @@ namespace ChimeraTK {
     // After sending the new value, our current version number are the one from
     // the sender.
     _versionNumber = versionNumber;
+
+    // Propagate validity flag
+    _sender->setDataValidity(_dataValidity);
+
     // If we have a persistent data-storage, we have to update it.
     if(_persistentDataStorage) {
       _persistentDataStorage->updateValue(_persistentDataStorageID, _sender->accessChannel(0));

@@ -76,6 +76,15 @@ namespace ChimeraTK {
 
     ChimeraTK::VersionNumber getVersionNumber() const override { return _versionNumber; }
 
+    void setDataValidity(ChimeraTK::DataValidity valid) {
+      if (not ProcessArray<T>::isWriteable())
+        throw ChimeraTK::logic_error("Cannot set data validity on a read-only ProcessArray");
+
+      _dataValidity = valid;
+    }
+
+    ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
+
     void doReadTransfer() override;
 
     bool doReadTransferNonBlocking() override;
@@ -151,11 +160,12 @@ namespace ChimeraTK {
 
       Buffer() {}
 
-      Buffer(Buffer&& other) : _value(std::move(other._value)), _versionNumber(other._versionNumber) {}
+      Buffer(Buffer&& other) : _value(std::move(other._value)), _versionNumber(other._versionNumber), _dataValidity(other._dataValidity) {}
 
       Buffer& operator=(Buffer&& other) {
         _value = std::move(other._value);
         _versionNumber = other._versionNumber;
+        _dataValidity = other._dataValidity;
         return *this;
       }
 
@@ -164,6 +174,9 @@ namespace ChimeraTK {
 
       /** Version number of this data */
       ChimeraTK::VersionNumber _versionNumber;
+
+      /** Whether or not the data in the bufer is considered valid */
+      ChimeraTK::DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
     };
 
     /**
@@ -208,6 +221,11 @@ namespace ChimeraTK {
      * NDRegisterAccessor<T>::buffer_2D
      */
     VersionNumber _versionNumber;
+
+    /**
+     * Local copy of the Buffer's data validity flag
+     */
+    DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
 
     /**
      * Pointer to the receiver associated with this sender. This field is only
@@ -482,6 +500,7 @@ namespace ChimeraTK {
     // swap data out of the local buffer into the user buffer
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
     _versionNumber = _localBuffer._versionNumber;
+    _dataValidity = _localBuffer._dataValidity;
   }
 
   /********************************************************************************************************************/
@@ -558,6 +577,7 @@ namespace ChimeraTK {
 
     // Set time stamp and version number
     _localBuffer._versionNumber = newVersionNumber;
+    _localBuffer._dataValidity = dataValidity();
     _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
