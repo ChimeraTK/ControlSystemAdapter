@@ -388,8 +388,11 @@ namespace ChimeraTK {
     // that we got from the receiver.
     _versionNumber = _receiver->getVersionNumber();
 
-    // Same applies to the data validity flag
+    // Pass on data validity flag from sender to receiver and make it our
+    // our internal validity flag
     _dataValidity = _receiver->dataValidity();
+    _sender->setDataValidity(_dataValidity);
+
     // If we have a persistent data-storage, we have to update it. We have to
     // do this because a (new) value received from the other side should be
     // treated like a value sent by this side.
@@ -412,13 +415,14 @@ namespace ChimeraTK {
     _sender->accessChannel(0) = this->accessChannel(0);
     // We already copied the value, so the sender does not have to copy the
     // value again.
+
+    // Propagate validity flag
+    _sender->setDataValidity(_dataValidity);
+
     bool lostData = _sender->doWriteTransferDestructively(versionNumber);
     // After sending the new value, our current version number are the one from
     // the sender.
     _versionNumber = versionNumber;
-
-    // Propagate validity flag
-    _sender->setDataValidity(_dataValidity);
 
     // If we have a persistent data-storage, we have to update it.
     if(_persistentDataStorage) {
