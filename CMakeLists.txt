@@ -41,7 +41,7 @@ ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(ChimeraTK-DeviceAccess 01.02 REQUIRED)
+add_dependency(ChimeraTK-DeviceAccess 01.04 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
