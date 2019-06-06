@@ -130,7 +130,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   boost::optional<ChimeraTK::VersionNumber> versionNumber;
 
-  ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::faulty};
+  ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::ok};
 
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
