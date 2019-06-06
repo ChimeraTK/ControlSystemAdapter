@@ -79,9 +79,10 @@ struct TypedPVHolder {
     }
   }
 
-  void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version) {
+  void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version,  ChimeraTK::DataValidity validity) {
     if (toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
+      fromDeviceScalar->setDataValidity(validity);
       fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
     }
 
@@ -89,6 +90,7 @@ struct TypedPVHolder {
       for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size(); ++i) {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
+      fromDeviceArray->setDataValidity(validity);
       fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()));
     }
   }
@@ -127,6 +129,8 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   void run() override;
 
   boost::optional<ChimeraTK::VersionNumber> versionNumber;
+
+  ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::faulty};
 
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
@@ -227,19 +231,20 @@ inline void ReferenceTestApplication::mainLoop() {
 }
 
 struct PerformInputToOutput {
-  PerformInputToOutput(boost::optional<ChimeraTK::VersionNumber> version)
-    : _version(version) {}
+  PerformInputToOutput(boost::optional<ChimeraTK::VersionNumber> version, ChimeraTK::DataValidity validity)
+    : _version(version), _validity(validity) {}
 
   template<typename T>
   void operator()(T& t) const {
-    t.second.inputToOutput(_version);
+    t.second.inputToOutput(_version, _validity);
   }
 
   boost::optional<ChimeraTK::VersionNumber> _version;
+  ChimeraTK::DataValidity _validity;
 };
 
 inline void ReferenceTestApplication::mainBody() {
-  for_each(*_holderMap, PerformInputToOutput(versionNumber));
+  for_each(*_holderMap, PerformInputToOutput(versionNumber, dataValidity));
 }
 
 inline void ReferenceTestApplication::runMainLoopOnce() {
