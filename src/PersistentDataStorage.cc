@@ -17,7 +17,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
 PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
-                                             unsigned int fileWriteFrequency_sec) : _fileWriteFrequency_sec(fileWriteFrequency_sec) {
+                                             unsigned int fileWriteInterval) : _fileWriteInterval(fileWriteInterval) {
   _filename = applicationName + ".persist";
   _applicationName = applicationName;
   readFromFile();
@@ -37,7 +37,7 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
 
   void PersistentDataStorage::writerThreadFunction() {
     while(true) {
-      for(unsigned int i = 0; i < _fileWriteFrequency_sec; ++i) {
+      for(unsigned int i = 0; i < _fileWriteInterval; ++i) {
         sleep(1);
         boost::this_thread::interruption_point();
       }

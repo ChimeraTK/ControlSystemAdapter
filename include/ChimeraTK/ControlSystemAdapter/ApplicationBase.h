@@ -71,9 +71,9 @@ namespace ChimeraTK {
     /** Return the name of the application */
     const std::string& getName() const { return applicationName; }
 
-    /** Obtain the PersistentDataStorage object */
-    boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage(unsigned int writeFrequency_sec = PersistentDataStorage::DEFAULT_WRITE_FREQUENCY) {
-      if(!_persistentDataStorage) _persistentDataStorage.reset(new PersistentDataStorage(applicationName, writeFrequency_sec));
+    /** Obtain the PersistentDataStorage object. You can specify the write interval in seconds. */
+    boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage(unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
+      if(!_persistentDataStorage) _persistentDataStorage.reset(new PersistentDataStorage(applicationName, writeInterval));
       return _persistentDataStorage;
     }
 

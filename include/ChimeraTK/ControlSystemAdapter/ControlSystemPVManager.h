@@ -118,10 +118,10 @@ namespace ChimeraTK {
     /**
      * Enable the persistent data storage system provided by the
      * ControlSystemAdapter. This function requires an existing instance of an
-     * ApplicationBase class.
+     * ApplicationBase class. You can specify the write interval in seconds.
      */
-    void enablePersistentDataStorage(unsigned int writeFrequency_sec = PersistentDataStorage::DEFAULT_WRITE_FREQUENCY) {
-      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeFrequency_sec);
+    void enablePersistentDataStorage(unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
+      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeInterval);
     }
 
    private:
