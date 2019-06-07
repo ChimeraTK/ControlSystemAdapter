@@ -21,8 +21,8 @@ namespace ChimeraTK {
    * so that only one thread uses the PV manager at a time.
    *
    * Each instance of this class interacts with an associated instance of
-   * {@link DevicePVManager}, however these interactions are implemented in a
-   * thread-safe manner, so parallel access to the {@link DevicePVManager} by a
+   * DevicePVManager, however these interactions are implemented in a
+   * thread-safe manner, so parallel access to the DevicePVManager by a
    * device threads is not an issue.
    */
   class ControlSystemPVManager {
@@ -31,7 +31,7 @@ namespace ChimeraTK {
    private:
     /**
      * Private constructor. Construction should be done through the
-     * {@link createPVManager()} function.
+     * createPVManager() function.
      */
     ControlSystemPVManager(boost::shared_ptr<PVManager> pvManager);
 
@@ -54,12 +54,12 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const
+     * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, std::size_t, const std::string&, const
-     * std::string&, T, bool, std::size_t, const AccessModeFlags&)} or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const
+     * std::string&, T, bool, std::size_t, const AccessModeFlags&) or
+     * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&)} method. Returns a
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
      * pointer to <code>null</code> if there is no process scalar or array with
      * the specified name. Throws a bad_cast exception if there is a process
      * scalar or array with the specified name but its type does not match.
@@ -70,12 +70,12 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created
      * earlier using the
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const
+     * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, std::size_t, const std::string&, const
-     * std::string&, T, bool, std::size_t, const AccessModeFlags&)}, or
-     * {@link DevicePVManager::createProcessArray(SynchronizationDirection, const
+     * std::string&, T, bool, std::size_t, const AccessModeFlags&), or
+     * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&)} method. Returns a
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
      * pointer to <code>null</code> if there is no process scalar or array with
      * the specified name.
      */
@@ -83,7 +83,7 @@ namespace ChimeraTK {
      * FIXME: It these should be links, but Doxygen can't resolve then, so we
      * leave it normal to avoid non-working links:
      *
-     * The {@link getProcessArray(const ChimeraTK::RegisterPath&)} methods should
+     * The getProcessArray(const ChimeraTK::RegisterPath&) methods should
      * be preferred
      */
     /** The \c getProcessScalar(const ChimeraTK::RegisterPath&) and
@@ -126,7 +126,7 @@ namespace ChimeraTK {
 
    private:
     /**
-     * Reference to the {@link PVManager} backing this facade for the control
+     * Reference to the PVManager backing this facade for the control
      * system.
      */
     boost::shared_ptr<PVManager> _pvManager;

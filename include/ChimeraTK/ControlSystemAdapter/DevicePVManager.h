@@ -106,12 +106,12 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process array that has been created earlier
      * using the
-     * {@link createProcessArray(SynchronizationDirection, const
+     * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, std::size_t, const std::string&, const
-     * std::string&, T, bool, std::size_t, const AccessModeFlags&)} or
-     * {@link createProcessArray(SynchronizationDirection, const
+     * std::string&, T, bool, std::size_t, const AccessModeFlags&) or
+     * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&)} method. Returns a
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
      * pointer to <code>null</code> if there is no process scalar or array with
      * the specified name. Throws a bad_cast exception if there is a process
      * scalar or array with the specified name but its type does not match.
@@ -122,12 +122,12 @@ namespace ChimeraTK {
     /**
      * Returns a reference to a process scalar or array that has been created
      * earlier using the
-     * {@link createProcessArray(SynchronizationDirection, const
+     * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, std::size_t, const std::string&, const
-     * std::string&, T, bool, std::size_t, const AccessModeFlags&)}, or
-     * {@link createProcessArray(SynchronizationDirection, const
+     * std::string&, T, bool, std::size_t, const AccessModeFlags&), or
+     * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&)} method. Returns a
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
      * pointer to <code>null</code> if there is no process scalar or array with
      * the specified name.
      */

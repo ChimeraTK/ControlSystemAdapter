@@ -44,8 +44,8 @@ namespace ChimeraTK {
     /**
      * Removes a receive notification listener that has previously been
      * registered with
-     * {@link #addReceiveNotificationListener(ChimeraTK::RegisterPath const &,
-     * ProcessVariableListener::SharedPtr)}. If no listener is registered for the
+     * addReceiveNotificationListener(ChimeraTK::RegisterPath const &,
+     * ProcessVariableListener::SharedPtr). If no listener is registered for the
      * specified process variable name, this method does nothing.
      */
     void removeReceiveNotificationListener(ProcessVariable::SharedPtr const& processVariable);
