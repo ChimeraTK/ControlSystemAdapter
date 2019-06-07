@@ -111,12 +111,12 @@ namespace ChimeraTK {
       std::vector<DataType> _latestValue{};
 
     public:
-      Queue(size_t queueSize = 2) : _q(queueSize){};
+      Queue(size_t queueSize = 2) : _q(queueSize){}
       void push_overwrite(const std::vector<DataType> &e) {
         _q.push_overwrite(e);
       }
       std::vector<DataType> &read_latest() {
-        while (!_q.pop(_latestValue)) {
+        while (_q.pop(_latestValue)) {
         }
         return _latestValue;
       }
