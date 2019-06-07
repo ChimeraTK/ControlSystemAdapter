@@ -120,8 +120,8 @@ namespace ChimeraTK {
      * ControlSystemAdapter. This function requires an existing instance of an
      * ApplicationBase class.
      */
-    void enablePersistentDataStorage() {
-      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage();
+    void enablePersistentDataStorage(unsigned int writeFrequency_sec = PersistentDataStorage::DEFAULT_WRITE_FREQUENCY) {
+      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeFrequency_sec);
     }
 
    private:

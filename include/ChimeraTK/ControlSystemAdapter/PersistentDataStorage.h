@@ -45,8 +45,12 @@ namespace ChimeraTK {
    */
   class PersistentDataStorage {
    public:
+
+    /** unit in seconds */
+    static const unsigned int DEFAULT_WRITE_FREQUENCY{30};
+
     /** Constructor: Open and parse the storage file. */
-    PersistentDataStorage(std::string const& applicationName);
+    PersistentDataStorage(std::string const& applicationName, unsigned int fileWriteFrequency_sec = DEFAULT_WRITE_FREQUENCY);
 
     /** Destructor: Store variables to the file. */
     ~PersistentDataStorage();
@@ -133,6 +137,8 @@ namespace ChimeraTK {
     void writerThreadFunction();
 
     std::mutex _queueReadMutex;
+
+    std::atomic<unsigned int> _fileWriteFrequency_sec{};
 
     /** A functor needed in registerVariable() */
     struct registerVariable_oldTypeRemover {
