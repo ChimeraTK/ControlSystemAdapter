@@ -125,10 +125,11 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     auto csManager = pvManagers.first;
     auto devManager = pvManagers.second;
 
-    // create some variables
+    // create some variables, incl. bi-directional
     devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
     devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
     devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+    devManager->createProcessArray<uint32_t>(SynchronizationDirection::bidirectional, "SomeBidirectionalVar", 7);
 
     // enable persist data storage
     csManager->enablePersistentDataStorage();
@@ -145,6 +146,10 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     auto v3 = devManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     for(int i = 0; i < 7; ++i) v3->accessChannel(0)[i] = 9 * i + 666;
     v3->write();
+
+    auto v4 = csManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
+    for(uint32_t i = 0; i < 7; ++i) v4->accessChannel(0)[i] = i + 123;
+    v4->write();
   }
 
   // second application instance: check if stored values are properly retrieved
@@ -161,6 +166,7 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     devManager->createProcessArray<uint16_t>(SynchronizationDirection::controlSystemToDevice, "SomeCsToDevVar", 7);
     devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "AnotherCsToDevVar", 42);
     devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "SomeDevToCsVar", 7);
+    devManager->createProcessArray<uint32_t>(SynchronizationDirection::bidirectional, "SomeBidirectionalVar", 7);
 
     // enable persist data storage
     csManager->enablePersistentDataStorage();
@@ -180,6 +186,47 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     v3->readNonBlocking();
     for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+
+    auto v4dev = devManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
+    v4dev->readLatest();
+    for(uint32_t i = 0; i < 7; ++i) BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i + 123);
+
+    // now test that also writing from the device goes to the persistency
+    for(uint32_t i = 0; i < 7; ++i) v4dev->accessChannel(0)[i] = i * 12;
+    v4dev->write();
+
+    // data is only persisted once it arrived in the control system. So we have to read it from the control system side.
+    auto v4cs = csManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
+    v4cs->readLatest();
+  }
+
+  // check in another instance that also the data written from the device side has been persisted.
+  {
+    // create instance of test application
+    MyTestApplication myTestApplication{"myTestApplication"};
+
+    // create PV managers
+    auto pvManagers = createPVManager();
+    auto csManager = pvManagers.first;
+    auto devManager = pvManagers.second;
+
+    // create some variables
+    devManager->createProcessArray<uint32_t>(SynchronizationDirection::bidirectional, "SomeBidirectionalVar", 7);
+
+    // enable persist data storage
+    csManager->enablePersistentDataStorage();
+
+    // obtain all variables from the manager to initialise them with the persistent data storage
+    csManager->getAllProcessVariables();
+
+    auto v4cs = csManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
+    auto v4dev = devManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
+    v4cs->readNonBlocking();
+    v4dev->readNonBlocking();
+    for(uint32_t i = 0; i < 7; ++i){
+        BOOST_CHECK_EQUAL(v4cs->accessChannel(0)[i], i *12);
+        BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i *12);
+    }
   }
 }
 

@@ -397,7 +397,7 @@ namespace ChimeraTK {
     // do this because a (new) value received from the other side should be
     // treated like a value sent by this side.
     if(_persistentDataStorage) {
-      _persistentDataStorage->updateValue(_persistentDataStorageID, _sender->accessChannel(0));
+      _persistentDataStorage->updateValue(_persistentDataStorageID, this->accessChannel(0));
     }
   }
 
@@ -426,7 +426,7 @@ namespace ChimeraTK {
 
     // If we have a persistent data-storage, we have to update it.
     if(_persistentDataStorage) {
-      _persistentDataStorage->updateValue(_persistentDataStorageID, _sender->accessChannel(0));
+      _persistentDataStorage->updateValue(_persistentDataStorageID, this->accessChannel(0));
     }
     if(_sendNotificationListener) {
       typename ProcessArray<T>::SharedPtr partner = _partner.lock();
@@ -446,7 +446,7 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
-    if(_allowPersistentDataStorage) {
+    if(!_allowPersistentDataStorage) {
       throw ChimeraTK::logic_error("This device side of a process array must not be associated with a "
                                    "persistent data storage.");
     }
