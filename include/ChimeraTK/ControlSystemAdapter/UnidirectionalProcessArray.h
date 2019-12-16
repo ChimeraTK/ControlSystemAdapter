@@ -239,6 +239,13 @@ namespace ChimeraTK {
     boost::shared_ptr<ProcessVariableListener> _sendNotificationListener;
 
     /**
+     * TransferFuture to be returned by doReadTransferAsync().
+     */
+    TransferFuture readAsyncFuture{_sharedState._queue.template then<void>(
+                                       [this](Buffer& b) { std::swap(_localBuffer, b); }, std::launch::deferred),
+        this};
+
+    /**
      * Persistent data storage which needs to be informed when the process
      * variable is sent.
      */
@@ -479,9 +486,7 @@ namespace ChimeraTK {
     }
 
     // return the future
-    return TransferFuture(_sharedState._queue.template then<void>(
-                              [this](Buffer& b) { std::swap(_localBuffer, b); }, std::launch::deferred),
-        this);
+    return readAsyncFuture;
     /// @todo if wait_for_new_data is not set, make identical to
     /// doReadTransferLatest() (but asynchronous)
   }
