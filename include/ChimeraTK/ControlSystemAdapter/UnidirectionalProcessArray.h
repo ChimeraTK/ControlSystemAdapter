@@ -564,8 +564,7 @@ namespace ChimeraTK {
     // even less than the last version number used. Such an attempt indicates
     // that there is a problem in the logic attempting the write operation.
     if(newVersionNumber < _versionNumber) {
-      throw ChimeraTK::logic_error("The version number passed to write is less than or equal to the last "
-                                   "version number used.");
+      throw ChimeraTK::logic_error("The version number passed to write() is less than the last version number used.");
     }
 
     // First update the persistent data storage, if any was associated. This
