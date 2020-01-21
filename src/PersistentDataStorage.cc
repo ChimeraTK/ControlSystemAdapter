@@ -43,7 +43,6 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
       }
       /// @todo FIXME make the variable access proper for a multi-threaded
       /// environment!!!
-      std::lock_guard<std::mutex> lock(_queueReadMutex);
       writeToFile();
     }
   }
@@ -119,6 +118,8 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
 
   template<typename DataType>
   void PersistentDataStorage::generateXmlValueTags(xmlpp::Element* parent, size_t id) {
+    std::lock_guard<std::mutex> lock(_queueReadMutex);
+
     // obtain the data vector from the map
     std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
 
