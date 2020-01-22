@@ -47,7 +47,7 @@ namespace ChimeraTK {
    public:
 
     /** unit in seconds */
-    static const unsigned int DEFAULT_WRITE_INTERVAL{10}; // 30 seconds
+    static const unsigned int DEFAULT_WRITE_INTERVAL{30}; // 30 seconds
 
     /** Constructor: Open and parse the storage file. */
     PersistentDataStorage(std::string const& applicationName, unsigned int fileWriteInterval = DEFAULT_WRITE_INTERVAL);
