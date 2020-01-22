@@ -118,11 +118,10 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
 
   template<typename DataType>
   void PersistentDataStorage::generateXmlValueTags(xmlpp::Element* parent, size_t id) {
-    std::lock_guard<std::mutex> lock(_queueReadMutex);
-
+    _queueReadMutex.lock();
     // obtain the data vector from the map
     std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
-
+    _queueReadMutex.unlock();
     // add one child element per element of the value
     for(size_t idx = 0; idx < value.size(); ++idx) {
       xmlpp::Element* valueElement = parent->add_child("val");
