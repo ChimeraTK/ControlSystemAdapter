@@ -483,7 +483,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testValidiy, T, test_types) {
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
-  /* Check that the initial state is "ok" */
+  /* Check that the initial state is "ok" on sender and "faulty" on receiver side */
+  BOOST_CHECK(sender->dataValidity() == ChimeraTK::DataValidity::ok);
+  BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::faulty);
+
+  /* A single write will transport the ok flag to the receiver side */
+  sender->write();
+  receiver->read();
   BOOST_CHECK(sender->dataValidity() == ChimeraTK::DataValidity::ok);
   BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::ok);
 
