@@ -283,6 +283,18 @@ namespace ChimeraTK {
 
     /** Flag whether threadSafetyCheckLastId has been filled already */
     std::atomic<bool> threadSafetyCheckInitialised; // std::atomic<bool> defaults to false
+
+    template<typename U>
+    friend std::pair<typename ProcessArray<U>::SharedPtr, typename ProcessArray<U>::SharedPtr>
+        createSynchronizedProcessArray(std::size_t size, const ChimeraTK::RegisterPath& name, const std::string& unit,
+            const std::string& description, U initialValue, std::size_t numberOfBuffers,
+            ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags);
+
+    template<typename U>
+    friend std::pair<typename ProcessArray<U>::SharedPtr, typename ProcessArray<U>::SharedPtr>
+        createSynchronizedProcessArray(const std::vector<U>& initialValue, const ChimeraTK::RegisterPath& name,
+            const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
+            ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags);
   };
 
   /********************************************************************************************************************/
@@ -612,6 +624,11 @@ namespace ChimeraTK {
         ProcessArray<T>::RECEIVER, name, unit, description, std::vector<T>(size, initialValue), numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
+
+    // Receiving end has initially no valid data. Since we keep the sender at "ok", this will be overwritten once the
+    // first real data arrives.
+    receiver->_dataValidity = DataValidity::faulty;
+
     return {sender, receiver};
   }
 
@@ -626,6 +643,11 @@ namespace ChimeraTK {
         ProcessArray<T>::RECEIVER, name, unit, description, initialValue, numberOfBuffers, flags);
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
+
+    // Receiving end has initially no valid data. Since we keep the sender at "ok", this will be overwritten once the
+    // first real data arrives.
+    receiver->_dataValidity = DataValidity::faulty;
+
     return {sender, receiver};
   }
 
