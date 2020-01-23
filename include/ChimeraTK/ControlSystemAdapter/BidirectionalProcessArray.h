@@ -252,7 +252,7 @@ namespace ChimeraTK {
      * read or write, the version number from the receiver or sender is supposed
      * to be used. This is why we store a separate copy of the version number.
      */
-    VersionNumber _versionNumber;
+    VersionNumber _versionNumber{nullptr};
 
     /**
      * Flag for data validity.
@@ -479,10 +479,6 @@ namespace ChimeraTK {
         createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
         createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
-    // We create a default-constructed version number because we
-    // want to be sure that initially both sides have the same time stamp and
-    // version number.
-    VersionNumber versionNumber;
     // The unique ID has to be the same for both process arrays that belong to
     // the pair, but it has to be different from the one used by all other
     // process arrays. We simply use the unique ID used by the second
@@ -490,10 +486,10 @@ namespace ChimeraTK {
     std::size_t uniqueId = senderReceiver2.first->getUniqueId();
     typename boost::shared_ptr<BidirectionalProcessArray<T>> pv1 =
         boost::make_shared<BidirectionalProcessArray<T>>(uniqueId, name, unit, description, true,
-            senderReceiver2.second, senderReceiver1.first, sendNotificationListener1, versionNumber, flags);
+            senderReceiver2.second, senderReceiver1.first, sendNotificationListener1, VersionNumber{nullptr}, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T>> pv2 =
         boost::make_shared<BidirectionalProcessArray<T>>(uniqueId, name, unit, description, false,
-            senderReceiver1.second, senderReceiver2.first, sendNotificationListener2, versionNumber, flags);
+            senderReceiver1.second, senderReceiver2.first, sendNotificationListener2, VersionNumber{nullptr}, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>(pv1, pv2);
@@ -511,10 +507,6 @@ namespace ChimeraTK {
         createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
         createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
-    // We create a default-constructed version number because we
-    // want to be sure that initially both sides have the same time stamp and
-    // version number.
-    VersionNumber versionNumber;
     // The unique ID has to be the same for both process arrays that belong to
     // the pair, but it has to be different from the one used by all other
     // process arrays. We simply use the unique ID used by the second
@@ -522,10 +514,10 @@ namespace ChimeraTK {
     std::size_t uniqueId = senderReceiver2.first->getUniqueId();
     typename boost::shared_ptr<BidirectionalProcessArray<T>> pv1 =
         boost::make_shared<BidirectionalProcessArray<T>>(uniqueId, name, unit, description, true,
-            senderReceiver2.second, senderReceiver1.first, sendNotificationListener1, versionNumber, flags);
+            senderReceiver2.second, senderReceiver1.first, sendNotificationListener1, VersionNumber{nullptr}, flags);
     typename boost::shared_ptr<BidirectionalProcessArray<T>> pv2 =
         boost::make_shared<BidirectionalProcessArray<T>>(uniqueId, name, unit, description, false,
-            senderReceiver1.second, senderReceiver2.first, sendNotificationListener2, versionNumber, flags);
+            senderReceiver1.second, senderReceiver2.first, sendNotificationListener2, VersionNumber{nullptr}, flags);
     pv1->_partner = pv2;
     pv2->_partner = pv1;
     return std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>(pv1, pv2);

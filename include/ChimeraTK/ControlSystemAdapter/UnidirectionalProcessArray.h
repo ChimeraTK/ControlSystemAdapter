@@ -173,7 +173,7 @@ namespace ChimeraTK {
       std::vector<T> _value;
 
       /** Version number of this data */
-      ChimeraTK::VersionNumber _versionNumber;
+      ChimeraTK::VersionNumber _versionNumber{nullptr};
 
       /** Whether or not the data in the bufer is considered valid */
       ChimeraTK::DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
@@ -220,7 +220,7 @@ namespace ChimeraTK {
      * Local copy of the version number belonging to the
      * NDRegisterAccessor<T>::buffer_2D
      */
-    VersionNumber _versionNumber;
+    VersionNumber _versionNumber{nullptr};
 
     /**
      * Local copy of the Buffer's data validity flag
