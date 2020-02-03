@@ -43,7 +43,6 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
       }
       /// @todo FIXME make the variable access proper for a multi-threaded
       /// environment!!!
-      std::lock_guard<std::mutex> lock(_queueReadMutex);
       writeToFile();
     }
   }
@@ -119,14 +118,18 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
 
   template<typename DataType>
   void PersistentDataStorage::generateXmlValueTags(xmlpp::Element* parent, size_t id) {
-    // obtain the data vector from the map
-    std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
-
+    std::vector<DataType>* pValue;
+    {
+      // obtain the data vector from the map
+      std::lock_guard<std::mutex> lock(_queueReadMutex);
+      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+      pValue = &value;
+    }
     // add one child element per element of the value
-    for(size_t idx = 0; idx < value.size(); ++idx) {
+    for(size_t idx = 0; idx < pValue->size(); ++idx) {
       xmlpp::Element* valueElement = parent->add_child("val");
       valueElement->set_attribute("i", boost::lexical_cast<std::string>(idx));
-      valueElement->set_attribute("v", boost::lexical_cast<std::string>(value[idx]));
+      valueElement->set_attribute("v", boost::lexical_cast<std::string>((*pValue)[idx]));
     }
   }
 
