@@ -304,7 +304,6 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doPreRead() {
-    _receiver->preRead();
   }
 
   /*********************************************************************************************************************/
@@ -419,7 +418,7 @@ namespace ChimeraTK {
     // Propagate validity flag
     _sender->setDataValidity(_dataValidity);
 
-    bool lostData = _sender->doWriteTransferDestructively(versionNumber);
+    bool lostData = _sender->writeDestructively(versionNumber);
     // After sending the new value, our current version number are the one from
     // the sender.
     _versionNumber = versionNumber;
