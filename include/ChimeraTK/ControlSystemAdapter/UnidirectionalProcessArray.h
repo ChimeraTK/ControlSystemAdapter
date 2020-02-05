@@ -544,8 +544,8 @@ namespace ChimeraTK {
           ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size()) {
         ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] =
             _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-        doWriteTransfer();
       }
+      this->write();
     }
   }
 
