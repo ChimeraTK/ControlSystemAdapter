@@ -176,11 +176,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // the queue length is two and there is the additional atomic triple buffer
   // holding a third value
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 1));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 2));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0).size(), N_ELEMENTS);
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
@@ -206,13 +206,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // last but one value being dropped. The latest value should be preserved,
   // since it is in the atomic triple buffer
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 3));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 4));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 5));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 6));
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
       ++i) {
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // Same as before but this time with more values
   for(int i = 0; i < 10; ++i) {
     sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + i));
-    sender->doWriteTransferDestructively();
+    sender->writeTransferDestructively(VersionNumber{});
   }
   BOOST_CHECK(receiver->readNonBlocking());
   for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // the receiver should be greater.
   VersionNumber initialVersionNumber = receiver->getVersionNumber();
   sender->accessChannel(0)[0] = toType<T>(1);
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   BOOST_CHECK(receiver->readNonBlocking());
   VersionNumber versionNumber = receiver->getVersionNumber();
   BOOST_CHECK(versionNumber > initialVersionNumber);
@@ -286,14 +286,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // When we send again specifying the same version number, there should still
   // be the update of the receiver.
   sender->accessChannel(0)[0] = toType<T>(2);
-  sender->doWriteTransferDestructively(versionNumber);
+  sender->writeTransferDestructively(versionNumber);
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(versionNumber == receiver->getVersionNumber());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(2));
   // When we explicitly use a greater version number, the receiver should be
   // updated again.
   sender->accessChannel(0)[0] = toType<T>(3);
-  sender->doWriteTransferDestructively();
+  sender->writeTransferDestructively(VersionNumber{});
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(3));
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // receive an exception
   sender->accessChannel(0)[0] = toType<T>(4);
   try {
-    sender->doWriteTransferDestructively(versionNumber);
+    sender->writeTransferDestructively(versionNumber);
     BOOST_ERROR("Exception expected.");
   }
   catch(ChimeraTK::logic_error&) {
