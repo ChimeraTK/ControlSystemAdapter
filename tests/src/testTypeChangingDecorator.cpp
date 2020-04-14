@@ -159,24 +159,24 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   /// should be implemented.
   anotherScalarAccessor = startReadValue + 1;
   anotherScalarAccessor.write();
-  decoratedScalar.preRead();
+  decoratedScalar.preRead(ChimeraTK::TransferType::read);
   for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->read();
   }
   // still nothing has changed on the user buffer
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
-  decoratedScalar.postRead();
+  decoratedScalar.postRead(ChimeraTK::TransferType::read);
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 1)));
 
   decoratedScalar.accessData(0) = Adder<T, IMPL_T>::add(startWriteValue, 1);
-  decoratedScalar.preWrite();
+  decoratedScalar.preWrite(ChimeraTK::TransferType::write);
   // nothing changed on the device yet
   anotherScalarAccessor.read();
   BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), startReadValue + 1, 0.0001);
   for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->write();
   }
-  decoratedScalar.postWrite();
+  decoratedScalar.postWrite(ChimeraTK::TransferType::write);
 
   anotherScalarAccessor.read();
   BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue + 1, 0.0001);
