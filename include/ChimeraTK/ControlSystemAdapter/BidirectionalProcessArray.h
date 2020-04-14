@@ -158,7 +158,7 @@ namespace ChimeraTK {
 
     ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
 
-    void doPreRead() override;
+    void doPreRead(ChimeraTK::TransferType type) override;
 
     void doReadTransfer() override;
 
@@ -168,13 +168,13 @@ namespace ChimeraTK {
 
     ChimeraTK::TransferFuture doReadTransferAsync() override;
 
-    void doPostRead() override;
+    void doPostRead(ChimeraTK::TransferType type) override;
 
-    void doPreWrite() override;
+    void doPreWrite(ChimeraTK::TransferType type) override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
 
-    void doPostWrite() override;
+    void doPostWrite(ChimeraTK::TransferType type) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
@@ -303,7 +303,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreRead() {
+  void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType) {
   }
 
   /*********************************************************************************************************************/
@@ -368,7 +368,7 @@ namespace ChimeraTK {
   ChimeraTK::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
     auto notificationQueue = ChimeraTK::detail::getFutureQueueFromTransferFuture(_receiver->readAsync());
     auto continuation = [this] {
-      _receiver->postRead();
+      _receiver->postRead(ChimeraTK::TransferType::readAsync);
       if(_receiver->getVersionNumber() < _versionNumber) {
         _receiver->readAsync();
         if(valueRejectCallback) valueRejectCallback();
@@ -381,7 +381,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostRead() {
+  void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType) {
     this->accessChannel(0).swap(_receiver->accessChannel(0));
     // After receiving, our new time stamp and version number are the ones
     // that we got from the receiver.
@@ -403,7 +403,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreWrite() {}
+  void BidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType) {}
 
   /*********************************************************************************************************************/
 
@@ -439,7 +439,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostWrite() {}
+  void BidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType) {}
 
   /*********************************************************************************************************************/
 

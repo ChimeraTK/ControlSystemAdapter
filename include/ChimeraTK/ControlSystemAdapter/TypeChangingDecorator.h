@@ -90,20 +90,19 @@ namespace ChimeraTK {
 
     virtual void convertAndCopyFromImpl() = 0;
     virtual void convertAndCopyToImpl() = 0;
+    void doPreRead(ChimeraTK::TransferType type) override { _target->preRead(type); }
 
-    void doPreRead() override { _target->preRead(); }
-
-    void doPostRead() override {
-      _target->postRead();
+    void doPostRead(ChimeraTK::TransferType type) override {
+      _target->postRead(type);
       convertAndCopyFromImpl();
     }
 
-    void doPreWrite() override {
+    void doPreWrite(ChimeraTK::TransferType type) override {
       convertAndCopyToImpl();
-      _target->preWrite();
+      _target->preWrite(type);
     }
 
-    void doPostWrite() override { _target->postWrite(); }
+    void doPostWrite(ChimeraTK::TransferType type) override { _target->postWrite(type); }
 
     bool mayReplaceOther(const boost::shared_ptr<ChimeraTK::TransferElement const>& other) const override {
       auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T, IMPL_T> const>(other);
