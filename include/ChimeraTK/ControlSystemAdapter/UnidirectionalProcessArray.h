@@ -77,7 +77,7 @@ namespace ChimeraTK {
     ChimeraTK::VersionNumber getVersionNumber() const override { return _versionNumber; }
 
     void setDataValidity(ChimeraTK::DataValidity valid) {
-      if (not ProcessArray<T>::isWriteable())
+      if(not ProcessArray<T>::isWriteable())
         throw ChimeraTK::logic_error("Cannot set data validity on a read-only ProcessArray");
 
       _dataValidity = valid;
@@ -160,7 +160,8 @@ namespace ChimeraTK {
 
       Buffer() {}
 
-      Buffer(Buffer&& other) : _value(std::move(other._value)), _versionNumber(other._versionNumber), _dataValidity(other._dataValidity) {}
+      Buffer(Buffer&& other)
+      : _value(std::move(other._value)), _versionNumber(other._versionNumber), _dataValidity(other._dataValidity) {}
 
       Buffer& operator=(Buffer&& other) {
         _value = std::move(other._value);
@@ -503,16 +504,18 @@ namespace ChimeraTK {
   template<class T>
   void UnidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
     assert(checkThreadSafety());
+    if(hasNewData) {
 
-    // We have to check that the vector that we currently own still has the
-    // right size. Otherwise, the code using the sender might get into
-    // trouble when it suddenly experiences a vector of the wrong size.
-    assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
+      // We have to check that the vector that we currently own still has the
+      // right size. Otherwise, the code using the sender might get into
+      // trouble when it suddenly experiences a vector of the wrong size.
+      assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
 
-    // swap data out of the local buffer into the user buffer
-    ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
-    _versionNumber = _localBuffer._versionNumber;
-    _dataValidity = _localBuffer._dataValidity;
+      // swap data out of the local buffer into the user buffer
+      ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
+      _versionNumber = _localBuffer._versionNumber;
+      _dataValidity = _localBuffer._dataValidity;
+    }
   }
 
   /********************************************************************************************************************/
