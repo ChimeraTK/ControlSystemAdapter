@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // When we send again specifying the same version number, there should still
   // be the update of the receiver.
   sender->accessChannel(0)[0] = toType<T>(2);
-  sender->writeTransferDestructively(versionNumber);
+  sender->writeDestructively(versionNumber);
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(versionNumber == receiver->getVersionNumber());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(2));
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   // receive an exception
   sender->accessChannel(0)[0] = toType<T>(4);
   try {
-    sender->writeTransferDestructively(versionNumber);
+    sender->writeDestructively(versionNumber);
     BOOST_ERROR("Exception expected.");
   }
   catch(ChimeraTK::logic_error&) {
