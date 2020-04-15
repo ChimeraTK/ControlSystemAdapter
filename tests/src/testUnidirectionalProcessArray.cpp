@@ -336,6 +336,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK_EQUAL(receiver->accessData(0), toType<T>(12));
   BOOST_CHECK(!(receiver->readNonBlocking()));
+
+  // Test if VersionNumber in only updated, if there is new data
+  versionNumber = receiver->getVersionNumber();
+  sender->accessChannel(0)[0] = toType<T>(5);
+  sender->write();
+  BOOST_CHECK(receiver->readNonBlocking());
+  VersionNumber lastVersionNumber = versionNumber;
+  versionNumber = receiver->getVersionNumber();
+  BOOST_CHECK(versionNumber > lastVersionNumber);
+
+  lastVersionNumber = versionNumber;
+  BOOST_CHECK(!(receiver->readNonBlocking()));
+  BOOST_CHECK(lastVersionNumber == receiver->getVersionNumber());
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testBlockingRead, T, test_types) {
@@ -479,7 +492,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testValidiy, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-    createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3);
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
