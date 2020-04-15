@@ -152,9 +152,7 @@ namespace ChimeraTK {
 
     VersionNumber getVersionNumber() const override { return _versionNumber; }
 
-    void setDataValidity(ChimeraTK::DataValidity valid) {
-      _dataValidity = valid;
-    }
+    void setDataValidity(ChimeraTK::DataValidity valid) { _dataValidity = valid; }
 
     ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
 
@@ -303,8 +301,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType) {
-  }
+  void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType) {}
 
   /*********************************************************************************************************************/
 
@@ -383,21 +380,23 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
-    this->accessChannel(0).swap(_receiver->accessChannel(0));
-    // After receiving, our new time stamp and version number are the ones
-    // that we got from the receiver.
-    _versionNumber = _receiver->getVersionNumber();
+    if(hasNewData) {
+      this->accessChannel(0).swap(_receiver->accessChannel(0));
+      // After receiving, our new time stamp and version number are the ones
+      // that we got from the receiver.
+      _versionNumber = _receiver->getVersionNumber();
 
-    // Pass on data validity flag from sender to receiver and make it our
-    // our internal validity flag
-    _dataValidity = _receiver->dataValidity();
-    _sender->setDataValidity(_dataValidity);
+      // Pass on data validity flag from sender to receiver and make it our
+      // our internal validity flag
+      _dataValidity = _receiver->dataValidity();
+      _sender->setDataValidity(_dataValidity);
 
-    // If we have a persistent data-storage, we have to update it. We have to
-    // do this because a (new) value received from the other side should be
-    // treated like a value sent by this side.
-    if(_persistentDataStorage) {
-      _persistentDataStorage->updateValue(_persistentDataStorageID, this->accessChannel(0));
+      // If we have a persistent data-storage, we have to update it. We have to
+      // do this because a (new) value received from the other side should be
+      // treated like a value sent by this side.
+      if(_persistentDataStorage) {
+        _persistentDataStorage->updateValue(_persistentDataStorageID, this->accessChannel(0));
+      }
     }
   }
 
