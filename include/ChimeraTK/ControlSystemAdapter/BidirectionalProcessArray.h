@@ -168,13 +168,13 @@ namespace ChimeraTK {
 
     ChimeraTK::TransferFuture doReadTransferAsync() override;
 
-    void doPostRead(ChimeraTK::TransferType type) override;
+    void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
     void doPreWrite(ChimeraTK::TransferType type) override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
 
-    void doPostWrite(ChimeraTK::TransferType type) override;
+    void doPostWrite(ChimeraTK::TransferType type, bool hasNewData) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
@@ -368,7 +368,8 @@ namespace ChimeraTK {
   ChimeraTK::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
     auto notificationQueue = ChimeraTK::detail::getFutureQueueFromTransferFuture(_receiver->readAsync());
     auto continuation = [this] {
-      _receiver->postRead(ChimeraTK::TransferType::readAsync);
+      //FIXME passing true to compile after changes in DeviceAccess #116, implementation needs change
+      _receiver->postRead(ChimeraTK::TransferType::readAsync, true);
       if(_receiver->getVersionNumber() < _versionNumber) {
         _receiver->readAsync();
         if(valueRejectCallback) valueRejectCallback();
@@ -381,7 +382,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType) {
+  void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
     this->accessChannel(0).swap(_receiver->accessChannel(0));
     // After receiving, our new time stamp and version number are the ones
     // that we got from the receiver.
@@ -439,7 +440,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType) {}
+  void BidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType /*type*/, bool /*hasNewData*/) {}
 
   /*********************************************************************************************************************/
 

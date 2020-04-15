@@ -93,7 +93,7 @@ namespace ChimeraTK {
 
     ChimeraTK::TransferFuture doReadTransferAsync() override;
 
-    void doPostRead(ChimeraTK::TransferType type) override;
+    void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
 
@@ -501,7 +501,7 @@ namespace ChimeraTK {
   /********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType) {
+  void UnidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
     assert(checkThreadSafety());
 
     // We have to check that the vector that we currently own still has the

@@ -165,7 +165,8 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   }
   // still nothing has changed on the user buffer
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
-  decoratedScalar.postRead(ChimeraTK::TransferType::read);
+  //FIXME Check hasNewData parameter, set to true to compile after chnages in DeviceAccess #116
+  decoratedScalar.postRead(ChimeraTK::TransferType::read, true);
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 1)));
 
   decoratedScalar.accessData(0) = Adder<T, IMPL_T>::add(startWriteValue, 1);
@@ -176,7 +177,8 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
     hwAccessor->write();
   }
-  decoratedScalar.postWrite(ChimeraTK::TransferType::write);
+  //FIXME Check dataLost parameter, set to false to compile after chnages in DeviceAccess #116
+  decoratedScalar.postWrite(ChimeraTK::TransferType::write, false);
 
   anotherScalarAccessor.read();
   BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue + 1, 0.0001);

@@ -92,8 +92,8 @@ namespace ChimeraTK {
     virtual void convertAndCopyToImpl() = 0;
     void doPreRead(ChimeraTK::TransferType type) override { _target->preRead(type); }
 
-    void doPostRead(ChimeraTK::TransferType type) override {
-      _target->postRead(type);
+    void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override {
+      _target->postRead(type, hasNewData);
       convertAndCopyFromImpl();
     }
 
@@ -102,7 +102,7 @@ namespace ChimeraTK {
       _target->preWrite(type);
     }
 
-    void doPostWrite(ChimeraTK::TransferType type) override { _target->postWrite(type); }
+    void doPostWrite(ChimeraTK::TransferType type, bool dataLost) override { _target->postWrite(type, dataLost); }
 
     bool mayReplaceOther(const boost::shared_ptr<ChimeraTK::TransferElement const>& other) const override {
       auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T, IMPL_T> const>(other);
