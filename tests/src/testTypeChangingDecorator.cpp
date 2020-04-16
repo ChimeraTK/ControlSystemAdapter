@@ -156,7 +156,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   /// works with a TransferGroup. This becomes especially problematic when the
   /// behaviour of the TransferGroup is changed - in which case this test does
   /// not notice the problem. Instead a real test with an actual TransferGroup
-  /// should be implemented.
+  /// should be implemented (Issue #27).
   anotherScalarAccessor = startReadValue + 1;
   anotherScalarAccessor.write();
   decoratedScalar.preRead(ChimeraTK::TransferType::read);
@@ -166,6 +166,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // still nothing has changed on the user buffer
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
   //FIXME Check hasNewData parameter, set to true to compile after chnages in DeviceAccess #116
+  // To be fixed in #27
   decoratedScalar.postRead(ChimeraTK::TransferType::read, true);
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 1)));
 
@@ -178,6 +179,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
     hwAccessor->write();
   }
   //FIXME Check dataLost parameter, set to false to compile after chnages in DeviceAccess #116
+  // to be fixed in #27
   decoratedScalar.postWrite(ChimeraTK::TransferType::write, false);
 
   anotherScalarAccessor.read();
