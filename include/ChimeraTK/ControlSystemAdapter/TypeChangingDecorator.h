@@ -94,7 +94,11 @@ namespace ChimeraTK {
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override {
       _target->postRead(type, hasNewData);
-      convertAndCopyFromImpl();
+      // If the delegated postRead throws, we don't want to copy into the
+      // buffer
+      if(hasNewData) {
+        convertAndCopyFromImpl();
+      }
     }
 
     void doPreWrite(ChimeraTK::TransferType type) override {
