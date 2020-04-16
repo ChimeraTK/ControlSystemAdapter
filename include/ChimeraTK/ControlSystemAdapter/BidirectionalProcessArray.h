@@ -365,7 +365,8 @@ namespace ChimeraTK {
   ChimeraTK::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
     auto notificationQueue = ChimeraTK::detail::getFutureQueueFromTransferFuture(_receiver->readAsync());
     auto continuation = [this] {
-      //FIXME passing true to compile after changes in DeviceAccess #116, implementation needs change
+      // The implementation of the receiver does not throw RuntimeExceptions,
+      // so we can just pass true
       _receiver->postRead(ChimeraTK::TransferType::readAsync, true);
       if(_receiver->getVersionNumber() < _versionNumber) {
         _receiver->readAsync();
