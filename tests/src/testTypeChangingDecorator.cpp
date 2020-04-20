@@ -12,6 +12,8 @@ using namespace ChimeraTK;
 #include "toType.h"
 #include "toDouble.h"
 
+#include <boost/shared_ptr.hpp>
+
 template<typename T>
 bool test_equal_or_close(T a, T b) {
   if(a == b) {
@@ -151,41 +153,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   // repeat the read / write tests with all different functions
 
-  // 1. The way a transfer group would call it:
-  /// @todo This is bad testing practise. It does not test whether the decorator
-  /// works with a TransferGroup. This becomes especially problematic when the
-  /// behaviour of the TransferGroup is changed - in which case this test does
-  /// not notice the problem. Instead a real test with an actual TransferGroup
-  /// should be implemented (Issue #27).
-  anotherScalarAccessor = startReadValue + 1;
-  anotherScalarAccessor.write();
-  decoratedScalar.preRead(ChimeraTK::TransferType::read);
-  for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
-    hwAccessor->read();
-  }
-  // still nothing has changed on the user buffer
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
-  //FIXME Check hasNewData parameter, set to true to compile after chnages in DeviceAccess #116
-  // To be fixed in #27
-  decoratedScalar.postRead(ChimeraTK::TransferType::read, true);
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 1)));
-
-  decoratedScalar.accessData(0) = Adder<T, IMPL_T>::add(startWriteValue, 1);
-  decoratedScalar.preWrite(ChimeraTK::TransferType::write);
-  // nothing changed on the device yet
-  anotherScalarAccessor.read();
-  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), startReadValue + 1, 0.0001);
-  for(auto& hwAccessor : decoratedScalar.getHardwareAccessingElements()) {
-    hwAccessor->write();
-  }
-  //FIXME Check dataLost parameter, set to false to compile after chnages in DeviceAccess #116
-  // to be fixed in #27
-  decoratedScalar.postWrite(ChimeraTK::TransferType::write, false);
-
-  anotherScalarAccessor.read();
-  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue + 1, 0.0001);
-
-  // test asynchronouy reading. Check that the modification is arriving in the
+  // test asynchronous reading. Check that the modification is arriving in the
   // decorator's buffer
 
   // just to check that the test is not producing false positives by accident
@@ -195,7 +163,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
 
   auto future = decoratedScalar.readAsync();
   // nothing must change on the user buffer yet
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(startWriteValue, 1)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), static_cast<T>(startWriteValue)));
   future.wait(); // this calls the post-reads correctly
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
 
@@ -214,9 +182,47 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_CHECK(decoratedScalar.mayReplaceOther(anotherDecoratedScalar));
 
   // OK, I give up. I would have to repeat all tests ever written for a
-  // decorator, incl. transfer group, persistentDataStorage and everything. All
+  // decorator, incl. transfer group(added below), persistentDataStorage and everything. All
   // I can do is leave the stuff intentionally uncovered so a reviewer can find
   // the places.
+
+  // Test with transfer group
+  assert(fabs(startReadValue + 3 - (expectedWriteValue + 1)) > 0.001);
+  anotherScalarAccessor = startReadValue + 3;
+  anotherScalarAccessor.write();
+
+  TransferGroup transferGroup;
+  auto decoratedScalarInGroup = boost::make_shared<DECORATOR_TYPE<T, IMPL_T>>(ndAccessor);
+  transferGroup.addAccessor(decoratedScalarInGroup);
+
+  transferGroup.read();
+  BOOST_CHECK(
+      test_equal_or_close<T>(decoratedScalarInGroup->accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 3)));
+
+  decoratedScalarInGroup->accessData(0) = Adder<T, IMPL_T>::add(startWriteValue, 1);
+  transferGroup.write();
+  anotherScalarAccessor.read();
+  BOOST_CHECK_CLOSE(toDouble(anotherScalarAccessor), expectedWriteValue + 1, 0.0001);
+
+  // Test pre/postRead
+  anotherScalarAccessor = startReadValue + 4;
+  anotherScalarAccessor.write();
+
+  decoratedScalar.preRead(ChimeraTK::TransferType::read);
+
+  // still nothing has changed on the user buffer
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
+
+  decoratedScalar.readTransfer();
+  // Pass hasNewData as false, user buffer should still not have changed
+  decoratedScalar.postRead(ChimeraTK::TransferType::read, false);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
+
+  decoratedScalar.preRead(ChimeraTK::TransferType::read);
+  decoratedScalar.readTransfer();
+  // This time we except an update of the buffer
+  decoratedScalar.postRead(ChimeraTK::TransferType::read, true);
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 4)));
 }
 
 BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
