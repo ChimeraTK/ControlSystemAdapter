@@ -76,14 +76,14 @@ namespace ChimeraTK {
 
     ChimeraTK::VersionNumber getVersionNumber() const override { return _versionNumber; }
 
-    void setDataValidity(ChimeraTK::DataValidity valid) {
+    void setDataValidity(ChimeraTK::DataValidity valid) override {
       if(not ProcessArray<T>::isWriteable())
         throw ChimeraTK::logic_error("Cannot set data validity on a read-only ProcessArray");
 
       _dataValidity = valid;
     }
 
-    ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
+    ChimeraTK::DataValidity dataValidity() const override { return _dataValidity; }
 
     void doReadTransfer() override;
 

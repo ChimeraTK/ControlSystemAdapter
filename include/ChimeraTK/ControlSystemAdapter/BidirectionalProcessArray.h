@@ -152,9 +152,9 @@ namespace ChimeraTK {
 
     VersionNumber getVersionNumber() const override { return _versionNumber; }
 
-    void setDataValidity(ChimeraTK::DataValidity valid) { _dataValidity = valid; }
+    void setDataValidity(ChimeraTK::DataValidity valid) override { _dataValidity = valid; }
 
-    ChimeraTK::DataValidity dataValidity() const { return _dataValidity; }
+    ChimeraTK::DataValidity dataValidity() const override { return _dataValidity; }
 
     void doPreRead(ChimeraTK::TransferType type) override;
 
