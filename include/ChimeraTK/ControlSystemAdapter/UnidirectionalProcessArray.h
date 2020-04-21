@@ -122,7 +122,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber = {}) override;
+    bool doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 

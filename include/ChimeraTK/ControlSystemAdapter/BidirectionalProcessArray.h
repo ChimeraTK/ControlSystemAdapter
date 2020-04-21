@@ -170,7 +170,7 @@ namespace ChimeraTK {
 
     void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
-    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
     void doPostWrite(ChimeraTK::TransferType type, bool hasNewData) override;
 
@@ -460,7 +460,7 @@ namespace ChimeraTK {
     if(sendInitialValue) {
       ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] =
           _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-      doWriteTransfer();
+      doWriteTransfer({});
     }
   }
 
