@@ -168,7 +168,7 @@ namespace ChimeraTK {
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
-    void doPreWrite(ChimeraTK::TransferType type) override;
+    void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
 
@@ -404,7 +404,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType) {}
+  void BidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType, VersionNumber) {}
 
   /*********************************************************************************************************************/
 
