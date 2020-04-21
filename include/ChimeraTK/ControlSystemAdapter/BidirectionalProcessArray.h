@@ -283,13 +283,13 @@ namespace ChimeraTK {
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
     if(sender && !_sender) {
-      throw ChimeraTK::runtime_error("The passed sender must be an instance of UnidirectionalProcessArray.");
+      throw ChimeraTK::logic_error("The passed sender must be an instance of UnidirectionalProcessArray.");
     }
     if(!receiver->isReadable()) {
-      throw ChimeraTK::runtime_error("The passed receiver must be readable.");
+      throw ChimeraTK::logic_error("The passed receiver must be readable.");
     }
     if(!sender->isWriteable()) {
-      throw ChimeraTK::runtime_error("The passed sender must be writable.");
+      throw ChimeraTK::logic_error("The passed sender must be writable.");
     }
     // Allocate and initialize the buffer of the base class we copy the value
     // from the receiver because the calling code should already have take care
