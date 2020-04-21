@@ -95,6 +95,10 @@ namespace ChimeraTK {
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
+    void doPreRead(ChimeraTK::TransferType type) override;
+
+    void doPreWrite(ChimeraTK::TransferType type) override;
+
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
 
     /**
@@ -450,7 +454,35 @@ namespace ChimeraTK {
   /********************************************************************************************************************/
 
   template<class T>
+  void UnidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType) {
+    if(!this->isReadable()) {
+      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
+    }
+  }
+
+  /********************************************************************************************************************/
+
+  template<class T>
+  void UnidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType) {
+    if(!this->isWriteable()) {
+      throw ChimeraTK::logic_error("Send operation is only allowed for a sender process variable.");
+    }
+
+    // We have to check that the vector that we currently own still has the
+    // right size. Otherwise, the code using the receiver might get into
+    // trouble when it suddenly experiences a vector of the wrong size.
+    if(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
+      throw ChimeraTK::logic_error("Cannot run receive operation because the size of the vector belonging "
+                                   "to the current buffer has been modified. Variable name: " +
+          this->getName());
+    }
+  }
+
+  /********************************************************************************************************************/
+
+  template<class T>
   void UnidirectionalProcessArray<T>::doReadTransfer() {
+    assert(this->isReadable());
     _sharedState._queue.pop_wait(_localBuffer);
     /// @todo if wait_for_new_data is not set, make identical to
     /// doReadTransferLatest()
@@ -460,6 +492,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
+    assert(this->isReadable());
     return _sharedState._queue.pop(_localBuffer);
     /// @todo if wait_for_new_data is not set, make identical to
     /// doReadTransferLatest()
@@ -469,9 +502,7 @@ namespace ChimeraTK {
 
   template<class T>
   bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
-    if(!this->isReadable()) {
-      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
-    }
+    assert(this->isReadable());
 
     // flag if at least one of the pops was successfull
     bool receivedData = false;
@@ -487,9 +518,7 @@ namespace ChimeraTK {
 
   template<class T>
   ChimeraTK::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
-    if(!this->isReadable()) {
-      throw ChimeraTK::logic_error("Receive operation is only allowed for a receiver process variable.");
-    }
+    assert(this->isReadable());
 
     // return the future
     return TransferFuture(_sharedState._queue.template then<void>(
@@ -559,21 +588,7 @@ namespace ChimeraTK {
     // thread safety check, if enabled (only active with debug flags enabled)
     assert(checkThreadSafety());
 
-    if(!this->isWriteable()) {
-      throw ChimeraTK::logic_error("Send operation is only allowed for a sender "
-                                   "process variable. Variable name: " +
-          this->getName());
-    }
-
-    // We have to check that the vector that we currently own still has the
-    // right size. Otherwise, the code using the receiver might get into
-    // trouble when it suddenly experiences a vector of the wrong size.
-    if(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() != _vectorSize) {
-      throw ChimeraTK::logic_error("Cannot run receive operation because the size of the vector belonging "
-                                   "to the current buffer has been "
-                                   "modified. Variable name: " +
-          this->getName());
-    }
+    assert(this->isWriteable());
 
     // A version should never be send with a version number that is equal to or
     // even less than the last version number used. Such an attempt indicates
