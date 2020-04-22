@@ -168,9 +168,9 @@ namespace ChimeraTK {
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
-    void doPreWrite(ChimeraTK::TransferType type) override;
+    void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
-    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
     void doPostWrite(ChimeraTK::TransferType type, bool hasNewData) override;
 
@@ -404,7 +404,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType) {}
+  void BidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType, VersionNumber) {}
 
   /*********************************************************************************************************************/
 
@@ -460,7 +460,7 @@ namespace ChimeraTK {
     if(sendInitialValue) {
       ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] =
           _persistentDataStorage->retrieveValue<T>(_persistentDataStorageID);
-      doWriteTransfer();
+      doWriteTransfer({});
     }
   }
 

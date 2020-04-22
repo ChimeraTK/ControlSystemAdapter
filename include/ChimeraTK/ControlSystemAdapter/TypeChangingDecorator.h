@@ -101,9 +101,9 @@ namespace ChimeraTK {
       }
     }
 
-    void doPreWrite(ChimeraTK::TransferType type) override {
+    void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override {
       convertAndCopyToImpl();
-      _target->preWrite(type);
+      _target->preWrite(type, versionNumber);
     }
 
     void doPostWrite(ChimeraTK::TransferType type, bool dataLost) override { _target->postWrite(type, dataLost); }

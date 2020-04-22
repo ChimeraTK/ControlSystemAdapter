@@ -97,9 +97,9 @@ namespace ChimeraTK {
 
     void doPreRead(ChimeraTK::TransferType type) override;
 
-    void doPreWrite(ChimeraTK::TransferType type) override;
+    void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
-    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber = {}) override;
+    bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
     /**
      * Sends the current value to the receiver. Returns <code>true</code> if an
@@ -122,7 +122,7 @@ namespace ChimeraTK {
      * Throws an exception if this process variable is not a sender or if this
      * process variable does not allow destructive sending.
      */
-    bool doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber = {}) override;
+    bool doWriteTransferDestructively(ChimeraTK::VersionNumber versionNumber) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
@@ -463,7 +463,7 @@ namespace ChimeraTK {
   /********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType) {
+  void UnidirectionalProcessArray<T>::doPreWrite(ChimeraTK::TransferType, VersionNumber) {
     if(!this->isWriteable()) {
       throw ChimeraTK::logic_error("Send operation is only allowed for a sender process variable.");
     }
@@ -534,7 +534,6 @@ namespace ChimeraTK {
   void UnidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
     assert(checkThreadSafety());
     if(hasNewData) {
-
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
