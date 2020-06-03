@@ -134,7 +134,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   // When in testing mode, this runs the main loop exactly one. This is needed
   // for testing. It guarantees that the main body has completed execution and
   // has been run exactly one.
-  static void runMainLoopOnce();
+  static bool runMainLoopOnce();
 
   ReferenceTestApplication(std::string const& applicationName_ = "ReferenceTest");
   ~ReferenceTestApplication() override;
@@ -263,7 +263,7 @@ inline void ReferenceTestApplication::mainBody() {
   for_each(*_holderMap, PerformInputToOutput(versionNumber, dataValidity));
 }
 
-inline void ReferenceTestApplication::runMainLoopOnce() {
+inline bool ReferenceTestApplication::runMainLoopOnce() {
   mainLoopExecutionRequested() = true;
   do {
     mainLoopMutex().unlock();
@@ -272,6 +272,13 @@ inline void ReferenceTestApplication::runMainLoopOnce() {
     // Loop until the execution requested flag has not been reset.
     // This is the sign that the loop actually has been performed.
   } while(mainLoopExecutionRequested());
+
+  auto isSuccessful = [](bool initialState, auto mapEntry){
+    bool success = mapEntry.second.failedTransfers.empty();
+    return initialState && success;
+  };
+  auto& holderMap = *dynamic_cast<ReferenceTestApplication&>(ApplicationBase::getInstance())._holderMap;
+  return boost::fusion::fold(holderMap, true, isSuccessful);
 }
 
 inline void ReferenceTestApplication::initialiseManualLoopControl() {
