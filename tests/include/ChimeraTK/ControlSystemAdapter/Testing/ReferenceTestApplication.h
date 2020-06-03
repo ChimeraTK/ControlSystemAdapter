@@ -148,6 +148,9 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::ok};
 
+  /// Returns a list of process variables for which data transfer failed during the last runMainLoopOnce call.
+  std::vector<std::string> getFailedTransfers();
+
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
 
@@ -181,6 +184,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   /// The 'body' of the main loop, i.e. the functionality once, without the loop
   /// around it.
   void mainBody();
+
 };
 
 inline ReferenceTestApplication::ReferenceTestApplication(std::string const& applicationName_)
@@ -293,6 +297,18 @@ inline void ReferenceTestApplication::releaseManualLoopControl() {
   manuallyControlMainLoop() = false;
   initalisationForManualLoopControlFinished() = false;
   mainLoopMutex().unlock();
+}
+
+inline std::vector<std::string> ReferenceTestApplication::getFailedTransfers(){
+  std::vector<std::string> result;
+  auto populateFailures = [&](auto mapElement){
+    for(auto pv: mapElement.second.failedTransfers){
+      result.emplace_back(std::move(pv));
+    }
+  };
+  auto& holderMap = *dynamic_cast<ReferenceTestApplication&>(ApplicationBase::getInstance())._holderMap;
+  boost::fusion::for_each(holderMap, populateFailures);
+  return result;
 }
 
 #endif // _REFERENCE_TEST_APPLICATION_H_
