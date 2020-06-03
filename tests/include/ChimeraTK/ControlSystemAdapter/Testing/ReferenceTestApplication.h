@@ -38,6 +38,8 @@ struct TypedPVHolder {
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr dataTypeConstant;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
 
+  std::vector<std::string> failedTransfers{};
+
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix)
   : toDeviceScalar(processVariableManager->createProcessArray<DataType>(
         ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
@@ -80,10 +82,13 @@ struct TypedPVHolder {
   }
 
   void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version,  ChimeraTK::DataValidity validity) {
+    failedTransfers.clear();
     if (toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
       fromDeviceScalar->setDataValidity(validity);
-      fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(not fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()))){
+         failedTransfers.emplace_back(toDeviceScalar->getName());
+      }
     }
 
     if (toDeviceArray->readLatest()) {
@@ -91,9 +96,20 @@ struct TypedPVHolder {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
       fromDeviceArray->setDataValidity(validity);
-      fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(not fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()))){
+        failedTransfers.emplace_back(toDeviceArray->getName());
+      }
+    }
+
+    if(failedTransfers.empty() == false) {
+      std::cout << "WARNING: Data loss in referenceTestApplication for Process Variables: " << std::endl;
+      for(auto& pv : failedTransfers) {
+        std::cout << "\t" << pv;
+      }
+      std::cout << std::endl;
     }
   }
+
 };
 
 /// A boost fusion map which allows to acces the holder instances by type
