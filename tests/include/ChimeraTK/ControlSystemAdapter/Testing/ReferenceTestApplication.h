@@ -38,6 +38,8 @@ struct TypedPVHolder {
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr dataTypeConstant;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr constantArray;
 
+  std::vector<std::string> failedTransfers{};
+
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix)
   : toDeviceScalar(processVariableManager->createProcessArray<DataType>(
         ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
@@ -80,10 +82,13 @@ struct TypedPVHolder {
   }
 
   void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version,  ChimeraTK::DataValidity validity) {
+    failedTransfers.clear();
     if (toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
       fromDeviceScalar->setDataValidity(validity);
-      fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(not fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()))){
+         failedTransfers.emplace_back(toDeviceScalar->getName());
+      }
     }
 
     if (toDeviceArray->readLatest()) {
@@ -91,9 +96,20 @@ struct TypedPVHolder {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
       fromDeviceArray->setDataValidity(validity);
-      fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(not fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()))){
+        failedTransfers.emplace_back(toDeviceArray->getName());
+      }
+    }
+
+    if(failedTransfers.empty() == false) {
+      std::cout << "WARNING: Data loss in referenceTestApplication for Process Variables: " << std::endl;
+      for(auto& pv : failedTransfers) {
+        std::cout << "\t" << pv;
+      }
+      std::cout << std::endl;
     }
   }
+
 };
 
 /// A boost fusion map which allows to acces the holder instances by type
@@ -118,7 +134,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   // When in testing mode, this runs the main loop exactly one. This is needed
   // for testing. It guarantees that the main body has completed execution and
   // has been run exactly one.
-  static void runMainLoopOnce();
+  static bool runMainLoopOnce();
 
   ReferenceTestApplication(std::string const& applicationName_ = "ReferenceTest");
   ~ReferenceTestApplication() override;
@@ -131,6 +147,9 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   boost::optional<ChimeraTK::VersionNumber> versionNumber;
 
   ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::ok};
+
+  /// Returns a list of process variables for which data transfer failed during the last runMainLoopOnce call.
+  std::vector<std::string> getFailedTransfers();
 
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
@@ -165,6 +184,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   /// The 'body' of the main loop, i.e. the functionality once, without the loop
   /// around it.
   void mainBody();
+
 };
 
 inline ReferenceTestApplication::ReferenceTestApplication(std::string const& applicationName_)
@@ -247,7 +267,7 @@ inline void ReferenceTestApplication::mainBody() {
   for_each(*_holderMap, PerformInputToOutput(versionNumber, dataValidity));
 }
 
-inline void ReferenceTestApplication::runMainLoopOnce() {
+inline bool ReferenceTestApplication::runMainLoopOnce() {
   mainLoopExecutionRequested() = true;
   do {
     mainLoopMutex().unlock();
@@ -256,6 +276,13 @@ inline void ReferenceTestApplication::runMainLoopOnce() {
     // Loop until the execution requested flag has not been reset.
     // This is the sign that the loop actually has been performed.
   } while(mainLoopExecutionRequested());
+
+  auto isSuccessful = [](bool initialState, auto mapEntry){
+    bool success = mapEntry.second.failedTransfers.empty();
+    return initialState && success;
+  };
+  auto& holderMap = *dynamic_cast<ReferenceTestApplication&>(ApplicationBase::getInstance())._holderMap;
+  return boost::fusion::fold(holderMap, true, isSuccessful);
 }
 
 inline void ReferenceTestApplication::initialiseManualLoopControl() {
@@ -270,6 +297,18 @@ inline void ReferenceTestApplication::releaseManualLoopControl() {
   manuallyControlMainLoop() = false;
   initalisationForManualLoopControlFinished() = false;
   mainLoopMutex().unlock();
+}
+
+inline std::vector<std::string> ReferenceTestApplication::getFailedTransfers(){
+  std::vector<std::string> result;
+  auto populateFailures = [&](auto mapElement){
+    for(auto pv: mapElement.second.failedTransfers){
+      result.emplace_back(std::move(pv));
+    }
+  };
+  auto& holderMap = *dynamic_cast<ReferenceTestApplication&>(ApplicationBase::getInstance())._holderMap;
+  boost::fusion::for_each(holderMap, populateFailures);
+  return result;
 }
 
 #endif // _REFERENCE_TEST_APPLICATION_H_
