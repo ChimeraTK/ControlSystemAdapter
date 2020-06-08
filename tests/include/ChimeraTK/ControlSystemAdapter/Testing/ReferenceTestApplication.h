@@ -86,8 +86,9 @@ struct TypedPVHolder {
     if (toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
       fromDeviceScalar->setDataValidity(validity);
-      if(not fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()))){
-         failedTransfers.emplace_back(toDeviceScalar->getName());
+      auto isDataLost = fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(isDataLost) {
+        failedTransfers.emplace_back(toDeviceScalar->getName());
       }
     }
 
@@ -96,7 +97,8 @@ struct TypedPVHolder {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
       fromDeviceArray->setDataValidity(validity);
-      if(not fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()))){
+      auto isDataLost = fromDeviceArray->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(isDataLost) {
         failedTransfers.emplace_back(toDeviceArray->getName());
       }
     }
