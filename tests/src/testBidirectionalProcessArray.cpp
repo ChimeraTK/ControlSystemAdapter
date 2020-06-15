@@ -84,6 +84,7 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
 BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
+#if 0
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
@@ -133,6 +134,7 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
   pv2->readAsync().wait();
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue4, 0.001);
+#endif
 }
 
 /**********************************************************************************************************************/
@@ -193,6 +195,7 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
 // Test that passing on values (e.g. to other ApplicationCore modules) and
 // sending back corrected values works as expected
 BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
+#if 0
   // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
   // "favoured" direction - this is only for clarification of the test
   // scenario). Values read from Ar are passed on to Bs, after limiting the
@@ -239,6 +242,7 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
   BOOST_CHECK_CLOSE(As->accessData(0), 0.0, 0.001);
   Br->readAsync().wait();
   BOOST_CHECK_CLOSE(Br->accessData(0), 0.0, 0.001);
+#endif
 }
 
 /**********************************************************************************************************************/

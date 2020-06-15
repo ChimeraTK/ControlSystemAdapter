@@ -96,16 +96,11 @@ namespace ChimeraTK {
       // You can't replace anything here. Just do nothing.
     }
 
-    AccessModeFlags getAccessModeFlags() const override { return _flags; }
-
    protected:
     /**
      * Type this instance is representing.
      */
     InstanceType _instanceType;
-
-    /// AccessModeFlags of this ProcessArray
-    AccessModeFlags _flags;
   };
 
   /********************************************************************************************************************/
@@ -115,7 +110,7 @@ namespace ChimeraTK {
   template<class T>
   ProcessArray<T>::ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name, const std::string& unit,
       const std::string& description, const AccessModeFlags& flags)
-  : ChimeraTK::NDRegisterAccessor<T>(name, unit, description), _instanceType(instanceType), _flags(flags) {}
+  : ChimeraTK::NDRegisterAccessor<T>(name, flags, unit, description), _instanceType(instanceType) {}
 
   /********************************************************************************************************************/
 

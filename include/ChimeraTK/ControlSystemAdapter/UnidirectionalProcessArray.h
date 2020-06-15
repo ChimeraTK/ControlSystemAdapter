@@ -74,24 +74,7 @@ namespace ChimeraTK {
         ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
         const AccessModeFlags& flags);
 
-    ChimeraTK::VersionNumber getVersionNumber() const override { return _versionNumber; }
-
-    void setDataValidity(ChimeraTK::DataValidity valid) override {
-      if(not ProcessArray<T>::isWriteable())
-        throw ChimeraTK::logic_error("Cannot set data validity on a read-only ProcessArray");
-
-      _dataValidity = valid;
-    }
-
-    ChimeraTK::DataValidity dataValidity() const override { return _dataValidity; }
-
-    void doReadTransfer() override;
-
-    bool doReadTransferNonBlocking() override;
-
-    bool doReadTransferLatest() override;
-
-    ChimeraTK::TransferFuture doReadTransferAsync() override;
+    void doReadTransferSynchronously () override;
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
@@ -481,51 +464,11 @@ namespace ChimeraTK {
   /********************************************************************************************************************/
 
   template<class T>
-  void UnidirectionalProcessArray<T>::doReadTransfer() {
+  void UnidirectionalProcessArray<T>::doReadTransferSynchronously() {
     assert(this->isReadable());
     _sharedState._queue.pop_wait(_localBuffer);
     /// @todo if wait_for_new_data is not set, make identical to
     /// doReadTransferLatest()
-  }
-
-  /********************************************************************************************************************/
-
-  template<class T>
-  bool UnidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-    assert(this->isReadable());
-    return _sharedState._queue.pop(_localBuffer);
-    /// @todo if wait_for_new_data is not set, make identical to
-    /// doReadTransferLatest()
-  }
-
-  /********************************************************************************************************************/
-
-  template<class T>
-  bool UnidirectionalProcessArray<T>::doReadTransferLatest() {
-    assert(this->isReadable());
-
-    // flag if at least one of the pops was successfull
-    bool receivedData = false;
-
-    // pop elements from the queue until it is empty
-    while(_sharedState._queue.pop(_localBuffer)) receivedData = true;
-
-    // return if we got new data
-    return receivedData;
-  }
-
-  /********************************************************************************************************************/
-
-  template<class T>
-  ChimeraTK::TransferFuture UnidirectionalProcessArray<T>::doReadTransferAsync() {
-    assert(this->isReadable());
-
-    // return the future
-    return TransferFuture(_sharedState._queue.template then<void>(
-                              [this](Buffer& b) { std::swap(_localBuffer, b); }, std::launch::deferred),
-        this);
-    /// @todo if wait_for_new_data is not set, make identical to
-    /// doReadTransferLatest() (but asynchronous)
   }
 
   /********************************************************************************************************************/
@@ -605,7 +548,7 @@ namespace ChimeraTK {
 
     // Set time stamp and version number
     _localBuffer._versionNumber = newVersionNumber;
-    _localBuffer._dataValidity = dataValidity();
+    _localBuffer._dataValidity = TransferElement::dataValidity();
     _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping

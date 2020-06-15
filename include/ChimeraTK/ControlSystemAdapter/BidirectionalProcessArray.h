@@ -150,21 +150,9 @@ namespace ChimeraTK {
         typename ProcessArray<T>::SharedPtr sender, ProcessVariableListener::SharedPtr sendNotificationListener,
         VersionNumber initialVersionNumber, const AccessModeFlags& flags);
 
-    VersionNumber getVersionNumber() const override { return _versionNumber; }
-
-    void setDataValidity(ChimeraTK::DataValidity valid) override { _dataValidity = valid; }
-
-    ChimeraTK::DataValidity dataValidity() const override { return _dataValidity; }
-
     void doPreRead(ChimeraTK::TransferType type) override;
 
-    void doReadTransfer() override;
-
-    bool doReadTransferNonBlocking() override;
-
-    bool doReadTransferLatest() override;
-
-    ChimeraTK::TransferFuture doReadTransferAsync() override;
+    void doReadTransferSynchronously() override;
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
@@ -172,7 +160,7 @@ namespace ChimeraTK {
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
-    void doPostWrite(ChimeraTK::TransferType type, bool hasNewData) override;
+    void doPostWrite(ChimeraTK::TransferType type, ChimeraTK::VersionNumber versionNumber) override;
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
@@ -306,7 +294,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doReadTransfer() {
+  void BidirectionalProcessArray<T>::doReadTransferSynchronously() {
     do {
       _receiver->read();
       // We only update the current value (stored in the sender) when the version
@@ -319,62 +307,6 @@ namespace ChimeraTK {
       if(_receiver->getVersionNumber() >= _versionNumber) return;
       if(valueRejectCallback) valueRejectCallback();
     } while(true);
-  }
-
-  /*********************************************************************************************************************/
-
-  template<class T>
-  bool BidirectionalProcessArray<T>::doReadTransferNonBlocking() {
-    auto ret = _receiver->readNonBlocking();
-    // We only update the current value (stored in the sender) when the version
-    // number of the data that we received is greater than or equal the current
-    // version number. This ensures that old updates (that might arrive late due
-    // to the asynchronous nature of the transfer logic) do not overwrite newer
-    // values and also helps to ensure that we do not get a feedback loop where
-    // two (or more) bidirectional process variables "play ping-pong" (see issue
-    // #2 for the full discussion).
-    if(ret && _receiver->getVersionNumber() < _versionNumber) {
-      if(valueRejectCallback) valueRejectCallback();
-      return false;
-    }
-    return ret;
-  }
-
-  /*********************************************************************************************************************/
-
-  template<class T>
-  bool BidirectionalProcessArray<T>::doReadTransferLatest() {
-    auto ret = _receiver->readLatest();
-    // We only update the current value (stored in the sender) when the version
-    // number of the data that we received is greater than the current version
-    // number. This ensures that old updates (that might arrive late due to the
-    // asynchronous nature of the transfer logic) do not overwrite newer values
-    // and also helps to ensure that we do not get a feedback loop where two (or
-    // more) bidirectional process variables "play ping-pong" (see issue #2 for
-    // the full discussion).
-    if(ret && _receiver->getVersionNumber() < _versionNumber) {
-      if(valueRejectCallback) valueRejectCallback();
-      return false;
-    }
-    return ret;
-  }
-
-  /*********************************************************************************************************************/
-
-  template<class T>
-  ChimeraTK::TransferFuture BidirectionalProcessArray<T>::doReadTransferAsync() {
-    auto notificationQueue = ChimeraTK::detail::getFutureQueueFromTransferFuture(_receiver->readAsync());
-    auto continuation = [this] {
-      // The implementation of the receiver does not throw RuntimeExceptions,
-      // so we can just pass true
-      _receiver->postRead(ChimeraTK::TransferType::readAsync, true);
-      if(_receiver->getVersionNumber() < _versionNumber) {
-        _receiver->readAsync();
-        if(valueRejectCallback) valueRejectCallback();
-        throw detail::DiscardValueException();
-      }
-    };
-    return {notificationQueue.template then<void>(continuation, std::launch::deferred), this};
   }
 
   /*********************************************************************************************************************/
@@ -440,7 +372,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType /*type*/, bool /*hasNewData*/) {}
+  void BidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType /*type*/, VersionNumber /*versionNumber*/) {}
 
   /*********************************************************************************************************************/
 
