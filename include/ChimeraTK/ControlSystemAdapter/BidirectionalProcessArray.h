@@ -171,8 +171,6 @@ namespace ChimeraTK {
      * not be  persistent across executions of the process. */
     size_t getUniqueId() const override { return _uniqueId; }
 
-    void interrupt() override { _receiver->interrupt(); }
-
     /**
      * Set a callback function which is called whenever a value is rejected
      * because it is old. This is used by ApplicationCore testable mode to keep

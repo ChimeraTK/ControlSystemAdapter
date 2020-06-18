@@ -74,7 +74,7 @@ namespace ChimeraTK {
         ProcessVariableListener::SharedPtr sendNotificationListener, UnidirectionalProcessArray::SharedPtr receiver,
         const AccessModeFlags& flags);
 
-    void doReadTransferSynchronously () override;
+    void doReadTransferSynchronously() override;
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override;
 
@@ -120,15 +120,6 @@ namespace ChimeraTK {
       }
       else {
         return reinterpret_cast<size_t>(this);
-      }
-    }
-
-    void interrupt() override {
-      try {
-        throw boost::thread_interrupted();
-      }
-      catch(...) {
-        _sharedState._queue.push_overwrite_exception(std::current_exception());
       }
     }
 
