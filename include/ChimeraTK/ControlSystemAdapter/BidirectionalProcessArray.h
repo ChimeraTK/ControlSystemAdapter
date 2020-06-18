@@ -294,7 +294,7 @@ namespace ChimeraTK {
   template<class T>
   void BidirectionalProcessArray<T>::doReadTransferSynchronously() {
     do {
-      _receiver->read();
+      _receiver->readLatest();
       // We only update the current value (stored in the sender) when the version
       // number of the data that we received is greater than or equal the current
       // version number. This ensures that old updates (that might arrive late due

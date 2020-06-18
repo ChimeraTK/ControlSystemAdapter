@@ -457,9 +457,10 @@ namespace ChimeraTK {
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransferSynchronously() {
     assert(this->isReadable());
-    _sharedState._queue.pop_wait(_localBuffer);
-    /// @todo if wait_for_new_data is not set, make identical to
-    /// doReadTransferLatest()
+
+    while(_sharedState._queue.pop(_localBuffer))
+      ;
+
   }
 
   /********************************************************************************************************************/
