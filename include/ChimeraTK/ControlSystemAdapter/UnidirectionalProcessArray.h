@@ -524,13 +524,6 @@ namespace ChimeraTK {
 
     assert(this->isWriteable());
 
-    // A version should never be send with a version number that is equal to or
-    // even less than the last version number used. Such an attempt indicates
-    // that there is a problem in the logic attempting the write operation.
-    if(newVersionNumber < ChimeraTK::TransferElement::_versionNumber) {
-      throw ChimeraTK::logic_error("The version number passed to write() is less than the last version number used.");
-    }
-
     // First update the persistent data storage, if any was associated. This
     // cannot be done after sending, since the value might no longer be available
     // within this instance.
