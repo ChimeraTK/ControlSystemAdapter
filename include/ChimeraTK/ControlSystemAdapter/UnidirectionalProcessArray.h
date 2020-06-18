@@ -534,7 +534,6 @@ namespace ChimeraTK {
     // Set time stamp and version number
     _localBuffer._versionNumber = newVersionNumber;
     _localBuffer._dataValidity = TransferElement::dataValidity();
-    ChimeraTK::TransferElement::_versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
     assert(_localBuffer._value.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
