@@ -234,18 +234,6 @@ namespace ChimeraTK {
     std::size_t _uniqueId;
 
     /**
-     * Current version number. Depending on whether the last operation was a
-     * read or write, the version number from the receiver or sender is supposed
-     * to be used. This is why we store a separate copy of the version number.
-     */
-    VersionNumber _versionNumber{nullptr};
-
-    /**
-     * Flag for data validity.
-     */
-    DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
-
-    /**
      * Callback to be called when values get rejected. This is used by
      * ApplicationCore testable mode, since it needs to keep track of the number
      * of values.
@@ -267,8 +255,8 @@ namespace ChimeraTK {
   : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description, flags),
     _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(receiver),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
-    _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId), _versionNumber(initialVersionNumber) {
-
+    _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId) {
+    TransferElement::_versionNumber = initialVersionNumber;
 
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
@@ -314,7 +302,7 @@ namespace ChimeraTK {
       // values and also helps to ensure that we do not get a feedback loop where
       // two (or more) bidirectional process variables "play ping-pong" (see issue
       // #2 for the full discussion).
-      if(_receiver->getVersionNumber() >= _versionNumber) return;
+      if(_receiver->getVersionNumber() >= TransferElement::_versionNumber) return;
       if(valueRejectCallback) valueRejectCallback();
     } while(true);
   }
@@ -327,12 +315,12 @@ namespace ChimeraTK {
       this->accessChannel(0).swap(_receiver->accessChannel(0));
       // After receiving, our new time stamp and version number are the ones
       // that we got from the receiver.
-      _versionNumber = _receiver->getVersionNumber();
+      TransferElement::_versionNumber = _receiver->getVersionNumber();
 
       // Pass on data validity flag from sender to receiver and make it our
       // our internal validity flag
-      _dataValidity = _receiver->dataValidity();
-      _sender->setDataValidity(_dataValidity);
+      TransferElement::setDataValidity(_receiver->dataValidity());
+      _sender->setDataValidity(TransferElement::dataValidity());
 
       // If we have a persistent data-storage, we have to update it. We have to
       // do this because a (new) value received from the other side should be
@@ -359,12 +347,12 @@ namespace ChimeraTK {
     // value again.
 
     // Propagate validity flag
-    _sender->setDataValidity(_dataValidity);
+    _sender->setDataValidity(TransferElement::dataValidity());
 
     bool lostData = _sender->writeDestructively(versionNumber);
     // After sending the new value, our current version number are the one from
     // the sender.
-    _versionNumber = versionNumber;
+    TransferElement::_versionNumber = versionNumber;
 
     // If we have a persistent data-storage, we have to update it.
     if(_persistentDataStorage) {

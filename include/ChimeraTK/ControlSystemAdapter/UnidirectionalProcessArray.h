@@ -205,17 +205,6 @@ namespace ChimeraTK {
     Buffer _localBuffer;
 
     /**
-     * Local copy of the version number belonging to the
-     * NDRegisterAccessor<T>::buffer_2D
-     */
-    VersionNumber _versionNumber{nullptr};
-
-    /**
-     * Local copy of the Buffer's data validity flag
-     */
-    DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
-
-    /**
      * Pointer to the receiver associated with this sender. This field is only
      * used if this process variable represents a sender.
      */
@@ -486,8 +475,8 @@ namespace ChimeraTK {
 
       // swap data out of the local buffer into the user buffer
       ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
-      _versionNumber = _localBuffer._versionNumber;
-      _dataValidity = _localBuffer._dataValidity;
+      TransferElement::_versionNumber = _localBuffer._versionNumber;
+      TransferElement::_dataValidity = _localBuffer._dataValidity;
     }
   }
 
@@ -537,7 +526,7 @@ namespace ChimeraTK {
     // A version should never be send with a version number that is equal to or
     // even less than the last version number used. Such an attempt indicates
     // that there is a problem in the logic attempting the write operation.
-    if(newVersionNumber < _versionNumber) {
+    if(newVersionNumber < ChimeraTK::TransferElement::_versionNumber) {
       throw ChimeraTK::logic_error("The version number passed to write() is less than the last version number used.");
     }
 
@@ -551,7 +540,7 @@ namespace ChimeraTK {
     // Set time stamp and version number
     _localBuffer._versionNumber = newVersionNumber;
     _localBuffer._dataValidity = TransferElement::dataValidity();
-    _versionNumber = newVersionNumber;
+    ChimeraTK::TransferElement::_versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
     assert(_localBuffer._value.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
