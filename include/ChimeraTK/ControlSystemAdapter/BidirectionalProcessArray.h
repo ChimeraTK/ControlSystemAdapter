@@ -268,6 +268,8 @@ namespace ChimeraTK {
     _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(receiver),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId), _versionNumber(initialVersionNumber) {
+
+
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
     if(sender && !_sender) {
@@ -279,6 +281,14 @@ namespace ChimeraTK {
     if(!sender->isWriteable()) {
       throw ChimeraTK::logic_error("The passed sender must be writable.");
     }
+    TransferElement::_readQueue = _receiver->getReadQueue().template then<void>([this] {
+      _receiver->postRead(ChimeraTK::TransferType::read, true);
+      if(_receiver->getVersionNumber() < TransferElement::getVersionNumber()) {
+        _receiver->read();
+        if(valueRejectCallback) valueRejectCallback();
+        throw detail::DiscardValueException();
+      }
+    });
     // Allocate and initialize the buffer of the base class we copy the value
     // from the receiver because the calling code should already have take care
     // of initializing that value.

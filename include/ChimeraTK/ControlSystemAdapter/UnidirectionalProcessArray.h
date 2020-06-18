@@ -385,6 +385,8 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, std::size_t numberOfBuffers, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, name, unit, description, flags), _vectorSize(initialValue.size()),
     _sharedState(numberOfBuffers, initialValue.size()), _localBuffer(initialValue) {
+    TransferElement::_readQueue = _sharedState._queue.template then<void>(
+        [this](Buffer& buf) { std::swap(_localBuffer, buf); }, std::launch::deferred);
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
