@@ -523,6 +523,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testValidiy, T, test_types) {
   receiver->readLatest();
   BOOST_CHECK(receiver->dataValidity() == ChimeraTK::DataValidity::ok);
 
-  /* Check that you cannot set validity on a read-only ProcessArray */
-  BOOST_CHECK_THROW(receiver->setDataValidity(ChimeraTK::DataValidity::faulty), ChimeraTK::logic_error);
+  // Checking that you cannot set the DataValidity on a read-only ProcessArray
+  // has been removed. This test is done through an assertion in the TransferElement base class
+  // and does not belong into the ProcessArray test any more.
 }
