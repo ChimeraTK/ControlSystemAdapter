@@ -196,17 +196,6 @@ namespace ChimeraTK {
     Buffer _localBuffer;
 
     /**
-     * Local copy of the version number belonging to the
-     * NDRegisterAccessor<T>::buffer_2D
-     */
-    VersionNumber _versionNumber{nullptr};
-
-    /**
-     * Local copy of the Buffer's data validity flag
-     */
-    DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
-
-    /**
      * Pointer to the receiver associated with this sender. This field is only
      * used if this process variable represents a sender.
      */
@@ -274,6 +263,8 @@ namespace ChimeraTK {
         createSynchronizedProcessArray(const std::vector<U>& initialValue, const ChimeraTK::RegisterPath& name,
             const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
             ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags);
+
+    template<typename U> friend class BidirectionalProcessArray;
   };
 
   /********************************************************************************************************************/
@@ -376,6 +367,8 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, std::size_t numberOfBuffers, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, name, unit, description, flags), _vectorSize(initialValue.size()),
     _sharedState(numberOfBuffers, initialValue.size()), _localBuffer(initialValue) {
+    TransferElement::_readQueue = _sharedState._queue.template then<void>(
+        [this](Buffer& buf) { std::swap(_localBuffer, buf); }, std::launch::deferred);
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
@@ -457,9 +450,16 @@ namespace ChimeraTK {
   template<class T>
   void UnidirectionalProcessArray<T>::doReadTransferSynchronously() {
     assert(this->isReadable());
-    _sharedState._queue.pop_wait(_localBuffer);
-    /// @todo if wait_for_new_data is not set, make identical to
-    /// doReadTransferLatest()
+
+    // If without wait_for_new_data, make sure that there is an initial value
+    // TODO: Link spec element
+    if(TransferElement::getVersionNumber() == VersionNumber{nullptr}) {
+      _sharedState._queue.pop_wait(_localBuffer);
+    }
+
+    // Empty queue, equivalent of readLatest()
+    while(_sharedState._queue.pop(_localBuffer)) {
+    }
   }
 
   /********************************************************************************************************************/
@@ -475,8 +475,8 @@ namespace ChimeraTK {
 
       // swap data out of the local buffer into the user buffer
       ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
-      _versionNumber = _localBuffer._versionNumber;
-      _dataValidity = _localBuffer._dataValidity;
+      TransferElement::_versionNumber = _localBuffer._versionNumber;
+      TransferElement::_dataValidity = _localBuffer._dataValidity;
     }
   }
 
@@ -523,13 +523,6 @@ namespace ChimeraTK {
 
     assert(this->isWriteable());
 
-    // A version should never be send with a version number that is equal to or
-    // even less than the last version number used. Such an attempt indicates
-    // that there is a problem in the logic attempting the write operation.
-    if(newVersionNumber < _versionNumber) {
-      throw ChimeraTK::logic_error("The version number passed to write() is less than the last version number used.");
-    }
-
     // First update the persistent data storage, if any was associated. This
     // cannot be done after sending, since the value might no longer be available
     // within this instance.
@@ -540,7 +533,6 @@ namespace ChimeraTK {
     // Set time stamp and version number
     _localBuffer._versionNumber = newVersionNumber;
     _localBuffer._dataValidity = TransferElement::dataValidity();
-    _versionNumber = newVersionNumber;
 
     // set the data by copying or swapping
     assert(_localBuffer._value.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
