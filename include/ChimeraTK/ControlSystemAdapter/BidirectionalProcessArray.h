@@ -254,7 +254,8 @@ namespace ChimeraTK {
       ProcessVariableListener::SharedPtr sendNotificationListener, VersionNumber initialVersionNumber,
       const AccessModeFlags& flags)
   : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description, flags),
-    _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(receiver)),
+    _allowPersistentDataStorage(allowPersistentDataStorage),
+    _receiver(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(receiver)),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId) {
     TransferElement::_versionNumber = initialVersionNumber;
@@ -267,7 +268,7 @@ namespace ChimeraTK {
 
     // If the passed receiver was not null but the class variable is, the dynamic
     // cast failed.
-    if (receiver && !_receiver) {
+    if(receiver && !_receiver) {
       throw ChimeraTK::logic_error("The passed receiver must be an instance of UnidirectionalProcessArray.");
     }
     if(!receiver->isReadable()) {
@@ -279,7 +280,7 @@ namespace ChimeraTK {
     }
 
     TransferElement::_readQueue = _receiver->getReadQueue().template then<void>([this] {
-      if(_receiver->getVersionNumber() < TransferElement::getVersionNumber()) {
+      if(_receiver->_localBuffer._versionNumber < TransferElement::getVersionNumber()) {
         if(valueRejectCallback) valueRejectCallback();
         throw detail::DiscardValueException();
       }
@@ -322,7 +323,7 @@ namespace ChimeraTK {
   retry:
     try {
       if(TransferElement::_readQueue.pop()) {
-        std::swap(_localSyncReadBuffer,  _receiver->_localBuffer);
+        std::swap(_localSyncReadBuffer, _receiver->_localBuffer);
         _syncReadHasNewData = true;
         ++nSuccessfulReads;
       }
@@ -343,7 +344,8 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType, bool hasNewData) {
+  void BidirectionalProcessArray<T>::doPostRead(ChimeraTK::TransferType type, bool hasNewData) {
+    _receiver->postRead(type, hasNewData);
     if(hasNewData) {
       this->accessChannel(0).swap(_receiver->accessChannel(0));
       // After receiving, our new time stamp and version number are the ones
