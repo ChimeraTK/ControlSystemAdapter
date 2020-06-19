@@ -272,6 +272,8 @@ namespace ChimeraTK {
         createSynchronizedProcessArray(const std::vector<U>& initialValue, const ChimeraTK::RegisterPath& name,
             const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
             ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags);
+
+    template<typename U> friend class BidirectionalProcessArray;
   };
 
   /********************************************************************************************************************/
@@ -458,9 +460,15 @@ namespace ChimeraTK {
   void UnidirectionalProcessArray<T>::doReadTransferSynchronously() {
     assert(this->isReadable());
 
-    while(_sharedState._queue.pop(_localBuffer))
-      ;
+    // If without wait_for_new_data, make sure that there is an initial value
+    // TODO: Link spec element
+    if(TransferElement::getVersionNumber() == VersionNumber{nullptr}) {
+      _sharedState._queue.pop_wait(_localBuffer);
+    }
 
+    // Empty queue, equivalent of readLatest()
+    while(_sharedState._queue.pop(_localBuffer)) {
+    }
   }
 
   /********************************************************************************************************************/

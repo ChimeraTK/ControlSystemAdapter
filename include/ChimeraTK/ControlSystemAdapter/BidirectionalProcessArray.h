@@ -215,7 +215,7 @@ namespace ChimeraTK {
      * Process array from which we receive values. When this process array is
      * read, we actually read from the receiver.
      */
-    typename ProcessArray<T>::SharedPtr _receiver;
+    typename UnidirectionalProcessArray<T>::SharedPtr _receiver;
 
     /**
      * Process array to which send values. When this process array is written,
@@ -239,6 +239,9 @@ namespace ChimeraTK {
      * of values.
      */
     std::function<void()> valueRejectCallback;
+
+    typename UnidirectionalProcessArray<T>::Buffer _localSyncReadBuffer; // initialise correctly in constructor
+    bool _syncReadHasNewData{false};
   };
 
   /*********************************************************************************************************************/
@@ -253,7 +256,7 @@ namespace ChimeraTK {
       ProcessVariableListener::SharedPtr sendNotificationListener, VersionNumber initialVersionNumber,
       const AccessModeFlags& flags)
   : ProcessArray<T>(ProcessArray<T>::SENDER_RECEIVER, name, unit, description, flags),
-    _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(receiver),
+    _allowPersistentDataStorage(allowPersistentDataStorage), _receiver(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(receiver)),
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId) {
     TransferElement::_versionNumber = initialVersionNumber;
@@ -263,16 +266,22 @@ namespace ChimeraTK {
     if(sender && !_sender) {
       throw ChimeraTK::logic_error("The passed sender must be an instance of UnidirectionalProcessArray.");
     }
+
+    // If the passed receiver was not null but the class variable is, the dynamic
+    // cast failed.
+    if (receiver && !_receiver) {
+      throw ChimeraTK::logic_error("The passed receiver must be an instance of UnidirectionalProcessArray.");
+    }
     if(!receiver->isReadable()) {
       throw ChimeraTK::logic_error("The passed receiver must be readable.");
     }
+
     if(!sender->isWriteable()) {
       throw ChimeraTK::logic_error("The passed sender must be writable.");
     }
+
     TransferElement::_readQueue = _receiver->getReadQueue().template then<void>([this] {
-      _receiver->postRead(ChimeraTK::TransferType::read, true);
       if(_receiver->getVersionNumber() < TransferElement::getVersionNumber()) {
-        _receiver->read();
         if(valueRejectCallback) valueRejectCallback();
         throw detail::DiscardValueException();
       }
@@ -287,24 +296,50 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<class T>
-  void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType) {}
+  void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType transferType) {
+    _syncReadHasNewData = false;
+    _receiver->preRead(transferType);
+  }
 
   /*********************************************************************************************************************/
 
   template<class T>
   void BidirectionalProcessArray<T>::doReadTransferSynchronously() {
-    do {
-      _receiver->readLatest();
-      // We only update the current value (stored in the sender) when the version
-      // number of the data that we received is greater than or equal the current
-      // version number. This ensures that old updates (that might arrive late due
-      // to the asynchronous nature of the transfer logic) do not overwrite newer
-      // values and also helps to ensure that we do not get a feedback loop where
-      // two (or more) bidirectional process variables "play ping-pong" (see issue
-      // #2 for the full discussion).
-      if(_receiver->getVersionNumber() >= TransferElement::_versionNumber) return;
+    unsigned int nSuccessfulReads = 0;
+
+    if(TransferElement::getVersionNumber() == VersionNumber{nullptr}) {
+      // cannot throw DiscardValue because every received version is larger than nullptr
+      TransferElement::_readQueue.pop_wait();
+      std::swap(_localSyncReadBuffer, _receiver->_localBuffer);
+      _syncReadHasNewData = true;
+      ++nSuccessfulReads;
+    }
+
+    // we have to mimic the complete behaviour of readLatest, incl. the
+    // fact that inside the loop the data buffer is copied each time in
+    // postRead() if there was data.
+    // if there is a DiscardValueException, the localBuffer in the receiver
+    // has already been overwritten, and we might have lost the only
+    // copy of the last good value if there is nothing after the exception in  the queue.
+  retry:
+    try {
+      if(TransferElement::_readQueue.pop()) {
+        std::swap(_localSyncReadBuffer,  _receiver->_localBuffer);
+        _syncReadHasNewData = true;
+        ++nSuccessfulReads;
+      }
+    }
+    catch(detail::DiscardValueException) {
       if(valueRejectCallback) valueRejectCallback();
-    } while(true);
+      goto retry;
+    }
+
+    if(valueRejectCallback && (nSuccessfulReads > 1)) {
+      // n-1 values have been rejected. Only for the last one postRead() is called
+      for(unsigned int i = 0; i < nSuccessfulReads - 1; ++i) {
+        valueRejectCallback();
+      }
+    }
   }
 
   /*********************************************************************************************************************/
@@ -350,9 +385,6 @@ namespace ChimeraTK {
     _sender->setDataValidity(TransferElement::dataValidity());
 
     bool lostData = _sender->writeDestructively(versionNumber);
-    // After sending the new value, our current version number are the one from
-    // the sender.
-    TransferElement::_versionNumber = versionNumber;
 
     // If we have a persistent data-storage, we have to update it.
     if(_persistentDataStorage) {
