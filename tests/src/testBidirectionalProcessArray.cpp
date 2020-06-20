@@ -38,45 +38,65 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
   // should still have its old value.
   double newValue1 = -2.1;
   pv1->accessData(0) = newValue1;
-  pv1->write();
+  VersionNumber v;
+  pv1->write(v);
+  BOOST_CHECK(pv1->getVersionNumber() == v);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), initialValue, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() < v);
   // Now we write to pv2. We do this before reading pv2. As a result, both
   // pv1 and pv2 should have their respective new values.
   double newValue2 = 1.8;
   pv2->accessData(0) = newValue2;
-  pv2->write();
+  VersionNumber v2;
+  pv2->write(v2);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v2);
   // Now we read pv2. As the incoming update is older than the current value,
   // it should be discarded.
   BOOST_CHECK(pv2->readNonBlocking() == false);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v2);
   // Now we read pv1. The incoming update should overwrite the current value.
   pv1->read();
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v2);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v2);
   // Now we write another value to pv2, but before reading it on pv1, we write
   // a new value there.
   double newValue3 = 25.0;
   pv2->accessData(0) = newValue3;
-  pv2->write();
+  VersionNumber v3;
+  pv2->write(v3);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v2);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v3);
   double newValue4 = 100.0;
   pv1->accessData(0) = newValue4;
-  pv1->write();
+  VersionNumber v4;
+  pv1->write(v4);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v4);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v3);
   // Now we read pv1. The incoming update should be discarded.
   BOOST_CHECK(pv1->readNonBlocking() == false);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v4);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v3);
   // Now we read pv2. The incoming update should succeed.
   pv2->read();
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
+  BOOST_CHECK(pv1->getVersionNumber() == v4);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue4, 0.001);
+  BOOST_CHECK(pv2->getVersionNumber() == v4);
 }
 
 /**********************************************************************************************************************/
@@ -158,9 +178,12 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
   BOOST_CHECK_CLOSE(Br->accessData(0), initialValue, 0.001);
   // A new value is written to As and received by Ar
   As->accessData(0) = 42.0;
-  As->write();
+  VersionNumber v;
+  As->write(v);
+  BOOST_CHECK(As->getVersionNumber() == v);
   Ar->read();
   BOOST_CHECK_CLOSE(Ar->accessData(0), 42.0, 0.001);
+  BOOST_CHECK(Ar->getVersionNumber() == v);
   // Value is limited to be >= 0 and hence written back to Ar. It is also passed
   // on to Bs.
   Ar->accessData(0) = 1.0;
@@ -170,8 +193,10 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
   // As and Br receive the limited value.
   As->read();
   BOOST_CHECK_CLOSE(As->accessData(0), 1.0, 0.001);
+  BOOST_CHECK(As->getVersionNumber() == v);
   Br->read();
   BOOST_CHECK_CLOSE(Br->accessData(0), 1.0, 0.001);
+  BOOST_CHECK(As->getVersionNumber() == v);
   // The value at Br is multiplied by -2 and written back
   Br->accessData(0) = -2.0;
   Br->write(Br->getVersionNumber());

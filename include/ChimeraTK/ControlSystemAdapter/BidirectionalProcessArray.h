@@ -279,12 +279,15 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("The passed sender must be writable.");
     }
 
-    TransferElement::_readQueue = _receiver->getReadQueue().template then<void>([this] {
-      if(_receiver->_localBuffer._versionNumber < TransferElement::getVersionNumber()) {
-        if(valueRejectCallback) valueRejectCallback();
-        throw detail::DiscardValueException();
-      }
-    });
+    TransferElement::_readQueue = _receiver->getReadQueue().template then<void>(
+        [this] {
+          if(_receiver->_localBuffer._versionNumber < TransferElement::getVersionNumber()) {
+            if(valueRejectCallback) valueRejectCallback();
+            throw detail::DiscardValueException();
+          }
+        },
+        std::launch::deferred);
+
     // Allocate and initialize the buffer of the base class we copy the value
     // from the receiver because the calling code should already have take care
     // of initializing that value.
