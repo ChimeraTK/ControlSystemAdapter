@@ -264,7 +264,8 @@ namespace ChimeraTK {
             const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
             ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags);
 
-    template<typename U> friend class BidirectionalProcessArray;
+    template<typename U>
+    friend class BidirectionalProcessArray;
   };
 
   /********************************************************************************************************************/
@@ -473,8 +474,15 @@ namespace ChimeraTK {
       // trouble when it suddenly experiences a vector of the wrong size.
       assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
 
-      // swap data out of the local buffer into the user buffer
-      ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
+      if(this->_accessModeFlags.has(AccessMode::wait_for_new_data)) {
+        // swap data out of the local buffer into the user buffer
+        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
+      }
+      else {
+        // We have to mimic synchronous mode. Here we have to copy here because there might be multiple reads, and
+        // the reading code is allowed to swap out the user buffer, and has to get the correct value on the second read.
+        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = _localBuffer._value;
+      }
       TransferElement::_versionNumber = _localBuffer._versionNumber;
       TransferElement::_dataValidity = _localBuffer._dataValidity;
     }
