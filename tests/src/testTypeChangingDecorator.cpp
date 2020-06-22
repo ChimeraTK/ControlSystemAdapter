@@ -160,13 +160,6 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   assert(fabs(startReadValue + 2 - (expectedWriteValue + 1)) > 0.001);
   anotherScalarAccessor = startReadValue + 2;
   anotherScalarAccessor.write();
-#if 0
-  auto future = decoratedScalar.readAsync();
-  // nothing must change on the user buffer yet
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), static_cast<T>(startWriteValue)));
-  future.wait(); // this calls the post-reads correctly
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
-#endif
 
   // FIXME: We cannot test that the decorator is relaying doReadTransfer,
   // doReadTransferLatest and do readTransferLatest correctly with the dummy
@@ -174,6 +167,7 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   // intentionally do not call them to indicate them uncovered. We would have to
   // use the control system adapter implementations with the queues to test it.
 
+  // Check that the result for mayReplaceOther is consistent
   BOOST_CHECK(!decoratedScalar.mayReplaceOther(anotherImplTAccessor.getHighLevelImplElement()));
   auto anotherNdAccessor =
       boost::dynamic_pointer_cast<NDRegisterAccessor<IMPL_T>>(anotherImplTAccessor.getHighLevelImplElement());
@@ -212,12 +206,12 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   decoratedScalar.preRead(ChimeraTK::TransferType::read);
 
   // still nothing has changed on the user buffer
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
 
   decoratedScalar.readTransfer();
   // Pass hasNewData as false, user buffer should still not have changed
   decoratedScalar.postRead(ChimeraTK::TransferType::read, false);
-  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 2)));
+  BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), startWriteValue));
 
   decoratedScalar.preRead(ChimeraTK::TransferType::read);
   decoratedScalar.readTransfer();
