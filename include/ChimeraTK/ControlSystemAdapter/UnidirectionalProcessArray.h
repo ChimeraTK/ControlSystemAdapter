@@ -571,10 +571,12 @@ namespace ChimeraTK {
       createSynchronizedProcessArray(std::size_t size, const ChimeraTK::RegisterPath& name, const std::string& unit,
           const std::string& description, T initialValue, std::size_t numberOfBuffers,
           ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags) {
+    flags.checkForUnknownFlags({AccessMode::wait_for_new_data});
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::RECEIVER, name, unit, description, std::vector<T>(size, initialValue), numberOfBuffers, flags);
+    // The sender is write only. It does not have wait_for_new_data.
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
-        ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
+        ProcessArray<T>::SENDER, sendNotificationListener, receiver, AccessModeFlags({}));
 
     // Receiving end has initially no valid data. Since we keep the sender at "ok", this will be overwritten once the
     // first real data arrives.
@@ -590,10 +592,12 @@ namespace ChimeraTK {
       createSynchronizedProcessArray(const std::vector<T>& initialValue, const ChimeraTK::RegisterPath& name,
           const std::string& unit, const std::string& description, std::size_t numberOfBuffers,
           ProcessVariableListener::SharedPtr sendNotificationListener, const AccessModeFlags& flags) {
+    flags.checkForUnknownFlags({AccessMode::wait_for_new_data});
     auto receiver = boost::make_shared<UnidirectionalProcessArray<T>>(
         ProcessArray<T>::RECEIVER, name, unit, description, initialValue, numberOfBuffers, flags);
+    // The sender is write only. It does not have wait_for_new_data.
     auto sender = boost::make_shared<UnidirectionalProcessArray<T>>(
-        ProcessArray<T>::SENDER, sendNotificationListener, receiver, flags);
+        ProcessArray<T>::SENDER, sendNotificationListener, receiver, AccessModeFlags({}));
 
     // Receiving end has initially no valid data. Since we keep the sender at "ok", this will be overwritten once the
     // first real data arrives.
