@@ -164,6 +164,8 @@ namespace ChimeraTK {
 
     void setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) override;
 
+    void interrupt() override { _receiver->interrupt(); }
+
     /**
      * Returns a unique ID of this process variable, which will be indentical
      * for the receiver and sender side of the same variable but different for
