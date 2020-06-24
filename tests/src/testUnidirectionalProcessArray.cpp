@@ -14,6 +14,7 @@ using namespace boost::unit_test_framework;
 #include "toType.h"
 
 #include <boost/mpl/list.hpp>
+#include <boost/thread.hpp>
 
 typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double,
     std::string>
@@ -104,6 +105,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testDoubleRead, T, test_types) {
   receiver->read();
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(SOME_NUMBER + 1));
   BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(testInterrupt, T, test_types) {
+  // Expected behaviour
+  auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS);
+  auto receiver = senderReceiver.second;
+
+  auto t = std::thread([&receiver]() { BOOST_CHECK_THROW(receiver->read(), boost::thread_interrupted); });
+  receiver->interrupt();
+  t.join();
+
+  // Calling interrupt without wait_for_new_data throws logic_error
+  senderReceiver = createSynchronizedProcessArray<T>(
+      1, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+  receiver = senderReceiver.second;
+
+  BOOST_CHECK_THROW(receiver->interrupt(), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
