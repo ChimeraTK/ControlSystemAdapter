@@ -87,6 +87,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
       std::equal(receiver->accessChannel(0).begin(), receiver->accessChannel(0).end(), referenceVector.begin()));
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(testDoubleRead, T, test_types) {
+  // Check whether consecutive reads on a UniDirectionalProcessArray with no wait_for_new_data works
+  typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
+      createSynchronizedProcessArray<T>(
+          1, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
+  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
+  sender->accessChannel(0)[0] = toType<T>(SOME_NUMBER + 1);
+  sender->write();
+
+  receiver->read();
+  BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(SOME_NUMBER + 1));
+  BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
+
+  receiver->read();
+  BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(SOME_NUMBER + 1));
+  BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
       createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", toType<T>(SOME_NUMBER));
