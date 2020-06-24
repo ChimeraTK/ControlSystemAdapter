@@ -123,6 +123,15 @@ namespace ChimeraTK {
       }
     }
 
+    void interrupt() override {
+      try {
+        throw boost::thread_interrupted();
+      }
+      catch(...) {
+        _sharedState._queue.push_overwrite_exception(std::current_exception());
+      }
+    }
+
    private:
     /**
      *  Type for the individual buffers. Each buffer stores a vector, the version
