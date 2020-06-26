@@ -123,14 +123,7 @@ namespace ChimeraTK {
       }
     }
 
-    void interrupt() override {
-      try {
-        throw boost::thread_interrupted();
-      }
-      catch(...) {
-        _sharedState._queue.push_overwrite_exception(std::current_exception());
-      }
-    }
+    void interrupt() override { TransferElement::interrupt_impl(_sharedState._queue); }
 
    private:
     /**
