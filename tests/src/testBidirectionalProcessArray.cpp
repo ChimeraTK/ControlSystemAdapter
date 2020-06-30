@@ -104,7 +104,6 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates) {
 // Test that a delayed incoming update with an older version does not
 // overwrite a newer version.
 BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
-#if 0
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 3.5;
   tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue);
@@ -127,11 +126,11 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
   // Now we read pv2. As the incoming update is older than the current value,
   // it should be discarded.
-  BOOST_CHECK(pv2->readAsync().hasNewData() == false);
+  BOOST_CHECK(pv2->readNonBlocking() == false);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue1, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
   // Now we read pv1. The incoming update should overwrite the current value.
-  pv1->readAsync().wait();
+  pv1->read();
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue2, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
   // Now we write another value to pv2, but before reading it on pv1, we write
@@ -147,14 +146,13 @@ BOOST_AUTO_TEST_CASE(testConflictingUpdates_readAsync) {
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
   // Now we read pv1. The incoming update should be discarded.
-  BOOST_CHECK(pv1->readAsync().hasNewData() == false);
+  BOOST_CHECK(pv1->readNonBlocking() == false);
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue3, 0.001);
   // Now we read pv2. The incoming update should succeed.
-  pv2->readAsync().wait();
+  pv2->read();
   BOOST_CHECK_CLOSE(pv1->accessData(0), newValue4, 0.001);
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue4, 0.001);
-#endif
 }
 
 /**********************************************************************************************************************/
@@ -220,7 +218,6 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection) {
 // Test that passing on values (e.g. to other ApplicationCore modules) and
 // sending back corrected values works as expected
 BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
-#if 0
   // Two pairs of PVs, "s" is for sending and "r" for receiving end (assuming a
   // "favoured" direction - this is only for clarification of the test
   // scenario). Values read from Ar are passed on to Bs, after limiting the
@@ -238,7 +235,7 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
   // A new value is written to As and received by Ar
   As->accessData(0) = 42.0;
   As->write();
-  Ar->readAsync().wait();
+  Ar->read();
   BOOST_CHECK_CLOSE(Ar->accessData(0), 42.0, 0.001);
   // Value is limited to be >= 0 and hence written back to Ar. It is also passed
   // on to Bs.
@@ -247,27 +244,26 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
   Ar->write(Ar->getVersionNumber());
   Bs->write(Ar->getVersionNumber());
   // As and Br receive the limited value.
-  As->readAsync().wait();
+  As->read();
   BOOST_CHECK_CLOSE(As->accessData(0), 1.0, 0.001);
-  Br->readAsync().wait();
+  Br->read();
   BOOST_CHECK_CLOSE(Br->accessData(0), 1.0, 0.001);
   // The value at Br is multiplied by -2 and written back
   Br->accessData(0) = -2.0;
   Br->write(Br->getVersionNumber());
   // Bs receives the multipled value, which is limited again to be >= 0 and
   // hence written again to Bs. It ls also passed back on to Ar
-  Bs->readAsync().wait();
+  Bs->read();
   BOOST_CHECK_CLOSE(Bs->accessData(0), -2.0, 0.001);
   Bs->accessData(0) = 0.0;
   Ar->accessData(0) = 0.0;
   Ar->write(Bs->getVersionNumber());
   Bs->write(Bs->getVersionNumber());
   // Both As and Br receive the multiplied and limited value.
-  As->readAsync().wait();
+  As->read();
   BOOST_CHECK_CLOSE(As->accessData(0), 0.0, 0.001);
-  Br->readAsync().wait();
+  Br->read();
   BOOST_CHECK_CLOSE(Br->accessData(0), 0.0, 0.001);
-#endif
 }
 
 /**********************************************************************************************************************/
