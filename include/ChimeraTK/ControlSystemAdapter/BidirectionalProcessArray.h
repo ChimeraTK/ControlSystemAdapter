@@ -290,6 +290,8 @@ namespace ChimeraTK {
         },
         std::launch::deferred);
 
+    _localSyncReadBuffer = typename UnidirectionalProcessArray<T>::Buffer(_receiver->_localBuffer._value.size());
+
     // Allocate and initialize the buffer of the base class we copy the value
     // from the receiver because the calling code should already have take care
     // of initializing that value.
