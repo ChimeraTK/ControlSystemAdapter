@@ -36,6 +36,13 @@ namespace ChimeraTK {
    * direction. This implementation is used for both sides (sender and
    * receiver).
    *
+   * @note while this class is mostly following the [TransferElement
+   * specification](https://chimeratk.github.io/DeviceAccess/master/spec__transfer_element.html)
+   * it deviates in its behaviour at one point. When created without
+   * AccessMode::wait_for_new_data, all read operations will block until an initial
+   * value was seen. This follows the behaviour specified in the [initial value propagation
+   * specification](https://chimeratk.github.io/ApplicationCore/master/spec_initial_value_propagation.html)
+   *
    * This class is not thread-safe and should only be used from a single thread.
    */
   template<class T>
