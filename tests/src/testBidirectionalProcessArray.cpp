@@ -388,8 +388,7 @@ BOOST_AUTO_TEST_CASE(testSync) {
 BOOST_AUTO_TEST_CASE(testInterrupt) {
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 2.0;
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue,
-      2); //, ProcessVariableListener::SharedPtr(), ProcessVariableListener::SharedPtr(), {});
+  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", initialValue, 2);
 
   auto t = std::thread([&pv2]() { BOOST_CHECK_THROW(pv2->read(), boost::thread_interrupted); });
   pv2->interrupt();
@@ -398,12 +397,6 @@ BOOST_AUTO_TEST_CASE(testInterrupt) {
   t = std::thread([&pv1]() { BOOST_CHECK_THROW(pv1->read(), boost::thread_interrupted); });
   pv1->interrupt();
   t.join();
-
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(
-      1, "", "", "", initialValue, 2, ProcessVariableListener::SharedPtr(), ProcessVariableListener::SharedPtr(), {});
-
-  BOOST_CHECK_THROW(pv1->interrupt(), ChimeraTK::logic_error);
-  BOOST_CHECK_THROW(pv2->interrupt(), ChimeraTK::logic_error);
 }
 
 /**********************************************************************************************************************/

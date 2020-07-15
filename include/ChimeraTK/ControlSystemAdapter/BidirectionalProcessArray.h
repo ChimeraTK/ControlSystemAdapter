@@ -239,9 +239,6 @@ namespace ChimeraTK {
      * of values.
      */
     std::function<void()> valueRejectCallback;
-
-    typename UnidirectionalProcessArray<T>::Buffer _localSyncReadBuffer; // initialise correctly in constructor
-    bool _syncReadHasNewData{false};
   };
 
   /*********************************************************************************************************************/
@@ -261,6 +258,9 @@ namespace ChimeraTK {
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)),
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId) {
     TransferElement::_versionNumber = initialVersionNumber;
+
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
 
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
@@ -290,8 +290,6 @@ namespace ChimeraTK {
         },
         std::launch::deferred);
 
-    _localSyncReadBuffer = typename UnidirectionalProcessArray<T>::Buffer(_receiver->_localBuffer._value.size());
-
     // Allocate and initialize the buffer of the base class we copy the value
     // from the receiver because the calling code should already have take care
     // of initializing that value.
@@ -303,7 +301,6 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doPreRead(ChimeraTK::TransferType transferType) {
-    _syncReadHasNewData = false;
     _receiver->preRead(transferType);
   }
 
@@ -311,41 +308,7 @@ namespace ChimeraTK {
 
   template<class T>
   void BidirectionalProcessArray<T>::doReadTransferSynchronously() {
-    unsigned int nSuccessfulReads = 0;
-
-    if(TransferElement::getVersionNumber() == VersionNumber{nullptr}) {
-      // cannot throw DiscardValue because every received version is larger than nullptr
-      TransferElement::_readQueue.pop_wait();
-      std::swap(_localSyncReadBuffer, _receiver->_localBuffer);
-      _syncReadHasNewData = true;
-      ++nSuccessfulReads;
-    }
-
-    // we have to mimic the complete behaviour of readLatest, incl. the
-    // fact that inside the loop the data buffer is copied each time in
-    // postRead() if there was data.
-    // if there is a DiscardValueException, the localBuffer in the receiver
-    // has already been overwritten, and we might have lost the only
-    // copy of the last good value if there is nothing after the exception in  the queue.
-  retry:
-    try {
-      if(TransferElement::_readQueue.pop()) {
-        std::swap(_localSyncReadBuffer, _receiver->_localBuffer);
-        _syncReadHasNewData = true;
-        ++nSuccessfulReads;
-      }
-    }
-    catch(detail::DiscardValueException) {
-      if(valueRejectCallback) valueRejectCallback();
-      goto retry;
-    }
-
-    if(valueRejectCallback && (nSuccessfulReads > 1)) {
-      // n-1 values have been rejected. Only for the last one postRead() is called
-      for(unsigned int i = 0; i < nSuccessfulReads - 1; ++i) {
-        valueRejectCallback();
-      }
-    }
+    throw ChimeraTK::logic_error("BidirectionalProcessArray::doReadTransferSynchronously must not be called.");
   }
 
   /*********************************************************************************************************************/
@@ -444,6 +407,9 @@ namespace ChimeraTK {
           const std::string& unit, const std::string& description, T initialValue, std::size_t numberOfBuffers,
           ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+
     auto senderReceiver1 =
         createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
@@ -472,6 +438,9 @@ namespace ChimeraTK {
           const ChimeraTK::RegisterPath& name, const std::string& unit, const std::string& description,
           std::size_t numberOfBuffers, ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+
     auto senderReceiver1 =
         createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
