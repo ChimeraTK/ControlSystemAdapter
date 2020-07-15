@@ -77,38 +77,47 @@ template<>
 boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::getRegisterAccessor_impl<std::string>(
     const RegisterPath& path, size_t numberOfWords, size_t wordOffsetInRegister, AccessModeFlags flags) {
   if(numberOfWords > 1 || wordOffsetInRegister != 0) throw ChimeraTK::logic_error("Bad dimension");
-  flags.checkForUnknownFlags({AccessMode::wait_for_new_data});
-
-  // create a push and a poll pair always for convenience, only one of them will be used
-  auto poll = createSynchronizedProcessArray<std::string>(1, "/unidir/poll", "", "", "", 3, nullptr, {});
-  auto push = createSynchronizedProcessArray<std::string>(
-      1, "/unidir/push", "", "", "", 3, nullptr, {AccessMode::wait_for_new_data});
 
   if(path == "/unidir/sender") {
-    flags.checkForUnknownFlags({});
-    _pv = push.second;
-    return push.first;
+    flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3);
+    _pv = pv.second;
+    return pv.first;
   }
   if(path == "/unidir/receiver" && flags.has(AccessMode::wait_for_new_data)) {
-    _pv = push.first;
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, flags);
+    _pv = pv.first;
     // need to write initial value
     _pv->accessData(0) = generateValueFromCounter();
     _pv->write();
-    return push.second;
+    return pv.second;
   }
   if(path == "/unidir/receiver" && !flags.has(AccessMode::wait_for_new_data)) {
-    _pv = poll.first;
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, flags);
+    _pv = pv.first;
     // need to write initial value, otherwise the first read would block
     _pv->accessData(0) = generateValueFromCounter();
     _pv->write();
-    return poll.second;
+    return pv.second;
   }
-  /*if(path == "/bidir/A") {
-    return boost::make_shared<ThrowIfClosedDecorator<std::string>>(_biA);
+  if(path == "/bidir/A") {
+    flags.add(AccessMode::wait_for_new_data);
+    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, nullptr, flags);
+    _pv = pv.first;
+    // need to write initial value
+    _pv->accessData(0) = generateValueFromCounter();
+    _pv->write();
+    return pv.second;
   }
   if(path == "/bidir/B") {
-    return boost::make_shared<ThrowIfClosedDecorator<std::string>>(_biB);
-  }*/
+    flags.add(AccessMode::wait_for_new_data);
+    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, nullptr, flags);
+    _pv = pv.second;
+    // need to write initial value
+    _pv->accessData(0) = generateValueFromCounter();
+    _pv->write();
+    return pv.first;
+  }
 
   throw ChimeraTK::logic_error("Bad path");
 }
@@ -126,10 +135,7 @@ struct RegisterDescriptorBase {
 
   bool isPush() { return true; }
 
-  ChimeraTK::AccessModeFlags supportedFlags() {
-    ChimeraTK::AccessModeFlags flags{ChimeraTK::AccessMode::wait_for_new_data};
-    return flags;
-  }
+  ChimeraTK::AccessModeFlags supportedFlags() { return {ChimeraTK::AccessMode::wait_for_new_data}; }
 
   template<typename UserType>
   std::vector<std::vector<UserType>> generateValue() {
@@ -165,7 +171,7 @@ struct UnidirSender : RegisterDescriptorBase<UnidirSender> {
 
 /**********************************************************************************************************************/
 
-struct UnidirReceiver : RegisterDescriptorBase<UnidirSender> {
+struct UnidirReceiver : RegisterDescriptorBase<UnidirReceiver> {
   std::string path() { return "/unidir/receiver"; }
 
   bool isWriteable() { return false; }
@@ -183,15 +189,53 @@ struct UnidirReceiver : RegisterDescriptorBase<UnidirSender> {
   }
 };
 
-/********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+template<typename Derived>
+struct Bidir : RegisterDescriptorBase<Derived> {
+  bool isWriteable() { return true; }
+  bool isReadable() { return true; }
+
+  template<typename UserType>
+  std::vector<std::vector<UserType>> getRemoteValue() {
+    backend->_pv->readLatest();
+    return backend->_pv->accessChannels();
+  }
+
+  void setRemoteValue() {
+    auto v = this->template generateValue<std::string>()[0][0];
+    backend->_pv->accessData(0) = v;
+    backend->_pv->write();
+  }
+};
+
+/**********************************************************************************************************************/
+
+struct BidirA : Bidir<BidirA> {
+  std::string path() { return "/bidir/A"; }
+};
+
+/**********************************************************************************************************************/
+
+struct BidirB : Bidir<BidirA> {
+  std::string path() { return "/bidir/B"; }
+  // See ProcessArrayFactoryBackend::getRegisterAccessor_impl() for the difference to BidirA.
+};
+
+/**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(unifiedBackendTest) {
   std::string cdd = "(ProcessArrayFactory)";
 
   backend = boost::dynamic_pointer_cast<ProcessArrayFactoryBackend>(BackendFactory::getInstance().createBackend(cdd));
 
-  UnifiedBackendTest<>().testOnlyTransferElement().addRegister<UnidirSender>().addRegister<UnidirReceiver>().runTests(
-      cdd);
+  UnifiedBackendTest<>()
+      .testOnlyTransferElement()
+      .addRegister<UnidirSender>()
+      .addRegister<UnidirReceiver>()
+      .addRegister<BidirA>()
+      .addRegister<BidirB>()
+      .runTests(cdd);
 }
 
 /********************************************************************************************************************/
