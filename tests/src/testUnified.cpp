@@ -196,6 +196,8 @@ struct Bidir : RegisterDescriptorBase<Derived> {
   bool isWriteable() { return true; }
   bool isReadable() { return true; }
 
+  bool disableSyncReadTests{true};
+
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
     backend->_pv->readLatest();
