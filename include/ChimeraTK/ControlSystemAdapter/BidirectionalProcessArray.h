@@ -262,6 +262,9 @@ namespace ChimeraTK {
     _sendNotificationListener(sendNotificationListener), _uniqueId(uniqueId) {
     TransferElement::_versionNumber = initialVersionNumber;
 
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
     if(sender && !_sender) {
@@ -444,6 +447,9 @@ namespace ChimeraTK {
           const std::string& unit, const std::string& description, T initialValue, std::size_t numberOfBuffers,
           ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+
     auto senderReceiver1 =
         createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
@@ -472,6 +478,9 @@ namespace ChimeraTK {
           const ChimeraTK::RegisterPath& name, const std::string& unit, const std::string& description,
           std::size_t numberOfBuffers, ProcessVariableListener::SharedPtr sendNotificationListener1,
           ProcessVariableListener::SharedPtr sendNotificationListener2, const AccessModeFlags& flags) {
+    if(not flags.has(AccessMode::wait_for_new_data))
+      throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+
     auto senderReceiver1 =
         createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, {}, flags);
     auto senderReceiver2 =
