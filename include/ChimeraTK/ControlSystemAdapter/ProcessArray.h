@@ -110,7 +110,9 @@ namespace ChimeraTK {
   template<class T>
   ProcessArray<T>::ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name, const std::string& unit,
       const std::string& description, const AccessModeFlags& flags)
-  : ChimeraTK::NDRegisterAccessor<T>(name, flags, unit, description), _instanceType(instanceType) {}
+  : ChimeraTK::NDRegisterAccessor<T>(name, flags, unit, description), _instanceType(instanceType) {
+    flags.checkForUnknownFlags({AccessMode::wait_for_new_data});
+  }
 
   /********************************************************************************************************************/
 
