@@ -143,13 +143,10 @@ struct RegisterDescriptorBase {
     return {{generateValueFromCounter()}};
   }
 
-  size_t writeQueueLength() { return std::numeric_limits<size_t>::max(); }
-  void setForceDataLossWrite(bool) { assert(false); }
+  static constexpr auto capabilities = TestCapabilities<>().disableForceDataLossWrite().disableAsyncReadInconsistency();
 
   size_t nRuntimeErrorCases() { return 0; }
-  bool testAsyncReadInconsistency() { return false; }
-  [[noreturn]] void setForceRuntimeError(bool, size_t) { assert(false); }
-  [[noreturn]] void forceAsyncReadInconsistency() { assert(false); }
+  [[noreturn]] void setForceRuntimeError(bool, size_t) { std::terminate(); }
 };
 
 /**********************************************************************************************************************/
@@ -166,7 +163,7 @@ struct UnidirSender : RegisterDescriptorBase<UnidirSender> {
     return backend->_pv->accessChannels();
   }
 
-  [[noreturn]] void setRemoteValue() { assert(false); }
+  [[noreturn]] void setRemoteValue() { std::terminate(); }
 };
 
 /**********************************************************************************************************************/
@@ -196,7 +193,7 @@ struct Bidir : RegisterDescriptorBase<Derived> {
   bool isWriteable() { return true; }
   bool isReadable() { return true; }
 
-  bool disableSyncReadTests{true};
+  static constexpr auto capabilities = RegisterDescriptorBase<Derived>::capabilities.disableSyncRead();
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
