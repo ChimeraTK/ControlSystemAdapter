@@ -89,6 +89,8 @@ namespace ChimeraTK {
 
     void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
+    void doPostWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override; // Workaround
+
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
     /**
@@ -203,6 +205,14 @@ namespace ChimeraTK {
      * Local buffer of this end (receiving or sending) of the process variable
      */
     Buffer _localBuffer;
+
+    /**
+     * Workaround: Introduce this intermedate buffer due to failing testUnified, using content of buffer if
+     * writeDestructively. This conflicts with spec: "Applications still are not allowed
+     * to use the content of the application buffer after writeDestructively()."
+     * In writeInternal ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] was exchanged with _intermedateBuffer.
+     */
+    std::vector<T> _intermedateBuffer;
 
     /**
      * Pointer to the receiver associated with this sender. This field is only
@@ -382,6 +392,8 @@ namespace ChimeraTK {
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
+    // Workaround
+    _intermedateBuffer.resize( ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() );
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if(!this->isReadable()) {
@@ -426,6 +438,8 @@ namespace ChimeraTK {
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
+    // Workaround
+    _intermedateBuffer.resize( ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() );
   }
 
   /********************************************************************************************************************/
@@ -452,6 +466,19 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("Cannot run receive operation because the size of the vector belonging "
                                    "to the current buffer has been modified. Variable name: " +
           this->getName());
+    }
+    // Workaround
+    assert(_intermedateBuffer.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
+    _intermedateBuffer.swap(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0]);
+  }
+
+  /********************************************************************************************************************/
+  // Workaround
+  template<class T>
+  void UnidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType type, VersionNumber) {
+    if (type == ChimeraTK::TransferType::write) {
+      assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _intermedateBuffer.size());
+      ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_intermedateBuffer);
     }
   }
 
@@ -544,7 +571,7 @@ namespace ChimeraTK {
     // cannot be done after sending, since the value might no longer be available
     // within this instance.
     if(_persistentDataStorage) {
-      _persistentDataStorage->updateValue(_persistentDataStorageID, ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0]);
+      _persistentDataStorage->updateValue(_persistentDataStorageID, _intermedateBuffer);
     }
 
     // Set time stamp and version number
@@ -552,12 +579,12 @@ namespace ChimeraTK {
     _localBuffer._dataValidity = TransferElement::dataValidity();
 
     // set the data by copying or swapping
-    assert(_localBuffer._value.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
+    assert(_localBuffer._value.size() == _intermedateBuffer.size());
     if(shouldCopy) {
-      _localBuffer._value = ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0];
+      _localBuffer._value = _intermedateBuffer;
     }
     else {
-      _localBuffer._value.swap(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0]);
+      _localBuffer._value.swap(_intermedateBuffer);
     }
 
     // send the data to the queue
