@@ -42,7 +42,7 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
   template<typename UserType>
   boost::shared_ptr<NDRegisterAccessor<UserType>> getRegisterAccessor_impl(
       const RegisterPath&, size_t, size_t, AccessModeFlags) {
-    assert(false); // wrong type, see specialisation
+    std::terminate(); // wrong type, see specialisation
   }
 
   bool isFunctional() const override { return _opened; }

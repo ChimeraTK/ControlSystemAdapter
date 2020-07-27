@@ -11,11 +11,11 @@ constexpr size_t constceil(double num) {
                                                                   static_cast<size_t>(num) + ((num > 0) ? 1 : 0);
 }
 
-std::atomic<bool> terminate;
-std::atomic<size_t> nSendOps;
-std::atomic<size_t> nReceiveOps;
+static std::atomic<bool> terminate;
+static std::atomic<size_t> nSendOps;
+static std::atomic<size_t> nReceiveOps;
 
-extern "C" void sigAbortHandler(int /*signal_number*/) {
+extern "C" [[noreturn]] void sigAbortHandler(int /*signal_number*/) {
   terminate = true;
   std::cout << "SIGABORT caught. nSendOps = " << nSendOps << "  nReceiveOps = " << nReceiveOps << std::endl;
   exit(1);
@@ -54,16 +54,16 @@ int main() {
       //   1 - readNonBlocking() on the next variable
       //   2 - readLatest() on the next variable
       //   3 - readAny() on all variables
-      std::uniform_int_distribution<> disValue(1, 1000);
+      std::uniform_int_distribution<unsigned int> disValue(1, 1000);
 
       // A second random value used to determin the number of microseconds to
       // sleep after each send operation
-      std::uniform_int_distribution<> disSleep(1, 500);
+      std::uniform_int_distribution<unsigned int> disSleep(1, 500);
 
       // loop until termination request
       while(!terminate) {
         for(auto& pv : pvars) {
-          pv.first->accessData(0) = disValue(gen);
+          pv.first->accessData(0) = static_cast<int>(disValue(gen));
           pv.first->write();
           ++nSendOps;
           usleep(disSleep(gen));
@@ -103,6 +103,9 @@ int main() {
           pviter->second->readLatest();
           sleepTime = pviter->second->accessData(0);
         }
+        else {
+          std::terminate(); // fixme: enable mode 3
+        }
         /*else {  // mode == 3                            /// @todo enable
         readAny in stresstest again! auto id = readAny(varList); sleepTime =
         varMap[id]->accessData(0);
@@ -114,7 +117,7 @@ int main() {
         ++pviter;
         if(pviter == pvars.end()) pviter = pvars.begin();
 
-        usleep(sleepTime);
+        usleep(static_cast<unsigned int>(sleepTime));
       }
     }); // end of sender thread definition via lambda
     receiver.detach();
