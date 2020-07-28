@@ -93,7 +93,13 @@ namespace ChimeraTK {
     void doPreRead(ChimeraTK::TransferType type) override { _target->preRead(type); }
 
     void doPostRead(ChimeraTK::TransferType type, bool hasNewData) override {
+      _target->setActiveException(this->_activeException);
       _target->postRead(type, hasNewData);
+
+      // Decorators have to copy meta data even if updataDataBuffer is false
+      this->_dataValidity = _target->dataValidity();
+      this->_versionNumber = _target->getVersionNumber();
+
       // If the delegated postRead throws, we don't want to copy into the
       // buffer
       if(hasNewData) {
@@ -103,10 +109,14 @@ namespace ChimeraTK {
 
     void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override {
       convertAndCopyToImpl();
+      _target->setDataValidity(this->_dataValidity);
       _target->preWrite(type, versionNumber);
     }
 
-    void doPostWrite(ChimeraTK::TransferType type, ChimeraTK::VersionNumber versionNumber) override { _target->postWrite(type, versionNumber); }
+    void doPostWrite(ChimeraTK::TransferType type, ChimeraTK::VersionNumber versionNumber) override {
+      _target->setActiveException(this->_activeException);
+      _target->postWrite(type, versionNumber);
+    }
 
     bool mayReplaceOther(const boost::shared_ptr<ChimeraTK::TransferElement const>& other) const override {
       auto casted = boost::dynamic_pointer_cast<TypeChangingDecorator<T, IMPL_T> const>(other);
