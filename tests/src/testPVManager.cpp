@@ -642,6 +642,7 @@ BOOST_AUTO_TEST_CASE(bidirectionalProcessVariable) {
   // Stop the device thread.
   stopDeviceThread->accessData(0) = 1;
   stopDeviceThread->write();
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 }
 
 // After you finished all test you have to end the test suite.
