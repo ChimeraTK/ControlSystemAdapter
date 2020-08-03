@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <boost/chrono.hpp>
+#include <boost/thread/thread_guard.hpp>
 #include <boost/make_shared.hpp>
 
 #include "ControlSystemPVManager.h"
@@ -21,6 +22,14 @@ using std::map;
 using std::pair;
 using std::string;
 using std::vector;
+
+static boost::thread deviceThread[4];
+//thread guard joiner which join the thread if joinable when destroyed.
+static boost::thread_guard<> guardedThread0(deviceThread[0]);
+static boost::thread_guard<> guardedThread1(deviceThread[1]);
+static boost::thread_guard<> guardedThread2(deviceThread[2]);
+static boost::thread_guard<> guardedThread3(deviceThread[3]);
+
 
 /**
  * Utility method for receiving a list of process variables.
@@ -301,7 +310,7 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib() {
   callable.pvManager = devManager;
 
   // Start device thread.
-  boost::thread deviceThread(callable);
+  deviceThread[0] = boost::thread(callable);
 
   return csManager;
 }
@@ -410,7 +419,7 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib2() {
   callable.pvManager = devManager;
 
   // Start device thread.
-  boost::thread deviceThread(callable);
+  deviceThread[1] = boost::thread(callable);
 
   return csManager;
 }
@@ -506,7 +515,7 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib3() {
   callable.pvManager = devManager;
 
   // Start device thread.
-  boost::thread deviceThread(callable);
+  deviceThread[2] = boost::thread(callable);
 
   return csManager;
 }
@@ -606,6 +615,8 @@ struct TestDeviceCallable5 {
   }
 };
 
+
+
 static shared_ptr<ControlSystemPVManager> initTestDeviceLib5() {
   auto pvManagers = createPVManager();
   auto csManager = pvManagers.first;
@@ -618,13 +629,13 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib5() {
   callable.pvManager = devManager;
 
   // Start device thread.
-  boost::thread deviceThread(callable);
-
+  deviceThread[3] = boost::thread(callable);
   return csManager;
 }
 
 BOOST_AUTO_TEST_CASE(bidirectionalProcessVariable) {
   auto pvManager = initTestDeviceLib5();
+
   auto biDouble = pvManager->getProcessArray<double>("biDouble");
   auto stopDeviceThread = pvManager->getProcessArray<int8_t>("stopDeviceThread");
   biDouble->accessData(0) = 2.0;
@@ -642,7 +653,6 @@ BOOST_AUTO_TEST_CASE(bidirectionalProcessVariable) {
   // Stop the device thread.
   stopDeviceThread->accessData(0) = 1;
   stopDeviceThread->write();
-  boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 }
 
 // After you finished all test you have to end the test suite.
