@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <boost/chrono.hpp>
-#include <boost/thread/thread_guard.hpp>
 #include <boost/make_shared.hpp>
 
 #include "ControlSystemPVManager.h"
@@ -23,13 +22,21 @@ using std::pair;
 using std::string;
 using std::vector;
 
-static boost::thread deviceThread[4];
-//thread guard joiner which join the thread if joinable when destroyed.
-static boost::thread_guard<> guardedThread0(deviceThread[0]);
-static boost::thread_guard<> guardedThread1(deviceThread[1]);
-static boost::thread_guard<> guardedThread2(deviceThread[2]);
-static boost::thread_guard<> guardedThread3(deviceThread[3]);
-
+// Helper struct which holds the PVManagers, the callable and the thread which accesses them.
+// The destructor joins the thread, so it stops before the PVManager and the callable goe out of scope
+template<typename CALLABLE>
+struct ThreadedPvManagerHolder {
+  CALLABLE callable;
+  boost::thread deviceThread;
+  shared_ptr<ControlSystemPVManager> csManager;
+  ThreadedPvManagerHolder(shared_ptr<DevicePVManager> devPvManager, shared_ptr<ControlSystemPVManager> csPvManager)
+  : csManager(csPvManager) {
+    callable.pvManager = devPvManager;
+    deviceThread = boost::thread(callable);
+  }
+  ~ThreadedPvManagerHolder() { deviceThread.join(); }
+  ThreadedPvManagerHolder(ThreadedPvManagerHolder&&) = default;
+};
 
 /**
  * Utility method for receiving a list of process variables.
@@ -294,7 +301,7 @@ struct TestDeviceCallable {
   }
 };
 
-static shared_ptr<ControlSystemPVManager> initTestDeviceLib() {
+ThreadedPvManagerHolder<TestDeviceCallable> initTestDeviceLib() {
   pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager>> pvManagers = createPVManager();
 
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
@@ -306,17 +313,12 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib() {
   devManager->createProcessArray<float>(controlSystemToDevice, "floatArrayOut", 10);
   devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
-  TestDeviceCallable callable;
-  callable.pvManager = devManager;
-
-  // Start device thread.
-  deviceThread[0] = boost::thread(callable);
-
-  return csManager;
+  return ThreadedPvManagerHolder<TestDeviceCallable>(devManager, csManager);
 }
 
 BOOST_AUTO_TEST_CASE(testSynchronization) {
-  shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib();
+  auto pvManagerHolder = initTestDeviceLib();
+  auto& pvManager = pvManagerHolder.csManager;
 
   ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<int32_t>("int32In");
   ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<int32_t>("int32Out");
@@ -405,7 +407,7 @@ struct TestDeviceCallable2 {
   }
 };
 
-static shared_ptr<ControlSystemPVManager> initTestDeviceLib2() {
+ThreadedPvManagerHolder<TestDeviceCallable2> initTestDeviceLib2() {
   pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager>> pvManagers = createPVManager();
 
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
@@ -415,17 +417,12 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib2() {
   devManager->createProcessArray<double>(deviceToControlSystem, "doubleIn", 1);
   devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
-  TestDeviceCallable2 callable;
-  callable.pvManager = devManager;
-
-  // Start device thread.
-  deviceThread[1] = boost::thread(callable);
-
-  return csManager;
+  return ThreadedPvManagerHolder<TestDeviceCallable2>(devManager, csManager);
 }
 
 BOOST_AUTO_TEST_CASE(testNotificationToControlSystem) {
-  shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib2();
+  auto pvManagerHolder = initTestDeviceLib2();
+  auto& pvManager = pvManagerHolder.csManager;
 
   ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<int32_t>("int32In");
   ProcessArray<double>::SharedPtr doubleIn = pvManager->getProcessArray<double>("doubleIn");
@@ -501,7 +498,7 @@ struct TestDeviceCallable3 {
   }
 };
 
-static shared_ptr<ControlSystemPVManager> initTestDeviceLib3() {
+ThreadedPvManagerHolder<TestDeviceCallable3> initTestDeviceLib3() {
   pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager>> pvManagers = createPVManager();
 
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
@@ -511,17 +508,12 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib3() {
   devManager->createProcessArray<double>(controlSystemToDevice, "doubleOut", 1);
   devManager->createProcessArray<int8_t>(deviceToControlSystem, "stopControlSystemThread", 1);
 
-  TestDeviceCallable3 callable;
-  callable.pvManager = devManager;
-
-  // Start device thread.
-  deviceThread[2] = boost::thread(callable);
-
-  return csManager;
+  return ThreadedPvManagerHolder<TestDeviceCallable3>(devManager, csManager);
 }
 
 BOOST_AUTO_TEST_CASE(testNotificationToDevice) {
-  shared_ptr<ControlSystemPVManager> pvManager = initTestDeviceLib3();
+  auto pvManagerHolder = initTestDeviceLib3();
+  auto& pvManager = pvManagerHolder.csManager;
 
   ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<int32_t>("int32Out");
   ProcessArray<double>::SharedPtr doubleOut = pvManager->getProcessArray<double>("doubleOut");
@@ -615,9 +607,7 @@ struct TestDeviceCallable5 {
   }
 };
 
-
-
-static shared_ptr<ControlSystemPVManager> initTestDeviceLib5() {
+ThreadedPvManagerHolder<TestDeviceCallable5> initTestDeviceLib5() {
   auto pvManagers = createPVManager();
   auto csManager = pvManagers.first;
   auto devManager = pvManagers.second;
@@ -625,16 +615,12 @@ static shared_ptr<ControlSystemPVManager> initTestDeviceLib5() {
   devManager->createProcessArray<double>(bidirectional, "biDouble", 1);
   devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
 
-  TestDeviceCallable5 callable;
-  callable.pvManager = devManager;
-
-  // Start device thread.
-  deviceThread[3] = boost::thread(callable);
-  return csManager;
+  return ThreadedPvManagerHolder<TestDeviceCallable5>(devManager, csManager);
 }
 
 BOOST_AUTO_TEST_CASE(bidirectionalProcessVariable) {
-  auto pvManager = initTestDeviceLib5();
+  auto pvManagerHolder = initTestDeviceLib5();
+  auto& pvManager = pvManagerHolder.csManager;
 
   auto biDouble = pvManager->getProcessArray<double>("biDouble");
   auto stopDeviceThread = pvManager->getProcessArray<int8_t>("stopDeviceThread");
