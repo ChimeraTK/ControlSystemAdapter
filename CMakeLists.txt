@@ -4,9 +4,9 @@ project(ChimeraTK-ControlSystemAdapter)
 
 include(cmake/add_dependency.cmake)
 
-set(${PROJECT_NAME}_MAJOR_VERSION 01)
-set(${PROJECT_NAME}_MINOR_VERSION 06)
-set(${PROJECT_NAME}_PATCH_VERSION 01)
+set(${PROJECT_NAME}_MAJOR_VERSION 02)
+set(${PROJECT_NAME}_MINOR_VERSION 00)
+set(${PROJECT_NAME}_PATCH_VERSION 00)
 include(cmake/set_version_numbers.cmake)
 
 include(cmake/set_default_build_to_release.cmake)
@@ -41,7 +41,7 @@ ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(ChimeraTK-DeviceAccess 01.07 REQUIRED)
+add_dependency(ChimeraTK-DeviceAccess 02.00 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
