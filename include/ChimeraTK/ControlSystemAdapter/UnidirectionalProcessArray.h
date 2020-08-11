@@ -595,6 +595,12 @@ namespace ChimeraTK {
       _sendNotificationListener->notify(_receiver);
     }
 
+    // if receiver does not have wait_for_new_data, do not return whether data has been lost (because conceptionally it
+    // hasn't)
+    if(!_receiver->getAccessModeFlags().has(AccessMode::wait_for_new_data)) {
+      return false;
+    }
+
     return !dataNotLost;
   }
 
