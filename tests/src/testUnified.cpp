@@ -80,7 +80,14 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
 
   if(path == "/unidir/sender") {
     flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
-    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3);
+    auto pv =
+        createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, {AccessMode::wait_for_new_data});
+    _pv = pv.second;
+    return pv.first;
+  }
+  if(path == "/unidir/polledSender") {
+    flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, {});
     _pv = pv.second;
     return pv.first;
   }
@@ -154,8 +161,35 @@ struct RegisterDescriptorBase {
 struct UnidirSender : RegisterDescriptorBase<UnidirSender> {
   std::string path() { return "/unidir/sender"; }
 
+  static constexpr auto capabilities = RegisterDescriptorBase<UnidirSender>::capabilities.enableForceDataLossWrite();
+
   bool isWriteable() { return true; }
   bool isReadable() { return false; }
+
+  size_t writeQueueLength() { return 3; }
+  void setForceDataLossWrite(bool /*enable*/) {}
+
+  template<typename UserType>
+  std::vector<std::vector<UserType>> getRemoteValue() {
+    backend->_pv->readLatest();
+    return backend->_pv->accessChannels();
+  }
+
+  [[noreturn]] void setRemoteValue() { std::terminate(); }
+};
+
+/**********************************************************************************************************************/
+
+struct UnidirPolledSender : RegisterDescriptorBase<UnidirPolledSender> {
+  std::string path() { return "/unidir/polledSender"; }
+
+  static constexpr auto capabilities =
+      RegisterDescriptorBase<UnidirPolledSender>::capabilities.enableTestWriteNeverLosesData();
+
+  bool isWriteable() { return true; }
+  bool isReadable() { return false; }
+
+  size_t writeQueueLength() { return 3; }
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
@@ -231,6 +265,7 @@ BOOST_AUTO_TEST_CASE(unifiedBackendTest) {
   UnifiedBackendTest<>()
       .testOnlyTransferElement()
       .addRegister<UnidirSender>()
+      .addRegister<UnidirPolledSender>()
       .addRegister<UnidirReceiver>()
       .addRegister<BidirA>()
       .addRegister<BidirB>()
