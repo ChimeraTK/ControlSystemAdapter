@@ -63,8 +63,8 @@ static void sendAll(list<ProcessVariable::SharedPtr> const& processVariables) {
 template<class T>
 static void testCreateProcessVariables(
     const string& name, shared_ptr<DevicePVManager> devManager, shared_ptr<ControlSystemPVManager> csManager) {
-  shared_ptr<ProcessArray<T>> createdPV =
-      devManager->createProcessArray<T>(deviceToControlSystem, name + "In", 1, "kindOfAUnit", "any description");
+  shared_ptr<ProcessArray<T>> createdPV = devManager->createProcessArray<T>(
+      SynchronizationDirection::deviceToControlSystem, name + "In", 1, "kindOfAUnit", "any description");
   // Although process variables are/ can be created without a leading '/', the
   // RegisterPath which is used assures that it is there. We have to test with
   // '/'.
@@ -82,7 +82,8 @@ static void testCreateProcessVariables(
   BOOST_CHECK(csPV->getUnit() == "kindOfAUnit");
   BOOST_CHECK(csPV->getDescription() == "any description");
 
-  createdPV = devManager->createProcessArray<T>(controlSystemToDevice, name + "Out", 1, "anotherUnit", "something");
+  createdPV = devManager->createProcessArray<T>(
+      SynchronizationDirection::controlSystemToDevice, name + "Out", 1, "anotherUnit", "something");
   BOOST_CHECK(createdPV->getName() == "/" + name + "Out");
   BOOST_CHECK(createdPV->getUnit() == "anotherUnit");
   BOOST_CHECK(createdPV->getDescription() == "something");
@@ -98,7 +99,8 @@ static void testCreateProcessVariables(
   BOOST_CHECK(csPV->getDescription() == "something");
 
   string arrayName = name + "Array";
-  shared_ptr<ProcessArray<T>> createdPA = devManager->createProcessArray<T>(deviceToControlSystem, arrayName + "In", 5);
+  shared_ptr<ProcessArray<T>> createdPA =
+      devManager->createProcessArray<T>(SynchronizationDirection::deviceToControlSystem, arrayName + "In", 5);
   BOOST_CHECK(createdPA->getName() == "/" + arrayName + "In");
   BOOST_CHECK(createdPA->getUnit() == "n./a.");
   BOOST_CHECK(createdPA->getDescription() == "");
@@ -106,7 +108,7 @@ static void testCreateProcessVariables(
   BOOST_CHECK(devPA->getName() == "/" + arrayName + "In");
   shared_ptr<ProcessArray<T>> csPA = csManager->getProcessArray<T>(arrayName + "In");
   BOOST_CHECK(csPA->getName() == "/" + arrayName + "In");
-  createdPA = devManager->createProcessArray<T>(controlSystemToDevice, arrayName + "Out", 5);
+  createdPA = devManager->createProcessArray<T>(SynchronizationDirection::controlSystemToDevice, arrayName + "Out", 5);
   BOOST_CHECK(createdPA->getName() == "/" + arrayName + "Out");
   devPA = devManager->getProcessArray<T>(arrayName + "Out");
   BOOST_CHECK(devPA->getName() == "/" + arrayName + "Out");
@@ -147,11 +149,14 @@ BOOST_AUTO_TEST_CASE(testDoublePVName) {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<double>(deviceToControlSystem, "double", 1);
+  devManager->createProcessArray<double>(SynchronizationDirection::deviceToControlSystem, "double", 1);
   // We expect a bad_argument exception to be thrown because the specified
   // PV name is already used.
-  BOOST_CHECK_THROW(devManager->createProcessArray<float>(controlSystemToDevice, "double", 1), ChimeraTK::logic_error);
-  BOOST_CHECK_THROW(devManager->createProcessArray<double>(deviceToControlSystem, "double", 1), ChimeraTK::logic_error);
+  BOOST_CHECK_THROW(devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "double", 1),
+      ChimeraTK::logic_error);
+  BOOST_CHECK_THROW(
+      devManager->createProcessArray<double>(SynchronizationDirection::deviceToControlSystem, "double", 1),
+      ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_CASE(testNonExistentPVName) {
@@ -170,8 +175,8 @@ BOOST_AUTO_TEST_CASE(testInvalidCast) {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<double>(deviceToControlSystem, "double", 1);
-  devManager->createProcessArray<float>(controlSystemToDevice, "floatArray", 10);
+  devManager->createProcessArray<double>(SynchronizationDirection::deviceToControlSystem, "double", 1);
+  devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "floatArray", 10);
   // We expect a bad_cast exception to be thrown because the specified
   // PV name points to a PV of a different type.
   BOOST_CHECK_THROW(devManager->getProcessArray<float>("double"), ChimeraTK::logic_error);
@@ -254,9 +259,9 @@ BOOST_AUTO_TEST_CASE(testAllPVIterator) {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<double>(controlSystemToDevice, "double", 1);
-  devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32", 1);
-  devManager->createProcessArray<float>(deviceToControlSystem, "floatArray", 10);
+  devManager->createProcessArray<double>(SynchronizationDirection::controlSystemToDevice, "double", 1);
+  devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "int32", 1);
+  devManager->createProcessArray<float>(SynchronizationDirection::deviceToControlSystem, "floatArray", 10);
 
   vector<ProcessVariable::SharedPtr> csProcessVariables(csManager->getAllProcessVariables());
   checkControlSystemPVMap(csProcessVariables);
@@ -299,11 +304,11 @@ ThreadedPvManagerHolder<TestDeviceCallable> initTestDeviceLib() {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
-  devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
-  devManager->createProcessArray<float>(deviceToControlSystem, "floatArrayIn", 10);
-  devManager->createProcessArray<float>(controlSystemToDevice, "floatArrayOut", 10);
-  devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
+  devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "int32In", 1);
+  devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "int32Out", 1);
+  devManager->createProcessArray<float>(SynchronizationDirection::deviceToControlSystem, "floatArrayIn", 10);
+  devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "floatArrayOut", 10);
+  devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
   return ThreadedPvManagerHolder<TestDeviceCallable>(devManager, csManager);
 }
@@ -405,9 +410,9 @@ ThreadedPvManagerHolder<TestDeviceCallable2> initTestDeviceLib2() {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<int32_t>(deviceToControlSystem, "int32In", 1);
-  devManager->createProcessArray<double>(deviceToControlSystem, "doubleIn", 1);
-  devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
+  devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "int32In", 1);
+  devManager->createProcessArray<double>(SynchronizationDirection::deviceToControlSystem, "doubleIn", 1);
+  devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
   return ThreadedPvManagerHolder<TestDeviceCallable2>(devManager, csManager);
 }
@@ -496,9 +501,9 @@ ThreadedPvManagerHolder<TestDeviceCallable3> initTestDeviceLib3() {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  devManager->createProcessArray<int32_t>(controlSystemToDevice, "int32Out", 1);
-  devManager->createProcessArray<double>(controlSystemToDevice, "doubleOut", 1);
-  devManager->createProcessArray<int8_t>(deviceToControlSystem, "stopControlSystemThread", 1);
+  devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "int32Out", 1);
+  devManager->createProcessArray<double>(SynchronizationDirection::controlSystemToDevice, "doubleOut", 1);
+  devManager->createProcessArray<int8_t>(SynchronizationDirection::deviceToControlSystem, "stopControlSystemThread", 1);
 
   return ThreadedPvManagerHolder<TestDeviceCallable3>(devManager, csManager);
 }
@@ -604,8 +609,8 @@ ThreadedPvManagerHolder<TestDeviceCallable5> initTestDeviceLib5() {
   auto csManager = pvManagers.first;
   auto devManager = pvManagers.second;
 
-  devManager->createProcessArray<double>(bidirectional, "biDouble", 1);
-  devManager->createProcessArray<int8_t>(controlSystemToDevice, "stopDeviceThread", 1);
+  devManager->createProcessArray<double>(SynchronizationDirection::bidirectional, "biDouble", 1);
+  devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
   return ThreadedPvManagerHolder<TestDeviceCallable5>(devManager, csManager);
 }

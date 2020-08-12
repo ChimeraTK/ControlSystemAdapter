@@ -8,7 +8,7 @@ namespace ChimeraTK {
    * synchronized from the device library to the control system (input) or from
    * the control system to the device library (output).
    */
-  enum SynchronizationDirection {
+  enum class SynchronizationDirection {
 
     /**
      * Synchronize from the control system to the device library.

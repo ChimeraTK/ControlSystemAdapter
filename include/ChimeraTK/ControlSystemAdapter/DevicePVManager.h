@@ -182,17 +182,17 @@ namespace ChimeraTK {
       std::size_t size, const std::string& unit, const std::string& description, T initialValue,
       std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     switch(synchronizationDirection) {
-      case controlSystemToDevice:
+      case SynchronizationDirection::controlSystemToDevice:
         return _pvManager
             ->createProcessArrayControlSystemToDevice<T>(
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers, flags)
             .second;
-      case deviceToControlSystem:
+      case SynchronizationDirection::deviceToControlSystem:
         return _pvManager
             ->createProcessArrayDeviceToControlSystem<T>(
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers, flags)
             .second;
-      case bidirectional:
+      case SynchronizationDirection::bidirectional:
         return _pvManager
             ->createBidirectionalProcessArray<T>(
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers)
@@ -207,23 +207,22 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, const std::string& unit, const std::string& description,
       std::size_t numberOfBuffers, const AccessModeFlags& flags) {
     switch(synchronizationDirection) {
-      case controlSystemToDevice:
+      case SynchronizationDirection::controlSystemToDevice:
         return _pvManager
             ->createProcessArrayControlSystemToDevice<T>(
                 processVariableName, initialValue, unit, description, numberOfBuffers, {}, {}, flags)
             .second;
-      case deviceToControlSystem:
+      case SynchronizationDirection::deviceToControlSystem:
         return _pvManager
             ->createProcessArrayDeviceToControlSystem<T>(
                 processVariableName, initialValue, unit, description, numberOfBuffers, {}, {}, flags)
             .second;
-      case bidirectional:
+      case SynchronizationDirection::bidirectional:
         return _pvManager
             ->createBidirectionalProcessArray<T>(processVariableName, initialValue, unit, description, numberOfBuffers)
             .second;
-      default:
-        throw ChimeraTK::logic_error("invalid SynchronizationDirection");
     }
+    assert(false); // one of the switch cases should have returned
   }
 
   template<class T>

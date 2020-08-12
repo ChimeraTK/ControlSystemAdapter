@@ -29,16 +29,16 @@ BOOST_AUTO_TEST_CASE(testSendReceiveList) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
   ProcessArray<std::string>::SharedPtr devStringOut =
-      devManager->createProcessArray<std::string>(controlSystemToDevice, "stringOut", 1);
+      devManager->createProcessArray<std::string>(SynchronizationDirection::controlSystemToDevice, "stringOut", 1);
   ProcessArray<std::string>::SharedPtr csStringOut = csManager->getProcessArray<std::string>("stringOut");
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
   ProcessArray<std::string>::SharedPtr devStringIn =
-      devManager->createProcessArray<std::string>(deviceToControlSystem, "stringIn", 1);
+      devManager->createProcessArray<std::string>(SynchronizationDirection::deviceToControlSystem, "stringIn", 1);
   ProcessArray<std::string>::SharedPtr csStringIn = csManager->getProcessArray<std::string>("stringIn");
 
   DeviceSynchronizationUtility syncUtil(devManager);
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(testReceiveAll) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
 
   DeviceSynchronizationUtility syncUtil(devManager);
@@ -177,13 +177,13 @@ BOOST_AUTO_TEST_CASE(testSendAll) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
   ProcessArray<std::string>::SharedPtr devStringIn =
-      devManager->createProcessArray<std::string>(deviceToControlSystem, "stringIn", 1);
+      devManager->createProcessArray<std::string>(SynchronizationDirection::deviceToControlSystem, "stringIn", 1);
   ProcessArray<std::string>::SharedPtr csStringIn = csManager->getProcessArray<std::string>("stringIn");
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
 
   DeviceSynchronizationUtility syncUtil(devManager);
@@ -204,10 +204,10 @@ BOOST_AUTO_TEST_CASE(testReceiveNotificationListener) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
   ProcessArray<std::string>::SharedPtr devStringOut =
-      devManager->createProcessArray<std::string>(controlSystemToDevice, "stringOut", 1);
+      devManager->createProcessArray<std::string>(SynchronizationDirection::controlSystemToDevice, "stringOut", 1);
   ProcessArray<std::string>::SharedPtr csStringOut = csManager->getProcessArray<std::string>("stringOut");
 
   DeviceSynchronizationUtility syncUtil(devManager);

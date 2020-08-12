@@ -42,18 +42,17 @@ struct TypedPVHolder {
 
   TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix)
   : toDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
+        ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
     fromDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1)),
+        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1)),
     toDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10)),
+        ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", 10)),
     fromDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10)),
+        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", 10)),
     dataTypeConstant(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
+        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
     constantArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", 10)) {
-
+        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", 10)) {
     double typeIdentifyingConstant=0;
     if(typeid(DataType) == typeid(std::string)) {
       typeIdentifyingConstant = 42;

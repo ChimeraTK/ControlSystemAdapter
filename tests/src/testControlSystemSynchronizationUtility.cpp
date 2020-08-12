@@ -29,16 +29,16 @@ BOOST_AUTO_TEST_CASE(testSendReceiveList) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
   ProcessArray<float>::SharedPtr devFloatOut =
-      devManager->createProcessArray<float>(controlSystemToDevice, "floatOut", 1);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "floatOut", 1);
   ProcessArray<float>::SharedPtr csFloatOut = csManager->getProcessArray<float>("floatOut");
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
   ProcessArray<float>::SharedPtr devFloatIn =
-      devManager->createProcessArray<float>(deviceToControlSystem, "floatIn", 1);
+      devManager->createProcessArray<float>(SynchronizationDirection::deviceToControlSystem, "floatIn", 1);
   ProcessArray<float>::SharedPtr csFloatIn = csManager->getProcessArray<float>("floatIn");
 
   ControlSystemSynchronizationUtility syncUtil(csManager);
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(testReceiveAll) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
 
   ControlSystemSynchronizationUtility syncUtil(csManager);
@@ -177,13 +177,13 @@ BOOST_AUTO_TEST_CASE(testSendAll) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntOut =
-      devManager->createProcessArray<int32_t>(controlSystemToDevice, "intOut", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::controlSystemToDevice, "intOut", 1);
   ProcessArray<int32_t>::SharedPtr csIntOut = csManager->getProcessArray<int32_t>("intOut");
   ProcessArray<float>::SharedPtr devFloatOut =
-      devManager->createProcessArray<float>(controlSystemToDevice, "floatOut", 1);
+      devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "floatOut", 1);
   ProcessArray<float>::SharedPtr csFloatOut = csManager->getProcessArray<float>("floatOut");
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
 
   ControlSystemSynchronizationUtility syncUtil(csManager);
@@ -204,10 +204,10 @@ BOOST_AUTO_TEST_CASE(testReceiveNotificationListener) {
   boost::shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
   ProcessArray<int32_t>::SharedPtr devIntIn =
-      devManager->createProcessArray<int32_t>(deviceToControlSystem, "intIn", 1);
+      devManager->createProcessArray<int32_t>(SynchronizationDirection::deviceToControlSystem, "intIn", 1);
   ProcessArray<int32_t>::SharedPtr csIntIn = csManager->getProcessArray<int32_t>("intIn");
   ProcessArray<float>::SharedPtr devFloatIn =
-      devManager->createProcessArray<float>(deviceToControlSystem, "floatIn", 1);
+      devManager->createProcessArray<float>(SynchronizationDirection::deviceToControlSystem, "floatIn", 1);
   ProcessArray<float>::SharedPtr csFloatIn = csManager->getProcessArray<float>("floatIn");
 
   ControlSystemSynchronizationUtility syncUtil(csManager);
