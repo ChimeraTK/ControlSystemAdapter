@@ -97,10 +97,6 @@ static void testCreateProcessVariables(
   BOOST_CHECK(csPV->getUnit() == "anotherUnit");
   BOOST_CHECK(csPV->getDescription() == "something");
 
-  BOOST_CHECK_THROW(
-      devManager->createProcessArray<T>(static_cast<SynchronizationDirection>(-1), name + "ShouldFail", 1),
-      ChimeraTK::logic_error);
-
   string arrayName = name + "Array";
   shared_ptr<ProcessArray<T>> createdPA = devManager->createProcessArray<T>(deviceToControlSystem, arrayName + "In", 5);
   BOOST_CHECK(createdPA->getName() == "/" + arrayName + "In");
@@ -116,10 +112,6 @@ static void testCreateProcessVariables(
   BOOST_CHECK(devPA->getName() == "/" + arrayName + "Out");
   csPA = csManager->getProcessArray<T>(arrayName + "Out");
   BOOST_CHECK(csPA->getName() == "/" + arrayName + "Out");
-
-  BOOST_CHECK_THROW(
-      devManager->createProcessArray<T>(static_cast<SynchronizationDirection>(-1), arrayName + "ShouldFail", 5),
-      ChimeraTK::logic_error);
 }
 
 // Create a test suite which holds all your tests.

@@ -197,9 +197,8 @@ namespace ChimeraTK {
             ->createBidirectionalProcessArray<T>(
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers)
             .second;
-      default:
-        throw ChimeraTK::logic_error("invalid SynchronizationDirection");
     }
+    assert(false); // one of the switch cases should have returned
   }
 
   template<class T>
