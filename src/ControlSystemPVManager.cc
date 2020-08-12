@@ -25,8 +25,4 @@ namespace ChimeraTK {
     return csProcessVariables;
   }
 
-  ProcessVariable::SharedPtr ControlSystemPVManager::nextNotification() {
-    return _pvManager->nextControlSystemNotification();
-  }
-
 } // namespace ChimeraTK

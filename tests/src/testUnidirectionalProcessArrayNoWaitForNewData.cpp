@@ -10,7 +10,6 @@ using namespace boost::unit_test_framework;
 
 #include "UnidirectionalProcessArray.h"
 
-#include "CountingProcessVariableListener.h"
 #include "toType.h"
 
 #include <boost/mpl/list.hpp>
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   // the notification listener and time-stamp source because there is no
   // simple test for them and they are tested in a different method.
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/");
@@ -61,7 +60,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   BOOST_CHECK(sender->isWriteable());
   BOOST_CHECK(receiver->isReadable());
   BOOST_CHECK(!receiver->isWriteable());
-  senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test", "", "", toType<T>(SOME_NUMBER), 5, ProcessVariableListener::SharedPtr(), {});
+  senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "test", "", "", toType<T>(SOME_NUMBER), 5, {});
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/test");
@@ -91,8 +90,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
 BOOST_AUTO_TEST_CASE_TEMPLATE(testDoubleRead, T, test_types) {
   // Check whether consecutive reads on a UniDirectionalProcessArray with no wait_for_new_data works
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(
-          1, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(1, "", "", "", toType<T>(SOME_NUMBER), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   sender->accessChannel(0)[0] = toType<T>(SOME_NUMBER + 1);
@@ -109,8 +107,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testDoubleRead, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(
-          N_ELEMENTS, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", toType<T>(SOME_NUMBER), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   sender->accessChannel(0);
@@ -127,7 +124,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testSet, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
@@ -147,7 +144,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSet, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 
@@ -172,25 +169,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
   }
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
-  boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
-      boost::make_shared<CountingProcessVariableListener>());
-  typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 2, sendNotificationListener, {});
-  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-  BOOST_CHECK(sendNotificationListener->count == 0);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 1);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 2);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // If we send three values consecutively, they all should be received because
@@ -244,7 +225,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(),
+          3); // FIXME This is testing *with* wait_for_new_data. THIS TEST IS WRONG!!! Put {} as last argument here and fix the test!!
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // After sending destructively and receiving a value, the version number on
@@ -326,7 +308,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
 
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
-  auto senderReceiver = createSynchronizedProcessArray<T>(1, "", "", "", T(), 3, {}, {});
+  auto senderReceiver = createSynchronizedProcessArray<T>(1, "", "", "", T(), 3, {});
   auto sender = senderReceiver.first;
   auto receiver = senderReceiver.second;
 
@@ -373,7 +355,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testValidiy, T, test_types) {
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {}, {});
+      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
 

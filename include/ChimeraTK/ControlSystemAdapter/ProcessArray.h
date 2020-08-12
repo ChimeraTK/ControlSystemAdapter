@@ -13,7 +13,6 @@
 #include <ChimeraTK/VersionNumber.h>
 
 #include "PersistentDataStorage.h"
-#include "ProcessVariableListener.h"
 
 namespace ChimeraTK {
 

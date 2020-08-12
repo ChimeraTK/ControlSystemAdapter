@@ -10,7 +10,7 @@ namespace ChimeraTK {
   using boost::shared_ptr;
   using std::list;
 
-  PVManager::PVManager() : _controlSystemNotificationQueue(0), _deviceNotificationQueue(0) {
+  PVManager::PVManager() {
     /// @todo FIXME I keep this part of the code commented out, although it is not
     /// the best programming style. This performance optimisation has been turned
     /// off when changing the map key from string to RegisterPath, which does not
@@ -49,32 +49,6 @@ namespace ChimeraTK {
     shared_ptr<DevicePVManager> devicePVManager(new DevicePVManager(pvManager));
 
     return std::make_pair(controlSystemPVManager, devicePVManager);
-  }
-
-  ProcessVariable::SharedPtr PVManager::nextControlSystemNotification() {
-    DeviceSendNotificationListenerImpl* listener;
-    if(_controlSystemNotificationQueue.pop(listener)) {
-      // The notification for the process variable has been handled, thus we can
-      // reset the notification flag.
-      listener->resetNotificationPending();
-      return listener->getControlSystemProcessVariable();
-    }
-    else {
-      return ProcessVariable::SharedPtr();
-    }
-  }
-
-  ProcessVariable::SharedPtr PVManager::nextDeviceNotification() {
-    ControlSystemSendNotificationListenerImpl* listener;
-    if(_deviceNotificationQueue.pop(listener)) {
-      // The notification for the process variable has been handled, thus we
-      // can reset the notification flag.
-      listener->resetNotificationPending();
-      return listener->getDeviceProcessVariable();
-    }
-    else {
-      return ProcessVariable::SharedPtr();
-    }
   }
 
 } // namespace ChimeraTK

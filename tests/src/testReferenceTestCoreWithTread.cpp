@@ -2,7 +2,7 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include "ControlSystemSynchronizationUtility.h"
+#include "ControlSystemPVManager.h"
 #include "ReferenceTestApplication.h"
 
 using namespace boost::unit_test_framework;
@@ -29,8 +29,6 @@ BOOST_AUTO_TEST_CASE(testInt32_t) {
   testApplication.initialise();
   testApplication.run();
 
-  ControlSystemSynchronizationUtility csSyncUtil(csManager);
-
   auto toDeviceScalar = csManager->getProcessArray<int32_t>("INT/TO_DEVICE_SCALAR");
   auto fromDeviceScalar = csManager->getProcessArray<int32_t>("INT/FROM_DEVICE_SCALAR");
 
@@ -38,14 +36,14 @@ BOOST_AUTO_TEST_CASE(testInt32_t) {
 
   toDeviceScalar->accessData(0) = previousReadValue + 13;
 
-  csSyncUtil.sendAll();
+  toDeviceScalar->write();
 
   // Wait for max 1000 iterations. Each time we wait for the expected execution
   // time. If it is not true after 1000 waiting periods we declare this test as
   // failed.
   int i = 0;
   for(; i < 1000; ++i) {
-    csSyncUtil.receiveAll();
+    fromDeviceScalar->readNonBlocking();
     if(fromDeviceScalar->accessData(0) == previousReadValue + 13) {
       break;
     }

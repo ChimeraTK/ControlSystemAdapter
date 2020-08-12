@@ -15,6 +15,7 @@
 #include "BidirectionalProcessArray.h"
 #include "PVManagerDecl.h"
 #include "UnidirectionalProcessArray.h"
+#include "ProcessVariable.h"
 
 namespace ChimeraTK {
 
@@ -188,149 +189,11 @@ namespace ChimeraTK {
      */
     const ProcessVariableMap& getAllProcessVariables() const;
 
-    /**
-     * Returns the next control-system process variable with a pending
-     * notification or <code>null</code> if no notification are pending.
-     *
-     * This method should be periodically called by the control system in order
-     * to find process variables that have new data available which should be
-     * received.
-     *
-     * This method is only intended for use by the control-sytem thread.
-     */
-    ProcessVariable::SharedPtr nextControlSystemNotification();
-
-    /**
-     * Returns the next device-library process variable with a pending
-     * notification or <code>null</code> if no notification are pending.
-     *
-     * This method should be periodically called by the device library in order
-     * to find process variables that have new data available which should be
-     * received.
-     *
-     * This method is only intended for use by the device-library thread.
-     */
-    ProcessVariable::SharedPtr nextDeviceNotification();
-
    private:
-    /**
-     * Send notification listener implementation for device-library process
-     * variables.
-     */
-    class DeviceSendNotificationListenerImpl : public ProcessVariableListener {
-     private:
-      // We use weak references in order to avoid circular references.
-      boost::weak_ptr<PVManager> _pvManager;
-      boost::weak_ptr<ProcessVariable> _controlSystemProcessVariable;
-      boost::atomic<bool> _notificationPending;
-
-     public:
-      DeviceSendNotificationListenerImpl(boost::shared_ptr<PVManager> pvManager)
-      : _pvManager(pvManager), _notificationPending(false) {}
-
-      void notify(ProcessVariable::SharedPtr controlSystemProcessVariable) {
-        bool expectedNotificationPending = false;
-        if(_notificationPending.compare_exchange_strong(
-               expectedNotificationPending, true, boost::memory_order_acq_rel)) {
-          boost::shared_ptr<PVManager> pvManager = _pvManager.lock();
-          // We can only use the PV manager if it is not null. However,
-          // it should typically exist as long as the process variables exist.
-          if(pvManager) {
-            // Changing this variable without a mutex should be safe because it
-            // should only happen the first time this method is called
-            // (otherwise the pointer should already be initialized) and the
-            // change is synchronized indirectly by writing to the notification
-            // queue.
-            if(_controlSystemProcessVariable.expired()) {
-              _controlSystemProcessVariable = controlSystemProcessVariable;
-            }
-            pvManager->_controlSystemNotificationQueue.push(this);
-          }
-        }
-      }
-
-      inline void resetNotificationPending() { _notificationPending.store(false, boost::memory_order_release); }
-
-      inline ProcessVariable::SharedPtr getControlSystemProcessVariable() {
-        return _controlSystemProcessVariable.lock();
-      }
-    };
-
-    /**
-     * Send notification listener implementation for control-system process
-     * variables.
-     */
-    class ControlSystemSendNotificationListenerImpl : public ProcessVariableListener {
-     private:
-      // We use weak references in order to avoid circular references.
-      boost::weak_ptr<PVManager> _pvManager;
-      boost::weak_ptr<ProcessVariable> _deviceProcessVariable;
-      boost::atomic<bool> _notificationPending;
-
-     public:
-      ControlSystemSendNotificationListenerImpl(boost::shared_ptr<PVManager> pvManager)
-      : _pvManager(pvManager), _notificationPending(false) {}
-
-      void notify(ProcessVariable::SharedPtr deviceProcessVariable) {
-        bool expectedNotificationPending = false;
-        if(_notificationPending.compare_exchange_strong(
-               expectedNotificationPending, true, boost::memory_order_acq_rel)) {
-          boost::shared_ptr<PVManager> pvManager = _pvManager.lock();
-          // We can only use the PV manager if it is not null. However,
-          // it should typically exist as long as the process variables exist.
-          if(pvManager) {
-            // Changing this variable without a mutex should be safe because it
-            // should only happen the first time this method is called
-            // (otherwise the pointer should already be initialized) and the
-            // change is synchronized indirectly by writing to the notification
-            // queue.
-            if(_deviceProcessVariable.expired()) {
-              _deviceProcessVariable = deviceProcessVariable;
-            }
-            pvManager->_deviceNotificationQueue.push(this);
-          }
-        }
-      }
-
-      inline void resetNotificationPending() { _notificationPending.store(false, boost::memory_order_release); }
-
-      inline ProcessVariable::SharedPtr getDeviceProcessVariable() { return _deviceProcessVariable.lock(); }
-    };
-
     /**
      * Map storing the process variables.
      */
     ProcessVariableMap _processVariables;
-
-    /**
-     * Queue for notifications from the device library to the control system.
-     *
-     * This queue is filled by the device library and processed by the control
-     * system. The queue stores plain pointers to the notification listeners
-     * the lock-free queue can only store PODs. This is safe because a process
-     * variable (and thus the notification listener) exists as long as the PV
-     * manager exists and the pointer never leaves the PV manager.
-     *
-     * We cannot use an spsc_queue because the spsc_queue does not allow
-     * resizing once it has been created, however we need to increase the size
-     * of this queue if a process variable is added.
-     */
-    boost::lockfree::queue<DeviceSendNotificationListenerImpl*> _controlSystemNotificationQueue;
-
-    /**
-     * Queue for notifications from the control system to the device library.
-     *
-     * This queue is filled by the control system and processed by the device
-     * library. The queue stores plain pointers to the notification listeners
-     * the lock-free queue can only store PODs. This is safe because a process
-     * variable (and thus the notification listener) exists as long as the PV
-     * manager exists and the pointer never leaves the PV manager.
-     *
-     * We cannot use an spsc_queue because the spsc_queue does not allow
-     * resizing once it has been created, however we need to increase the size
-     * of this queue if a process variable is added.
-     */
-    boost::lockfree::queue<ControlSystemSendNotificationListenerImpl*> _deviceNotificationQueue;
   };
 
   /**
@@ -351,23 +214,12 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("Process variable with name " + processVariableName + " already exists.");
     }
 
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener1 =
-        boost::make_shared<ControlSystemSendNotificationListenerImpl>(shared_from_this());
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener2 =
-        boost::make_shared<DeviceSendNotificationListenerImpl>(shared_from_this());
-
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> processVariables =
-        createBidirectionalSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description,
-            numberOfBuffers, sendNotificationListener1, sendNotificationListener2);
+        createBidirectionalSynchronizedProcessArray<T>(
+            initialValue, processVariableName, unit, description, numberOfBuffers);
 
     _processVariables.insert(
         std::make_pair(processVariableName, std::make_pair(processVariables.first, processVariables.second)));
-
-    // Increase notification queue size by one to make space for this process
-    // variable. We can use the unsafe variant because calls to this method have
-    // to be synchronized anyway.
-    _controlSystemNotificationQueue.reserve_unsafe(1);
-    _deviceNotificationQueue.reserve_unsafe(1);
 
     return std::make_pair(processVariables.first, processVariables.second);
   }
@@ -381,20 +233,11 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("Process variable with name " + processVariableName + " already exists.");
     }
 
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-        boost::make_shared<DeviceSendNotificationListenerImpl>(shared_from_this());
-
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(
-            initialValue, processVariableName, unit, description, numberOfBuffers, sendNotificationListener, flags);
+        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description, numberOfBuffers, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName, std::make_pair(processVariables.second, processVariables.first)));
-
-    // Increase notification queue size by one to make space for this process
-    // variable. We can use the unsafe variant because calls to this method have
-    // to be synchronized anyway.
-    _controlSystemNotificationQueue.reserve_unsafe(1);
 
     return std::make_pair(processVariables.second, processVariables.first);
   }
@@ -408,20 +251,11 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("Process variable with name " + processVariableName + " already exists.");
     }
 
-    boost::shared_ptr<ProcessVariableListener> sendNotificationListener =
-        boost::make_shared<ControlSystemSendNotificationListenerImpl>(shared_from_this());
-
     typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> processVariables =
-        createSynchronizedProcessArray<T>(
-            initialValue, processVariableName, unit, description, numberOfBuffers, sendNotificationListener, flags);
+        createSynchronizedProcessArray<T>(initialValue, processVariableName, unit, description, numberOfBuffers, flags);
 
     _processVariables.insert(
         std::make_pair(processVariableName, std::make_pair(processVariables.first, processVariables.second)));
-
-    // Increase notification queue size by one to make space for this process
-    // variable. We can use the unsafe variant because calls to this method have
-    // to be synchronized anyway.
-    _deviceNotificationQueue.reserve_unsafe(1);
 
     return std::make_pair(processVariables.first, processVariables.second);
   }

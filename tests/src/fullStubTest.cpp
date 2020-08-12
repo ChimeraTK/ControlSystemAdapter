@@ -2,8 +2,12 @@
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 
-#include "ControlSystemSynchronizationUtility.h"
+#include <ChimeraTK/ReadAnyGroup.h>
+#include <ChimeraTK/TransferGroup.h>
+
 #include "ReferenceTestApplication.h"
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
 #include "toDouble.h"
 
 using namespace boost::unit_test_framework;
@@ -16,16 +20,21 @@ struct TestApplicationFixture {
 
   ReferenceTestApplication testApplication;
 
-  ControlSystemSynchronizationUtility csSyncUtil;
+  ReadAnyGroup readAnyGroup;
 
-  TestApplicationFixture()
-  : pvManagers(createPVManager()), csManager(pvManagers.first), devManager(pvManagers.second), csSyncUtil(csManager) {
+  TestApplicationFixture() : pvManagers(createPVManager()), csManager(pvManagers.first), devManager(pvManagers.second) {
     std::cout << "this is TestApplicationFixture():" << std::endl;
     testApplication.setPVManager(devManager);
     testApplication.initialise();
+    for(auto pv : csManager->getAllProcessVariables()) {
+      if(pv->isReadable()) readAnyGroup.add(pv);
+    }
+    readAnyGroup.finalise();
     testApplication.run();
     ReferenceTestApplication::initialiseManualLoopControl();
-    csSyncUtil.receiveAll();
+    while(readAnyGroup.readAnyNonBlocking().isValid()) {
+      continue;
+    }
   }
   ~TestApplicationFixture() {
     std::cout << "this is ~TestApplicationFixture():" << std::endl;
@@ -40,12 +49,14 @@ struct TestApplicationFixture {
     // check that the test is actually sensitive to writing. We could add 13 to a numeric value, but what is
     // sting + 13? So we just check that there was something different before.
     BOOST_CHECK( fromDeviceScalar->accessData(0) != toType<UserType>(13) );
-    
+
     toDeviceScalar->accessData(0) = toType<UserType>(13);
 
-    csSyncUtil.sendAll();
+    for(auto pv : csManager->getAllProcessVariables()) {
+      if(pv->isWriteable()) pv->write();
+    }
     ReferenceTestApplication::runMainLoopOnce();
-    csSyncUtil.receiveAll();
+    while(readAnyGroup.readAnyNonBlocking().isValid()) continue;
 
     BOOST_CHECK_EQUAL(fromDeviceScalar->accessData(0), toType<UserType>(13));
   }
@@ -82,9 +93,11 @@ struct TestApplicationFixture {
       toDeviceArray->accessChannel(0)[i] = toType<UserType>(13 + i);
     }
 
-    csSyncUtil.sendAll();
+    for(auto pv : csManager->getAllProcessVariables()) {
+      if(pv->isWriteable()) pv->write();
+    }
     ReferenceTestApplication::runMainLoopOnce();
-    csSyncUtil.receiveAll();
+    while(readAnyGroup.readAnyNonBlocking().isValid()) continue;
 
     for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size(); ++i) {
       BOOST_CHECK(fromDeviceArray->accessChannel(0)[i] == toType<UserType>(13 + i));

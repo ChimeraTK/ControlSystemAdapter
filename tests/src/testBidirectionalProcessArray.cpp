@@ -6,7 +6,6 @@
 #include <tuple>
 
 #include "BidirectionalProcessArray.h"
-#include "CountingProcessVariableListener.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
@@ -268,40 +267,6 @@ BOOST_AUTO_TEST_CASE(testPassingOnWithCorrection_readAsync) {
 
 /**********************************************************************************************************************/
 
-// Test that send notification listeners are called correctly.
-BOOST_AUTO_TEST_CASE(testListeners) {
-  DoubleArray::SharedPtr pv1, pv2;
-  auto listener1 = make_shared<CountingProcessVariableListener>();
-  auto listener2 = make_shared<CountingProcessVariableListener>();
-  tie(pv1, pv2) = createBidirectionalSynchronizedProcessArray(1, "", "", "", 0.0, 2, listener1, listener2);
-  // Initially, the two listeners should not have received any notifications.
-  BOOST_CHECK(listener1->count == 0);
-  BOOST_CHECK(!listener1->lastProcessVariable);
-  BOOST_CHECK(listener2->count == 0);
-  BOOST_CHECK(!listener2->lastProcessVariable);
-  // Now we write pv1. This should lead to listener1 being notified that pv2
-  // is now ready to be read.
-  pv1->write();
-  BOOST_CHECK(listener1->count == 1);
-  BOOST_CHECK(listener1->lastProcessVariable == pv2);
-  BOOST_CHECK(listener2->count == 0);
-  BOOST_CHECK(!listener2->lastProcessVariable);
-  // Now we write pv2. This should lead to listener2 being notified that pv1
-  // is now ready to be read.
-  pv2->readNonBlocking();
-  pv2->write();
-  BOOST_CHECK(listener1->count == 1);
-  BOOST_CHECK(listener1->lastProcessVariable == pv2);
-  BOOST_CHECK(listener2->count == 1);
-  BOOST_CHECK(listener2->lastProcessVariable == pv1);
-  // We reset the pointers stored in the listeners in order to avoid a cyclic
-  // dependency.
-  listener1->lastProcessVariable.reset();
-  listener2->lastProcessVariable.reset();
-}
-
-/**********************************************************************************************************************/
-
 BOOST_AUTO_TEST_CASE(testValidity) {
   DoubleArray::SharedPtr pv1, pv2;
   double initialValue = 2.0;
@@ -326,6 +291,8 @@ BOOST_AUTO_TEST_CASE(testValidity) {
   pv1->read();
   BOOST_CHECK(pv1->dataValidity() == ChimeraTK::DataValidity::faulty);
 }
+
+/**********************************************************************************************************************/
 
 // Test that the data-transfer mechanism works.
 BOOST_AUTO_TEST_CASE(testSync) {
@@ -383,6 +350,8 @@ BOOST_AUTO_TEST_CASE(testSync) {
   BOOST_CHECK_CLOSE(pv2->accessData(0), newValue2, 0.001);
   BOOST_CHECK(pv2->getVersionNumber() == newVersionNumber2);
 }
+
+/**********************************************************************************************************************/
 
 // Test that the data-transfer mechanism works.
 BOOST_AUTO_TEST_CASE(testInterrupt) {

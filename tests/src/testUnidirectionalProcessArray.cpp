@@ -10,7 +10,6 @@ using namespace boost::unit_test_framework;
 
 #include "UnidirectionalProcessArray.h"
 
-#include "CountingProcessVariableListener.h"
 #include "toType.h"
 
 #include <boost/mpl/list.hpp>
@@ -91,8 +90,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
 BOOST_AUTO_TEST_CASE_TEMPLATE(testDoubleRead, T, test_types) {
   // Check whether consecutive reads on a UniDirectionalProcessArray with no wait_for_new_data works
   typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(
-          1, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+      createSynchronizedProcessArray<T>(1, "", "", "", toType<T>(SOME_NUMBER), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   sender->accessChannel(0)[0] = toType<T>(SOME_NUMBER + 1);
@@ -117,8 +115,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testInterrupt, T, test_types) {
   t.join();
 
   // Calling interrupt without wait_for_new_data throws logic_error
-  senderReceiver = createSynchronizedProcessArray<T>(
-      1, "", "", "", toType<T>(SOME_NUMBER), 3, ProcessVariableListener::SharedPtr(), {});
+  senderReceiver = createSynchronizedProcessArray<T>(1, "", "", "", toType<T>(SOME_NUMBER), 3, {});
   receiver = senderReceiver.second;
 
   BOOST_CHECK_THROW(receiver->interrupt(), ChimeraTK::logic_error);
@@ -186,22 +183,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
   for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK_EQUAL(*i, T());
   }
-}
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(testSendNotification, T, test_types) {
-  boost::shared_ptr<CountingProcessVariableListener> sendNotificationListener(
-      boost::make_shared<CountingProcessVariableListener>());
-  typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 2, sendNotificationListener);
-  typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
-  typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
-  BOOST_CHECK(sendNotificationListener->count == 0);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 1);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
-  sender->write();
-  BOOST_CHECK(sendNotificationListener->count == 2);
-  BOOST_CHECK(sendNotificationListener->lastProcessVariable == receiver);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {

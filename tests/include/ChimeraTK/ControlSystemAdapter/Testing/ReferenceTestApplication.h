@@ -5,7 +5,6 @@
 
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
-#include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 #include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
 #include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
@@ -53,7 +52,7 @@ struct TypedPVHolder {
         ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
     constantArray(processVariableManager->createProcessArray<DataType>(
         ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", 10)) {
-    double typeIdentifyingConstant=0;
+    double typeIdentifyingConstant = 0;
     if(typeid(DataType) == typeid(std::string)) {
       typeIdentifyingConstant = 42;
     }
@@ -208,8 +207,9 @@ inline void ReferenceTestApplication::initialise() {
           boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING"))));
 
   for (auto const& variable : _processVariableManager->getAllProcessVariables()) {
-    if (variable->isWriteable())
+    if(variable->isWriteable()) {
       variable->write();
+    }
   }
 }
 

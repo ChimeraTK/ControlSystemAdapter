@@ -23,6 +23,4 @@ namespace ChimeraTK {
     return devProcessVariables;
   }
 
-  ProcessVariable::SharedPtr DevicePVManager::nextNotification() { return _pvManager->nextDeviceNotification(); }
-
 } // namespace ChimeraTK

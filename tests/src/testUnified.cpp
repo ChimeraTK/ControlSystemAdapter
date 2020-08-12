@@ -80,19 +80,18 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
 
   if(path == "/unidir/sender") {
     flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
-    auto pv =
-        createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, {AccessMode::wait_for_new_data});
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, {AccessMode::wait_for_new_data});
     _pv = pv.second;
     return pv.first;
   }
   if(path == "/unidir/polledSender") {
     flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
-    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, {});
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, {});
     _pv = pv.second;
     return pv.first;
   }
   if(path == "/unidir/receiver" && flags.has(AccessMode::wait_for_new_data)) {
-    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, flags);
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
     _pv = pv.first;
     // need to write initial value
     _pv->accessData(0) = generateValueFromCounter();
@@ -100,7 +99,7 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
     return pv.second;
   }
   if(path == "/unidir/receiver" && !flags.has(AccessMode::wait_for_new_data)) {
-    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, flags);
+    auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
     _pv = pv.first;
     // need to write initial value, otherwise the first read would block
     _pv->accessData(0) = generateValueFromCounter();
@@ -109,7 +108,7 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
   }
   if(path == "/bidir/A") {
     flags.add(AccessMode::wait_for_new_data);
-    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, nullptr, flags);
+    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
     _pv = pv.first;
     // need to write initial value
     _pv->accessData(0) = generateValueFromCounter();
@@ -118,7 +117,7 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
   }
   if(path == "/bidir/B") {
     flags.add(AccessMode::wait_for_new_data);
-    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, nullptr, nullptr, flags);
+    auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
     _pv = pv.second;
     // need to write initial value
     _pv->accessData(0) = generateValueFromCounter();

@@ -99,23 +99,6 @@ namespace ChimeraTK {
     std::vector<ProcessVariable::SharedPtr> getAllProcessVariables() const;
 
     /**
-     * Returns the next process variable with a pending notification or
-     * <code>null</code> if no notifications are pending. This method should be
-     * periodically called by the control system in order to find process
-     * variables that have updated by the device library and thus have new
-     * values available to the control system.
-     *
-     * Please note that for a single process variable, only one notification
-     * might be pending even if there are multiple updates available. Therefore,
-     * when processing a notification, you should try receiving new values for
-     * the process variable until no new values are available. On the other
-     * hand, it is also possible that a notification is pending even so there
-     * are no new values available. In this case, you should simply ignore the
-     * notification.
-     */
-    ProcessVariable::SharedPtr nextNotification();
-
-    /**
      * Enable the persistent data storage system provided by the
      * ControlSystemAdapter. This function requires an existing instance of an
      * ApplicationBase class. You can specify the write interval in seconds.
