@@ -35,16 +35,23 @@ class DecoratorBackend : public ExceptionDummy {
     if(flags.has(AccessMode::raw)) throw ChimeraTK::logic_error("Raw accessors not supported");
 
     DecoratorType type;
+    RegisterPath path = registerPathName;
+    path.setAltSeparator(".");
     auto components = registerPathName.getComponents();
-    if(components.back() == "casted")
+    if(components.back() == "casted") {
       type = DecoratorType::C_style_conversion;
-    else if(components.back() == "range_checking")
+    }
+    else if(components.back() == "range_checking") {
       type = DecoratorType::range_checking;
+    }
     else
       throw ChimeraTK::logic_error("Decorator type " + components.back() + " not supported");
 
+    // drop last component
+    path--;
+
     return getDecorator<UserType>(
-        ExceptionDummy::getRegisterAccessor_impl<float>(components[0] + "/" + components[1], numberOfWords, wordOffsetInRegister, flags), type);
+        ExceptionDummy::getRegisterAccessor_impl<float>(path, numberOfWords, wordOffsetInRegister, flags), type);
   }
 
   static boost::shared_ptr<DeviceBackend> createInstance(std::string, std::map<std::string, std::string> parameters) {
@@ -96,7 +103,7 @@ struct TestRegister {
   typedef minimumUserType rawUserType;
 
   static constexpr auto capabilities = TestCapabilities<>()
-                                           .disableForceDataLossWrite()
+                                           .disableTestWriteNeverLosesData()
                                            .disableAsyncReadInconsistency()
                                            .disableSwitchReadOnly()
                                            .disableSwitchWriteOnly();
@@ -146,6 +153,32 @@ struct TestRegisterCasted : TestRegister<T> {
 };
 
 template<typename T>
+struct TestRegisterCastedAsync : TestRegister<T> {
+  virtual std::string path() { return "/SOME/SCALAR/PUSH_READ/casted"; }
+  ChimeraTK::AccessModeFlags supportedFlags() { return {AccessMode::wait_for_new_data}; }
+
+  void setRemoteValue() {
+    TestRegister<T>::setRemoteValue();
+    exceptionDummy->triggerPush(RegisterPath(path())--);
+  }
+
+  void setForceRuntimeError(bool enable, size_t) {
+    TestRegister<T>::setForceRuntimeError(enable, 0);
+    // For async variables we need to also trigger an async operation on the
+    // target register
+    if(enable) {
+      exceptionDummy->triggerPush(RegisterPath(path())--);
+    }
+  }
+};
+
+template<typename T>
+struct TestRegisterCastedAsyncRo : TestRegisterCastedAsync<T> {
+  std::string path() override { return "/SOME/SCALAR_RO/PUSH_READ/casted"; }
+  bool isWriteable() { return false; }
+};
+
+template<typename T>
 struct TestRegisterRangeChecked : TestRegister<T> {
   std::string path() { return "/SOME/SCALAR/range_checking"; }
 };
@@ -187,6 +220,10 @@ BOOST_AUTO_TEST_CASE(testRegisterAccessor) {
       .addRegister<TestRegisterCasted<double>>()
       .addRegister<TestRegisterRoCasted<long>>()
       .addRegister<TestRegisterRoCasted<double>>()
+      .addRegister<TestRegisterCastedAsync<long>>()
+      .addRegister<TestRegisterCastedAsync<double>>()
+      .addRegister<TestRegisterCastedAsyncRo<long>>()
+      .addRegister<TestRegisterCastedAsyncRo<double>>()
       .addRegister<TestRegisterRangeChecked<int>>()
       .addRegister<TestRegisterRangeChecked<float>>()
       .addRegister<TestRegisterRoRangeChecked<int>>()
