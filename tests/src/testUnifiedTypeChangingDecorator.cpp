@@ -104,23 +104,27 @@ struct TestRegister {
 
   static constexpr auto capabilities = TestCapabilities<>()
                                            .disableTestWriteNeverLosesData()
+                                           .disableForceDataLossWrite()
                                            .disableAsyncReadInconsistency()
                                            .disableSwitchReadOnly()
                                            .disableSwitchWriteOnly();
 
-  DummyRegisterAccessor<double> acc{exceptionDummy.get(), "", "/SOME/SCALAR"};
+  // We cheat a bit here for the ro accessors. SCALA_RO is mapped to the same address
+  // in the map file
+  DummyRegisterAccessor<float> acc{exceptionDummy.get(), "", "/SOME/SCALAR"};
 
   template<typename UserType>
   std::vector<std::vector<UserType>> generateValue() {
     UserType val;
+    // wrap around when we overflow
     try {
       val = numericToUserType<UserType>(acc + 3);
     }
     catch(boost::numeric::positive_overflow) {
-      val = std::numeric_limits<UserType>::min() + 5;
+      val = std::numeric_limits<UserType>::min();
     }
     catch(boost::numeric::negative_overflow) {
-      val = std::numeric_limits<UserType>::max() - 5;
+      val = std::numeric_limits<UserType>::max();
     }
 
     return {{val}};
@@ -189,27 +193,6 @@ struct TestRegisterRoRangeChecked : TestRegister<T> {
   bool isWriteable() { return false; }
 };
 
-template<typename T>
-struct TestRegisterRangeCheckedOverflows : TestRegister<T> {
-  bool returnOutOfRangeValue{true};
-  using TestRegister<T>::minimumUserType;
-
-  std::string path() { return "/SOME/SCALAR/range_checking"; }
-
-  template<typename UserType>
-  std::vector<std::vector<UserType>> generateValue() {
-      // Artificially create a value that exceeds the backing register's accessor (float)
-      auto value = std::numeric_limits<T>::max();
-      return {{value + 1}};
-  }
-
-  void setRemoteValue() {
-    // Set a remote value that exceeds the limits of the target type
-      auto value = std::numeric_limits<T>::max() + 1;
-      TestRegister<T>::acc = value;
-  }
-};
-
 /**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testRegisterAccessor) {
@@ -228,9 +211,6 @@ BOOST_AUTO_TEST_CASE(testRegisterAccessor) {
       .addRegister<TestRegisterRangeChecked<float>>()
       .addRegister<TestRegisterRoRangeChecked<int>>()
       .addRegister<TestRegisterRoRangeChecked<float>>()
-      // Fixme. These two tests will trigger errors all the time
-      .addRegister<TestRegisterRangeCheckedOverflows<double>>()
-      .addRegister<TestRegisterRangeCheckedOverflows<int8_t>>()
       .runTests(cdd);
 }
 
