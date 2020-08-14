@@ -224,9 +224,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
-  typename std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> senderReceiver =
-      createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(),
-          3); // FIXME This is testing *with* wait_for_new_data. THIS TEST IS WRONG!!! Put {} as last argument here and fix the test!!
+  auto senderReceiver = createSynchronizedProcessArray<T>(N_ELEMENTS, "", "", "", T(), 3, {});
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   // After sending destructively and receiving a value, the version number on
@@ -234,7 +232,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   VersionNumber initialVersionNumber = receiver->getVersionNumber();
   sender->accessChannel(0)[0] = toType<T>(1);
   sender->writeDestructively();
-  BOOST_CHECK(receiver->readNonBlocking());
+  receiver->read();
   VersionNumber versionNumber = receiver->getVersionNumber();
   BOOST_CHECK(versionNumber > initialVersionNumber);
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(1));
@@ -261,7 +259,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   }
   catch(ChimeraTK::logic_error&) {
   }
-  BOOST_CHECK(receiver->readNonBlocking() == false);
+
+  // No matter what, we should always get true where
+  BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(3));
   // When we send non-destructively, the version number on the sender and the
@@ -273,37 +273,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   BOOST_CHECK(receiver->getVersionNumber() > versionNumber);
   BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(5));
-
-  // provoke buffer overrun, read until the queue is empty (but triple buffer
-  // still has value) and put a new element into the queue
-  for(int i = 0; i < 10; ++i) {
-    sender->accessData(0) = toType<T>(33 + i);
-    sender->write();
-  }
-  BOOST_CHECK(receiver->readNonBlocking());
-  BOOST_CHECK_EQUAL(receiver->accessData(0), toType<T>(33));
-  BOOST_CHECK(receiver->readNonBlocking()); // after this line the buffer should be empty
-  BOOST_CHECK_EQUAL(receiver->accessData(0), toType<T>(34));
-  sender->accessData(0) = toType<T>(12);
-  sender->write();
-  BOOST_CHECK(receiver->readNonBlocking());
-  BOOST_CHECK_EQUAL(receiver->accessData(0), toType<T>(42));
-  BOOST_CHECK(receiver->readNonBlocking());
-  BOOST_CHECK_EQUAL(receiver->accessData(0), toType<T>(12));
-  BOOST_CHECK(!(receiver->readNonBlocking()));
-
-  // Test if VersionNumber in only updated, if there is new data
-  versionNumber = receiver->getVersionNumber();
-  sender->accessChannel(0)[0] = toType<T>(5);
-  sender->write();
-  BOOST_CHECK(receiver->readNonBlocking());
-  VersionNumber lastVersionNumber = versionNumber;
-  versionNumber = receiver->getVersionNumber();
-  BOOST_CHECK(versionNumber > lastVersionNumber);
-
-  lastVersionNumber = versionNumber;
-  BOOST_CHECK(!(receiver->readNonBlocking()));
-  BOOST_CHECK(lastVersionNumber == receiver->getVersionNumber());
 }
 
 
