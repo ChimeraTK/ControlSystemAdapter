@@ -181,7 +181,9 @@ namespace ChimeraTK {
                 processVariableName, std::vector<T>(size, initialValue), unit, description, numberOfBuffers)
             .second;
     }
-    assert(false); // one of the switch cases should have returned
+    std::cerr << "unrecoverable error: invalid syncrhonization direction in DevicePVManager::createProcessArray()"
+              << std::endl;
+    std::terminate(); // terminate here so the compiler does not complain release mode where an assertion is ignored.
   }
 
   template<class T>
