@@ -120,10 +120,10 @@ struct TestRegister {
     try {
       val = numericToUserType<UserType>(acc + 3);
     }
-    catch(boost::numeric::positive_overflow) {
+    catch(boost::numeric::positive_overflow &) {
       val = std::numeric_limits<UserType>::min();
     }
-    catch(boost::numeric::negative_overflow) {
+    catch(boost::numeric::negative_overflow &) {
       val = std::numeric_limits<UserType>::max();
     }
 
