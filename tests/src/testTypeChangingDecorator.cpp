@@ -14,6 +14,8 @@ using namespace ChimeraTK;
 
 #include <boost/shared_ptr.hpp>
 
+/**********************************************************************************************************************/
+
 template<typename T>
 bool test_equal_or_close(T a, T b) {
   if(a == b) {
@@ -111,6 +113,8 @@ struct Adder<std::string, uint8_t> {
     return s_out.str();
   }
 };
+
+/**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_SUITE(TypeChangingDecoratorTestSuite)
 
@@ -220,6 +224,8 @@ void testDecorator(double startReadValue, T expectedReadValue, T startWriteValue
   BOOST_CHECK(test_equal_or_close<T>(decoratedScalar.accessData(0), Adder<T, IMPL_T>::add(expectedReadValue, 4)));
 }
 
+/**********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<int, int8_t>(12, 12, 22, 22);
   testDecorator<int, uint8_t>(13, 13, 23, 23);
@@ -282,6 +288,8 @@ BOOST_AUTO_TEST_CASE(testAllDecoratorConversions) {
   testDecorator<float, int, TypeChangingDirectCastDecorator>(228, 228, 239.6, 239);
 }
 
+/**********************************************************************************************************************/
+
 template<template<typename, typename> class DECORATOR_TYPE>
 void loopTest() {
   // Test loops for numeric data types. One type is enough because it's template
@@ -334,10 +342,14 @@ void loopTest() {
   BOOST_CHECK_CLOSE(anotherAccessor[2][1], 222., 0.0001);
 }
 
+/**********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(testLoops) {
   loopTest<TypeChangingRangeCheckingDecorator>();
   loopTest<TypeChangingDirectCastDecorator>();
 }
+
+/**********************************************************************************************************************/
 
 #define CHECK_THROW_PRINT(command, exception_type)                                                                     \
   try {                                                                                                                \
@@ -348,6 +360,8 @@ BOOST_AUTO_TEST_CASE(testLoops) {
     std::cout << "** For manually checking the exeption message of " << #command << ":\n"                              \
               << "   " << e.what() << std::endl;                                                                       \
   }
+
+/**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testRangeChecks) {
   // Just a few tests where the type changing decorator with conversion should
@@ -391,6 +405,8 @@ BOOST_AUTO_TEST_CASE(testRangeChecks) {
   CHECK_THROW_PRINT(u2i.write(), boost::numeric::positive_overflow);
 }
 
+/**********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(testTransferGroup) {
   ChimeraTK::Device d;
   d.open("sdm://./dummy=decoratorTest.map");
@@ -421,6 +437,8 @@ BOOST_AUTO_TEST_CASE(testTransferGroup) {
   BOOST_CHECK_CLOSE(wholeArray[0], 4321., 0.0001);
   BOOST_CHECK_CLOSE(wholeArray[1], 4322., 0.0001);
 }
+
+/**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testFactory) {
   ChimeraTK::Device d;
