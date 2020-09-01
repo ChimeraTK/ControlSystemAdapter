@@ -41,6 +41,9 @@ namespace ChimeraTK {
    * and postRead() functions with the implementation. You don't have to care
    * about the implementation type of the transfer element. The factory will
    * automatically create the correct decorator.
+   * 
+   * Note: it is possible to obtain multiple decorators of different types for the same accessor. The user needs to
+   * ensure that the preXxx/postXxx transfer functions are properly called for all decorators when required.
    *
    *  @param transferElement The TransferElement to be decorated. It can either be
    * an NDRegisterAccessor (usually the case) or and NDRegisterAccessorBridge (but
@@ -384,13 +387,30 @@ namespace ChimeraTK {
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
   };
 
+  /** Key type for the global decorator map. */
+  struct DecoratorMapKey {
+    boost::shared_ptr<ChimeraTK::TransferElement> element;
+    const std::type_info& dataType;
+    ChimeraTK::DecoratorType conversionType;
+    bool operator<(const DecoratorMapKey& other) const {
+      if(element < other.element) return true;
+      if(element != other.element) return false;
+      if(&dataType < &other.dataType) return true;
+      if(&dataType != &other.dataType) return false;
+      if(conversionType < other.conversionType) return true;
+      return false;
+    }
+    bool operator==(const DecoratorMapKey& other) const {
+      return element == other.element && dataType == other.dataType && conversionType == other.conversionType;
+    }
+  };
+
   /** Quasi singleton to have a unique, global map across UserType templated
    * factories. We need it to loop up if a decorator has already been created for
    * the transfer element, and return this if so. Multiple decorators for the same
    * transfer element don't work.
    */
-  std::map<boost::shared_ptr<ChimeraTK::TransferElement>, boost::shared_ptr<ChimeraTK::TransferElement>>&
-      getGlobalDecoratorMap();
+  std::map<DecoratorMapKey, boost::shared_ptr<ChimeraTK::TransferElement>>& getGlobalDecoratorMap();
 
   template<class UserType>
   class DecoratorFactory {
@@ -428,34 +448,16 @@ namespace ChimeraTK {
   template<class UserType>
   boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(
       const boost::shared_ptr<ChimeraTK::TransferElement>& transferElement, DecoratorType decoratorType) {
-    // check if there already is a decorator for the transfer element
-    auto decoratorMapEntry = getGlobalDecoratorMap().find(transferElement);
+    // check if there already is a decorator for the transfer element with the right type
+    DecoratorMapKey key{transferElement, typeid(UserType), decoratorType};
+    auto decoratorMapEntry = getGlobalDecoratorMap().find(key);
     if(decoratorMapEntry != getGlobalDecoratorMap().end()) {
       // There already is a decorator for this transfer element
       // The decorator has to have a matching type, otherwise we can only throw
       auto castedType = boost::dynamic_pointer_cast<ChimeraTK::NDRegisterAccessor<UserType>>(decoratorMapEntry->second);
-      if(castedType) { // User type matches,  but the decorator type also has to
-                       // match
-        auto decoTypeHolder =
-            boost::dynamic_pointer_cast<DecoratorTypeHolder>(decoratorMapEntry->second); /// @todo eliminate this cast
-                                                                                         /// and change map to hold
-                                                                                         /// DecoratorTypeHolder
-        assert(decoTypeHolder);
-        if(decoTypeHolder->getDecoratorType() == decoratorType) {
-          // decorator matches, return it
-          return castedType;
-        }
-        else {
-          // sorry there is a decorator, but it's the wrong user type
-          throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
-              transferElement->getName() + " already exists as a different decorator type.");
-        }
-      }
-      else {
-        // sorry there is a decorator, but it's the wrong user type
-        throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
-            transferElement->getName() + " already exists with a different user type.");
-      }
+      assert(castedType);
+      assert(boost::dynamic_pointer_cast<DecoratorTypeHolder>(decoratorMapEntry->second));
+      return castedType;
     }
 
     DecoratorFactory<UserType> factory(transferElement, decoratorType);
@@ -464,7 +466,7 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Decorator for TransferElement " +
           transferElement->getName() + " has been requested for an unknown user type: " + typeid(UserType).name());
     }
-    getGlobalDecoratorMap()[transferElement] = factory.createdDecorator;
+    getGlobalDecoratorMap()[key] = factory.createdDecorator;
     return factory.createdDecorator;
   }
 
