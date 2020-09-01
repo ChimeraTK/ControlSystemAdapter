@@ -60,10 +60,10 @@ namespace ChimeraTK {
     return getDecorator<UserType>(transferElement.getHighLevelImplElement(), decoratorType);
   }
 
-  //===================================================================================================================================================
+  //====================================================================================================================
   // Everything from here are implementation details. The exact identity of the
   // decorator should not matter to the user, it would break the abstraction.
-  //===================================================================================================================================================
+  //====================================================================================================================
 
   // Base class which just holds the decorator type. This allows
   class DecoratorTypeHolder {
@@ -286,17 +286,16 @@ namespace ChimeraTK {
    protected:
   };
 
-  /*********************************************************************************************************************/
-  /*** Implementations of member functions below this line
-   * *************************************************************/
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
+  /*** Implementations of member functions below this line ************************************************************/
+  /********************************************************************************************************************/
 
   template<class T, class IMPL_T>
   TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator(
       boost::shared_ptr<ChimeraTK::NDRegisterAccessor<IMPL_T>> const& target) noexcept
   : ChimeraTK::NDRegisterAccessorDecorator<T, IMPL_T>(target) {}
 
-  /*********************************************************************************************************************/
+  /********************************************************************************************************************/
 
   template<class T, class IMPL_T>
   void TypeChangingRangeCheckingDecorator<T, IMPL_T>::convertAndCopyFromImpl() {
