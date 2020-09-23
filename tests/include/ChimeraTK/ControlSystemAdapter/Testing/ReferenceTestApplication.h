@@ -73,15 +73,15 @@ struct TypedPVHolder {
       }
     }
     dataTypeConstant->accessData(0) = toType<DataType>(typeIdentifyingConstant);
-    
+
     for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
       constantArray->accessChannel(0)[i] = toType<DataType>(typeIdentifyingConstant * i * i);
     }
   }
 
-  void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version,  ChimeraTK::DataValidity validity) {
+  void inputToOutput(boost::optional<ChimeraTK::VersionNumber> version, ChimeraTK::DataValidity validity) {
     failedTransfers.clear();
-    if (toDeviceScalar->readLatest()) {
+    if(toDeviceScalar->readLatest()) {
       fromDeviceScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
       fromDeviceScalar->setDataValidity(validity);
       auto isDataLost = fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
@@ -90,8 +90,9 @@ struct TypedPVHolder {
       }
     }
 
-    if (toDeviceArray->readLatest()) {
-      for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size(); ++i) {
+    if(toDeviceArray->readLatest()) {
+      for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size();
+          ++i) {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
       }
       fromDeviceArray->setDataValidity(validity);
@@ -109,7 +110,6 @@ struct TypedPVHolder {
       std::cout << std::endl;
     }
   }
-
 };
 
 /// A boost fusion map which allows to acces the holder instances by type
@@ -184,7 +184,6 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   /// The 'body' of the main loop, i.e. the functionality once, without the loop
   /// around it.
   void mainBody();
-
 };
 
 inline ReferenceTestApplication::ReferenceTestApplication(std::string const& applicationName_)
@@ -206,7 +205,7 @@ inline void ReferenceTestApplication::initialise() {
           boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE")),
           boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING"))));
 
-  for (auto const& variable : _processVariableManager->getAllProcessVariables()) {
+  for(auto const& variable : _processVariableManager->getAllProcessVariables()) {
     if(variable->isWriteable()) {
       variable->write();
     }
@@ -253,7 +252,7 @@ inline void ReferenceTestApplication::mainLoop() {
 
 struct PerformInputToOutput {
   PerformInputToOutput(boost::optional<ChimeraTK::VersionNumber> version, ChimeraTK::DataValidity validity)
-    : _version(version), _validity(validity) {}
+  : _version(version), _validity(validity) {}
 
   template<typename T>
   void operator()(T& t) const {
@@ -278,7 +277,7 @@ inline bool ReferenceTestApplication::runMainLoopOnce() {
     // This is the sign that the loop actually has been performed.
   } while(mainLoopExecutionRequested());
 
-  auto isSuccessful = [](bool initialState, auto mapEntry){
+  auto isSuccessful = [](bool initialState, auto mapEntry) {
     bool success = mapEntry.second.failedTransfers.empty();
     return initialState && success;
   };
@@ -300,10 +299,10 @@ inline void ReferenceTestApplication::releaseManualLoopControl() {
   mainLoopMutex().unlock();
 }
 
-inline std::vector<std::string> ReferenceTestApplication::getFailedTransfers(){
+inline std::vector<std::string> ReferenceTestApplication::getFailedTransfers() {
   std::vector<std::string> result;
-  auto populateFailures = [&](auto mapElement){
-    for(auto pv: mapElement.second.failedTransfers){
+  auto populateFailures = [&](auto mapElement) {
+    for(auto pv : mapElement.second.failedTransfers) {
       result.emplace_back(std::move(pv));
     }
   };
