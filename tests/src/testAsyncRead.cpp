@@ -309,10 +309,11 @@ void AsyncReadTest::testReadAny() {
     BOOST_CHECK(a1 == 666);
     BOOST_CHECK(a2 == 777);
 
-    BOOST_CHECK(a1.readNonBlocking() == false);
-    BOOST_CHECK(a2.readNonBlocking() == false);
-    BOOST_CHECK(a3.readNonBlocking() == false);
-    BOOST_CHECK(a4.readNonBlocking() == false);
+    // Note: we must not use readNonBlocking() on the TEs in the group, as this is against the specs!
+    BOOST_CHECK(a1.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a2.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a3.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a4.getHighLevelImplElement()->getReadQueue().read_available() == 0);
   }
 
   // In order: Test4, Test2, Test3 and Test1
@@ -355,10 +356,10 @@ void AsyncReadTest::testReadAny() {
     BOOST_CHECK(a3 == 333);
     BOOST_CHECK(a4 == 111);
 
-    BOOST_CHECK(a1.readNonBlocking() == false);
-    BOOST_CHECK(a2.readNonBlocking() == false);
-    BOOST_CHECK(a3.readNonBlocking() == false);
-    BOOST_CHECK(a4.readNonBlocking() == false);
+    BOOST_CHECK(a1.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a2.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a3.getHighLevelImplElement()->getReadQueue().read_available() == 0);
+    BOOST_CHECK(a4.getHighLevelImplElement()->getReadQueue().read_available() == 0);
   }
 }
 
