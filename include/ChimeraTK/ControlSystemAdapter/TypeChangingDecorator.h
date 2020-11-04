@@ -12,14 +12,12 @@ namespace ChimeraTK {
   /** There are three types of TypeChanging decorators which do different data
    * conversions from the user data type to the implementation data type.
    *
-   *  \li range_checking This decorator checks the limits and throws an exception
-   * of the range is exceeced (for instance if you cast a negative integer to an
-   * unsiged int, or 500 to int8_t). This decorator does proper rounding from
-   * floating point types t o integer (e.g. 6.7 to 7). \li limiting This decorator
+   *  \li limiting This decorator
    * limits the data to the maximum possible in the target data type (for instance
    * 500 will result in 127 in int8_t and  255 in uint8_t, -200 will be -128 in
    * int8t, 0 in uint8_t). This decorator also does correct rounding from floating
-   * point to integer type. \li C_style_conversion This decorator does a direct
+   * point to integer type.
+   * \li C_style_conversion This decorator does a direct
    * cast like an assigment in C/C++ does it. For instance 500 (=0x1f4) will
    * result in 0xf4 for an 8 bit integer, which is interpreted as 244 in uint8_t
    * and -12 in int8_t. Digits after the decimal point are cut when converting a
@@ -29,7 +27,7 @@ namespace ChimeraTK {
    * interpret the 'wrong' representation), of for bit fields where it is
    * acceptable to lose the higher bits.
    */
-  enum class DecoratorType { range_checking, limiting, C_style_conversion };
+  enum class DecoratorType { limiting, C_style_conversion };
 
   /** The factory function for type changing decorators.
    *
@@ -54,12 +52,11 @@ namespace ChimeraTK {
   template<class UserType>
   boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(
       const boost::shared_ptr<ChimeraTK::TransferElement>& transferElement,
-      DecoratorType decoratorType = DecoratorType::range_checking);
+      DecoratorType decoratorType = DecoratorType::limiting);
 
   template<class UserType>
   boost::shared_ptr<ChimeraTK::NDRegisterAccessor<UserType>> getDecorator(
-      ChimeraTK::TransferElementAbstractor& transferElement,
-      DecoratorType decoratorType = DecoratorType::range_checking) {
+      ChimeraTK::TransferElementAbstractor& transferElement, DecoratorType decoratorType = DecoratorType::limiting) {
     return getDecorator<UserType>(transferElement.getHighLevelImplElement(), decoratorType);
   }
 
@@ -242,7 +239,7 @@ namespace ChimeraTK {
     using TypeChangingStringImplDecorator<T, IMPL_T>::TypeChangingStringImplDecorator;
     void convertAndCopyFromImpl() override;
     void convertAndCopyToImpl() override;
-    DecoratorType getDecoratorType() const override { return DecoratorType::range_checking; }
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
 
    private:
     /** Internal exceptions to overload the what() function of the boost
@@ -270,7 +267,7 @@ namespace ChimeraTK {
     // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
     // Use the implementations from TypeChangingStringImplDecorator<T, std::string>
 
-    DecoratorType getDecoratorType() const override { return DecoratorType::range_checking; }
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
 
    protected:
     //    using ChimeraTK::NDRegisterAccessorDecorator<T, std::string>::_target;
@@ -284,7 +281,7 @@ namespace ChimeraTK {
     // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
     // Use the implementations from TypeChangingStringImplDecorator<T, std::string>
 
-    DecoratorType getDecoratorType() const override { return DecoratorType::range_checking; }
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
 
    protected:
   };
@@ -306,21 +303,18 @@ namespace ChimeraTK {
         boost::numeric::def_overflow_handler, csa_helpers::Round<double>>
         FromImplConverter;
     // fixme: are iterartors more efficient?
-    try {
       for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
         for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
-          this->buffer_2D[i][j] = FromImplConverter::convert(_target->accessChannel(i)[j]);
+          try {
+            this->buffer_2D[i][j] = FromImplConverter::convert(_target->accessChannel(i)[j]);
+          }
+          catch(boost::numeric::positive_overflow&) {
+            this->buffer_2D[i][j] = std::numeric_limits<T>::max();
+          }
+          catch(boost::numeric::negative_overflow&) {
+            this->buffer_2D[i][j] = std::numeric_limits<T>::min();
+          }
         }
-      }
-    }
-    catch(boost::numeric::positive_overflow&) {
-      throw(BadNumericCastException<boost::numeric::positive_overflow>(this->getName()));
-    }
-    catch(boost::numeric::negative_overflow&) {
-      throw(BadNumericCastException<boost::numeric::negative_overflow>(this->getName()));
-    }
-    catch(boost::numeric::bad_numeric_cast& boostException) {
-      throw(BadNumericCastException<boost::numeric::bad_numeric_cast>(this->getName()));
     }
   }
 
@@ -331,7 +325,15 @@ namespace ChimeraTK {
         ToImplConverter;
     for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
       for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
-        _target->accessChannel(i)[j] = ToImplConverter::convert(this->buffer_2D[i][j]);
+        try {
+          _target->accessChannel(i)[j] = ToImplConverter::convert(this->buffer_2D[i][j]);
+        }
+        catch(boost::numeric::positive_overflow&) {
+          _target->accessChannel(i)[j] = std::numeric_limits<IMPL_T>::max();
+        }
+        catch(boost::numeric::negative_overflow&) {
+          _target->accessChannel(i)[j] = std::numeric_limits<IMPL_T>::min();
+        }
       }
     }
   }
@@ -428,7 +430,7 @@ namespace ChimeraTK {
       typedef typename PAIR::first_type TargetImplType;
       if(typeid(TargetImplType) != theImpl->getValueType()) return;
 
-      if(wantedDecoratorType == DecoratorType::range_checking) {
+      if(wantedDecoratorType == DecoratorType::limiting) {
         createdDecorator.reset(new TypeChangingRangeCheckingDecorator<UserType, TargetImplType>(
             boost::dynamic_pointer_cast<ChimeraTK::NDRegisterAccessor<TargetImplType>>(theImpl)));
       }

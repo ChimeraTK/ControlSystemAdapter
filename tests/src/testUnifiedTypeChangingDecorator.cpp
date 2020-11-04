@@ -41,8 +41,8 @@ class DecoratorBackend : public ExceptionDummy {
     if(components.back() == "casted") {
       type = DecoratorType::C_style_conversion;
     }
-    else if(components.back() == "range_checking") {
-      type = DecoratorType::range_checking;
+    else if(components.back() == "limiting") {
+      type = DecoratorType::limiting;
     }
     else
       throw ChimeraTK::logic_error("Decorator type " + components.back() + " not supported");
@@ -184,12 +184,12 @@ struct TestRegisterCastedAsyncRo : TestRegisterCastedAsync<T> {
 
 template<typename T>
 struct TestRegisterRangeChecked : TestRegister<T> {
-  std::string path() { return "/SOME/SCALAR/range_checking"; }
+  std::string path() { return "/SOME/SCALAR/limiting"; }
 };
 
 template<typename T>
 struct TestRegisterRoRangeChecked : TestRegister<T> {
-  std::string path() { return "/SOME/SCALAR_RO/range_checking"; }
+  std::string path() { return "/SOME/SCALAR_RO/limiting"; }
   bool isWriteable() { return false; }
 };
 

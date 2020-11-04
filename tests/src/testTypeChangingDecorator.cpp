@@ -1,5 +1,7 @@
 #define BOOST_TEST_MODULE TypeChangingDecoratorTest
 
+#include <limits>
+
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
@@ -375,34 +377,35 @@ BOOST_AUTO_TEST_CASE(testRangeChecks) {
 
   auto intNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<int32_t>>(myInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<uint32_t, int32_t> u2i(intNDAccessor);
-  TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor); // don't try this at home: putting the
-                                                                               // same NDAccessor into different
-                                                                               // decorators can cause trouble
+  TypeChangingDirectCastDecorator<uint32_t, int32_t> directU2i(intNDAccessor);
 
   auto uintNDAccessor = boost::dynamic_pointer_cast<NDRegisterAccessor<uint32_t>>(myUInt.getHighLevelImplElement());
   TypeChangingRangeCheckingDecorator<int32_t, uint32_t> i2u(uintNDAccessor);
-  TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor); // don't try this at home: putting the
-                                                                                // same NDAccessor into different
-                                                                                // decorators can cause trouble
+  TypeChangingDirectCastDecorator<int32_t, uint32_t> directI2u(uintNDAccessor);
 
-  // the bit content is the same, but the interpretation is different.
-  myIntDummy = 0xFFFFFFFF;
+  myIntDummy = -1;
   myIntDummy.write();
-  myUIntDummy = 0xFFFFFFFF;
-  myUIntDummy.write();
-
-  CHECK_THROW_PRINT(u2i.read(), boost::numeric::negative_overflow);
-  CHECK_THROW_PRINT(i2u.read(), boost::numeric::positive_overflow);
-  BOOST_CHECK_NO_THROW(directI2u.read());
+  BOOST_CHECK_NO_THROW(u2i.read());
+  BOOST_CHECK_EQUAL(u2i.accessData(0), 0);
   BOOST_CHECK_NO_THROW(directU2i.read());
   BOOST_CHECK(directU2i.accessData(0) == 0xFFFFFFFF);
+
+  myUIntDummy = std::numeric_limits<uint32_t>::max();
+  myUIntDummy.write();
+  BOOST_CHECK_NO_THROW(i2u.read());
+  BOOST_CHECK_EQUAL(i2u.accessData(0), std::numeric_limits<int32_t>::max());
+  BOOST_CHECK_NO_THROW(directI2u.read());
   BOOST_CHECK(directI2u.accessData(0) == -1);
 
-  i2u.accessData(0) = 0xFFFFFFFE;
-  u2i.accessData(0) = 0xFFFFFFFE;
+  u2i.accessData(0) = static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) + 1U;
+  BOOST_CHECK_NO_THROW(u2i.write());
+  myIntDummy.read();
+  BOOST_CHECK_EQUAL(myIntDummy, std::numeric_limits<int32_t>::max());
 
-  CHECK_THROW_PRINT(i2u.write(), boost::numeric::negative_overflow);
-  CHECK_THROW_PRINT(u2i.write(), boost::numeric::positive_overflow);
+  i2u.accessData(0) = -1;
+  BOOST_CHECK_NO_THROW(i2u.write());
+  myUIntDummy.read();
+  BOOST_CHECK_EQUAL(myUIntDummy, 0);
 }
 
 /**********************************************************************************************************************/
@@ -472,10 +475,6 @@ BOOST_AUTO_TEST_CASE(testFactory) {
   auto castedDCScalar =
       boost::dynamic_pointer_cast<TypeChangingDirectCastDecorator<int, double>>(decoratedDirectConvertingScalar);
   BOOST_CHECK(castedDCScalar);
-
-  // fixme: at the moment we are throwing if a limiting decorator is requested
-  auto scalar3 = d.getScalarRegisterAccessor<double>("/SOME/SCALAR");
-  CHECK_THROW_PRINT(getDecorator<int>(scalar3, DecoratorType::limiting), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
