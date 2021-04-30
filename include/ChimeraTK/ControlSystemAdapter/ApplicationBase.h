@@ -41,6 +41,13 @@ namespace ChimeraTK {
      * manager. */
     virtual void initialise() = 0;
 
+    /** Optimise unmapped variables to avoid unnecessary copies. The application must implement this function. The
+     *  ControlSystemAdapter implementation should call it with a list of PV names which are not mapped, i.e. the
+     *  Application does not need to update the values of these PVs. If this function is not called, no such optimisation
+     *  can be done and the application may have an increased CPU usage. If the function is called, it must be called
+     *  after initialise() and before run(). */
+    virtual void optimiseUnmappedVariables(const std::set<std::string> &unmappedVariables) { (void)unmappedVariables; }
+
     /** Run the application. This function must be implemented by the application
      * programmer. It will be called after initialise() and after all process
      * variables have been created and, if applicable, initialised with values
