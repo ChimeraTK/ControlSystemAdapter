@@ -141,6 +141,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   /// Inherited from ApplicationBase
   void initialise() override;
+
   /// Inherited from ApplicationBase
   void run() override;
 
@@ -150,6 +151,12 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   /// Returns a list of process variables for which data transfer failed during the last runMainLoopOnce call.
   std::vector<std::string> getFailedTransfers();
+
+  /// Allow access to the list of unmapped variables by tests
+  void optimiseUnmappedVariables(const std::set<std::string> &unmappedVariables) override {
+    _unmappedVariables = unmappedVariables;
+  }
+  std::set<std::string> _unmappedVariables;
 
  protected:
   //  ChimeraTK::DevicePVManager::SharedPtr processVariableManager;
