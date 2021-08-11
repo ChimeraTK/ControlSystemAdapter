@@ -139,6 +139,17 @@ namespace ChimeraTK {
     using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
   };
 
+  /** This class is intended as a base class.
+   *  It provides only partial template specialisations for the Void stuff.
+   * Don't directly instantiate this class. The factory would fail when looping
+   * over all implementation types.
+   */
+  template<class T, class IMPL_T>
+  class TypeChangingVoidImplDecorator : public TypeChangingDecorator<T, IMPL_T> {
+   public:
+    using TypeChangingDecorator<T, IMPL_T>::TypeChangingDecorator;
+  };
+
   /// A sub-namespace in order not to expose the classes to the ChimeraTK
   /// namespace
   namespace csa_helpers {
@@ -227,6 +238,79 @@ namespace ChimeraTK {
     }
   };
 
+  /** The actual partial implementation for Void as impl type **/
+  template<class T>
+  class TypeChangingStringImplDecorator<T, ChimeraTK::Void> : public TypeChangingDecorator<T, ChimeraTK::Void> {
+   public:
+    using TypeChangingDecorator<T, ChimeraTK::Void>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->buffer_2D[i][j] = {};
+        }
+      }
+    }
+    void convertAndCopyToImpl() override {}
+  };
+
+  /** The actual partial implementation for Void as user type */
+  template<class IMPL_T>
+  class TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T>
+  : public TypeChangingDecorator<ChimeraTK::Void, IMPL_T> {
+   public:
+    using TypeChangingDecorator<ChimeraTK::Void, IMPL_T>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {}
+    void convertAndCopyToImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->_target->accessChannel(i)[j] = {};
+        }
+      }
+    }
+  };
+
+  /** The actual partial implementation for std::string as user type and Void as impl type **/
+  template<>
+  class TypeChangingStringImplDecorator<std::string, ChimeraTK::Void>
+  : public TypeChangingDecorator<std::string, ChimeraTK::Void> {
+   public:
+    using TypeChangingDecorator<std::string, ChimeraTK::Void>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->buffer_2D[i][j] = {};
+        }
+      }
+    }
+    void convertAndCopyToImpl() override {}
+  };
+
+  /** The actual partial implementation for Void as user type and std::string as impl type */
+  template<>
+  class TypeChangingStringImplDecorator<ChimeraTK::Void, std::string>
+  : public TypeChangingDecorator<ChimeraTK::Void, std::string> {
+   public:
+    using TypeChangingDecorator<ChimeraTK::Void, std::string>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {}
+    void convertAndCopyToImpl() override {
+      for(size_t i = 0; i < this->buffer_2D.size(); ++i) {
+        for(size_t j = 0; j < this->buffer_2D[i].size(); ++j) {
+          this->_target->accessChannel(i)[j] = {};
+        }
+      }
+    }
+  };
+
+  /** The actual partial implementation for Void as user type and Void as impl type */
+  template<>
+  class TypeChangingStringImplDecorator<ChimeraTK::Void, ChimeraTK::Void>
+  : public TypeChangingDecorator<ChimeraTK::Void, ChimeraTK::Void> {
+   public:
+    using TypeChangingDecorator<ChimeraTK::Void, ChimeraTK::Void>::TypeChangingDecorator;
+    void convertAndCopyFromImpl() override {}
+    void convertAndCopyToImpl() override {}
+  };
+
   /** This decorator uses the boost numeric converter which performs two tasks:
    *
    *  - a range check (throws boost::numeric::bad_numeric_cast if out of range)
@@ -279,7 +363,74 @@ namespace ChimeraTK {
    public:
     using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
     // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
-    // Use the implementations from TypeChangingStringImplDecorator<T, std::string>
+    // Use the implementations from TypeChangingStringImplDecorator<std::string, IMPL_T>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
+
+   protected:
+  };
+
+  template<class T>
+  class TypeChangingRangeCheckingDecorator<T, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<T, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<T, ChimeraTK::Void>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<T, ChimeraTK::Void>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
+
+   protected:
+    //    using ChimeraTK::NDRegisterAccessorDecorator<T, ChimeraTK::Void>::_target;
+  };
+
+  template<class IMPL_T>
+  class TypeChangingRangeCheckingDecorator<ChimeraTK::Void, IMPL_T>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
+
+   protected:
+  };
+
+  template<>
+  class TypeChangingRangeCheckingDecorator<std::string, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<std::string, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<std::string, ChimeraTK::Void>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<std::string, ChimeraTK::Void>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
+
+   protected:
+    //    using ChimeraTK::NDRegisterAccessorDecorator<T, ChimeraTK::Void>::_target;
+  };
+
+  template<>
+  class TypeChangingRangeCheckingDecorator<ChimeraTK::Void, std::string>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, std::string> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, std::string>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<ChimeraTK::Void, std::string>
+
+    DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
+
+   protected:
+  };
+
+  template<>
+  class TypeChangingRangeCheckingDecorator<ChimeraTK::Void, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, ChimeraTK::Void>::TypeChangingStringImplDecorator;
+    // Do not override convertAndCopyFromImpl() and convertAndCopyToImpl().
+    // Use the implementations from TypeChangingStringImplDecorator<ChimeraTK::Void, std::string>
 
     DecoratorType getDecoratorType() const override { return DecoratorType::limiting; }
 
@@ -379,13 +530,63 @@ namespace ChimeraTK {
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
   };
 
-  /** Partial template specialisation for strings as impl type.
+  /** Partial template specialisation for strings as user type.
    */
   template<class IMPL_T>
   class TypeChangingDirectCastDecorator<std::string, IMPL_T>
   : public TypeChangingStringImplDecorator<std::string, IMPL_T> {
    public:
     using TypeChangingStringImplDecorator<std::string, IMPL_T>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** Partial template specialisation for Void as impl type.
+   */
+  template<class T>
+  class TypeChangingDirectCastDecorator<T, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<T, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<T, ChimeraTK::Void>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** Partial template specialisation for Void as user type.
+   */
+  template<class IMPL_T>
+  class TypeChangingDirectCastDecorator<ChimeraTK::Void, IMPL_T>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, IMPL_T>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** template specialisation for Void as impl type and string as user type.
+   */
+  template<>
+  class TypeChangingDirectCastDecorator<std::string, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<std::string, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<std::string, ChimeraTK::Void>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** template specialisation for Void as user type and string as impl type.
+   */
+  template<>
+  class TypeChangingDirectCastDecorator<ChimeraTK::Void, std::string>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, std::string> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, std::string>::TypeChangingStringImplDecorator;
+    DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
+  };
+
+  /** template specialisation for Void as user type and string as impl type.
+   */
+  template<>
+  class TypeChangingDirectCastDecorator<ChimeraTK::Void, ChimeraTK::Void>
+  : public TypeChangingStringImplDecorator<ChimeraTK::Void, ChimeraTK::Void> {
+   public:
+    using TypeChangingStringImplDecorator<ChimeraTK::Void, ChimeraTK::Void>::TypeChangingStringImplDecorator;
     DecoratorType getDecoratorType() const override { return DecoratorType::C_style_conversion; }
   };
 
