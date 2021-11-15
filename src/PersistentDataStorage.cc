@@ -102,6 +102,10 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
         generateXmlValueTags<std::string>(variable, i);
         dataTypeName = "string";
       }
+      else if(*_variableTypes[i] == typeid(Boolean)){
+        generateXmlValueTags<Boolean>(variable, i);
+        dataTypeName = "Boolean";
+      }
       else {
         /// @todo TODO what todo here?
       }
@@ -190,6 +194,9 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
           }
           else if(type == "string") {
             readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0, true));
+          }
+          else if(type == "Boolean") {
+            readXmlValueTags<Boolean>(child, registerVariable<Boolean>(name, 0, true));
           }
           else { /* @todo TODO ??? */
           }

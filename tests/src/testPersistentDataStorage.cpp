@@ -47,11 +47,19 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     for(int i = 0; i < 100; ++i) myVar2[i] = -120 + 7 * i;
     storage.updateValue(id2, myVar2);
 
+    // register Boolean variable /bool/MyVar3 with 4 elements and fill it
+    std::vector<Boolean> myVar3 = {true, false, true, false};
+    int id3 = storage.registerVariable<Boolean>("/bool/MyVar3", 4);
+    storage.updateValue(id3, myVar3);
+
     // check if both variables are properly stored
     auto myVar1stored = storage.retrieveValue<int32_t>(id1);
     for(int i = 0; i < 10; ++i) BOOST_CHECK(myVar1stored[i] == 3 * i);
     auto myVar2stored = storage.retrieveValue<double>(id2);
     for(int i = 0; i < 100; ++i) BOOST_CHECK_CLOSE(myVar2stored[i], -120 + 7 * i, 0.0001);
+    auto myVar3stored = storage.retrieveValue<Boolean>(id3);
+    BOOST_CHECK_EQUAL_COLLECTIONS(myVar3.begin(), myVar3.end(), myVar3stored.begin(), myVar3stored.end());
+
   }
   // the first PersistentDataStorage is destroyed at this point, in its destructor the file is written
 
@@ -70,6 +78,13 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
     myVar2 = storage.retrieveValue<double>(id2);
     for(int i = 0; i < 100; ++i) BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
+
+    //check /bool/MyVar3
+    std::vector<Boolean> myVar3(4);
+    int id3 = storage.registerVariable<Boolean>("/bool/MyVar3", 4);
+    myVar3 = storage.retrieveValue<Boolean>(id3);
+    std::vector<Boolean> test = {true, false, true, false};
+    BOOST_CHECK_EQUAL_COLLECTIONS(myVar3.begin(), myVar3.end(), test.begin(), test.end());
 
     // modify some elements of myVar1
     myVar1[7] = 42;
