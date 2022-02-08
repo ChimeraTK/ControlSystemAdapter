@@ -1,2 +1,2 @@
 @Library('ChimeraTK') _
-autojob(['ChimeraTK-DeviceAccess'], 'https://github.com/ChimeraTK/ControlSystemAdapter')
+autojob(['ChimeraTK/DeviceAccess'], 'https://github.com/ChimeraTK/ControlSystemAdapter')
