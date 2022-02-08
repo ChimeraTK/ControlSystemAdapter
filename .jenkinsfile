@@ -1,2 +1,2 @@
 @Library('ChimeraTK') _
-buildTestDeploy(['ChimeraTK-DeviceAccess'])
+autojob(['ChimeraTK/DeviceAccess'], 'https://github.com/ChimeraTK/ControlSystemAdapter')
