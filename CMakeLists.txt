@@ -29,13 +29,12 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
 FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
 
 #the unit test component is optional
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework)
-IF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
+option(BUILD_TESTS "Build test programs" ON)
+IF(BUILD_TESTS)
+  FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
   set(TESTING_IS_ENABLED "true")
   ENABLE_TESTING()
-ELSE(Boost_UNIT_TEST_FRAMEWORK_FOUND)
-  message("Boost unit_test_framework not found, disabling testing")
-ENDIF(Boost_UNIT_TEST_FRAMEWORK_FOUND)
+ENDIF()
 
 #turn on the rpath so dependencies are found properly
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
