@@ -32,7 +32,6 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
 option(BUILD_TESTS "Build test programs" ON)
 IF(BUILD_TESTS)
   FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
-  set(TESTING_IS_ENABLED "true")
   ENABLE_TESTING()
 ENDIF()
 
@@ -65,7 +64,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 #Create the executables for automated unit testing.
 #Currently we assume that they are all tests contained in one file, so
 #each file gives a new executable. This section has to be adapted if this should change.
-if(TESTING_IS_ENABLED)
+if(BUILD_TESTS)
   #include_directories(${CMAKE_SOURCE_DIR}/tests/include)
   aux_source_directory(${CMAKE_SOURCE_DIR}/tests/src testSources)
   aux_source_directory(${CMAKE_SOURCE_DIR}/tests/auxsrc testAuxSources)
@@ -97,7 +96,7 @@ if(TESTING_IS_ENABLED)
   FILE(COPY tests/changedType.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/changedVectorSize.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/renamedVariable.persist DESTINATION ${PROJECT_BINARY_DIR})
-endif(TESTING_IS_ENABLED)
+endif()
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
