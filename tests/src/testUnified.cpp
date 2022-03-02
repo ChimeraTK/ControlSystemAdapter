@@ -2,10 +2,12 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <ChimeraTK/DeviceBackendImpl.h>
-#include <ChimeraTK/UnifiedBackendTest.h>
 #include "UnidirectionalProcessArray.h"
 #include "BidirectionalProcessArray.h"
+
+#include <ChimeraTK/DeviceBackendImpl.h>
+#include <ChimeraTK/UnifiedBackendTest.h>
+#include <ChimeraTK/BackendRegisterCatalogue.h>
 
 using namespace ChimeraTK;
 
@@ -21,12 +23,47 @@ std::string generateValueFromCounter() {
 }
 
 /**********************************************************************************************************************/
-/* Pseudo backend which hands out ProcessArrays and otherwise just satisfies the UnifiedBackendTest */
-struct ProcessArrayFactoryBackend : DeviceBackendImpl {
-  ProcessArrayFactoryBackend() : DeviceBackendImpl() {
-    FILL_VIRTUAL_FUNCTION_TEMPLATE_VTABLE(getRegisterAccessor_impl);
+/* RegisterInfo objects for the pseudo backend */
+
+struct ProcessArrayInfo : BackendRegisterInfoBase {
+  ProcessArrayInfo(RegisterPath name, size_t length, DataDescriptor type, bool readable, bool writeable, bool push)
+  : _name(name), _length(length), _type(type), _readable(readable), _writeable(writeable), _push(push) {}
+
+  ProcessArrayInfo() = default;
+
+  RegisterPath getRegisterName() const override { return _name; }
+
+  unsigned int getNumberOfElements() const override { return _length; }
+
+  unsigned int getNumberOfChannels() const override { return 1; }
+
+  const DataDescriptor& getDataDescriptor() const override { return _type; }
+
+  bool isReadable() const override { return _readable; }
+
+  bool isWriteable() const override { return _writeable; }
+
+  AccessModeFlags getSupportedAccessModes() const override {
+    return _push ? AccessModeFlags{AccessMode::wait_for_new_data} : AccessModeFlags{};
   }
-  ~ProcessArrayFactoryBackend() override {}
+
+  std::unique_ptr<BackendRegisterInfoBase> clone() const override {
+    return std::unique_ptr<BackendRegisterInfoBase>{new ProcessArrayInfo(*this)};
+  }
+
+  RegisterPath _name;
+  size_t _length{0};
+  DataDescriptor _type;
+  bool _readable{false};
+  bool _writeable{false};
+  bool _push{false};
+};
+
+/**********************************************************************************************************************/
+/* Pseudo backend which hands out ProcessArrays and otherwise just satisfies the UnifiedBackendTest */
+
+struct ProcessArrayFactoryBackend : DeviceBackendImpl {
+  ProcessArrayFactoryBackend();
 
   void open() override { _opened = true; }
 
@@ -53,11 +90,17 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
 
   boost::shared_ptr<ProcessArray<std::string>> _pv;
 
+  RegisterCatalogue getRegisterCatalogue() const override { return RegisterCatalogue{_catalogue.clone()}; }
+
+  MetadataCatalogue getMetadataCatalogue() const override { return {}; }
+
   class BackendRegisterer {
    public:
     BackendRegisterer();
   };
   static BackendRegisterer backendRegisterer;
+
+  BackendRegisterCatalogue<ProcessArrayInfo> _catalogue;
 };
 
 /********************************************************************************************************************/
@@ -69,6 +112,19 @@ ProcessArrayFactoryBackend::BackendRegisterer::BackendRegisterer() {
             << std::endl;
   ChimeraTK::BackendFactory::getInstance().registerBackendType(
       "ProcessArrayFactory", &ProcessArrayFactoryBackend::createInstance);
+}
+
+/********************************************************************************************************************/
+
+ProcessArrayFactoryBackend::ProcessArrayFactoryBackend() : DeviceBackendImpl() {
+  FILL_VIRTUAL_FUNCTION_TEMPLATE_VTABLE(getRegisterAccessor_impl);
+
+  _catalogue.addRegister(ProcessArrayInfo("/unidir/sender", 1, DataDescriptor(DataType::string), false, true, false));
+  _catalogue.addRegister(
+      ProcessArrayInfo("/unidir/polledSender", 1, DataDescriptor(DataType::string), false, true, false));
+  _catalogue.addRegister(ProcessArrayInfo("/unidir/receiver", 1, DataDescriptor(DataType::string), true, false, true));
+  _catalogue.addRegister(ProcessArrayInfo("/bidir/A", 1, DataDescriptor(DataType::string), true, true, true));
+  _catalogue.addRegister(ProcessArrayInfo("/bidir/B", 1, DataDescriptor(DataType::string), true, true, true));
 }
 
 /********************************************************************************************************************/
