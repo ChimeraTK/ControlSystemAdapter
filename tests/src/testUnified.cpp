@@ -2,10 +2,11 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <ChimeraTK/DeviceBackendImpl.h>
-#include <ChimeraTK/UnifiedBackendTest.h>
 #include "UnidirectionalProcessArray.h"
 #include "BidirectionalProcessArray.h"
+
+#include <ChimeraTK/DeviceBackendImpl.h>
+#include <ChimeraTK/UnifiedBackendTest.h>
 
 using namespace ChimeraTK;
 
@@ -22,11 +23,9 @@ std::string generateValueFromCounter() {
 
 /**********************************************************************************************************************/
 /* Pseudo backend which hands out ProcessArrays and otherwise just satisfies the UnifiedBackendTest */
+
 struct ProcessArrayFactoryBackend : DeviceBackendImpl {
-  ProcessArrayFactoryBackend() : DeviceBackendImpl() {
-    FILL_VIRTUAL_FUNCTION_TEMPLATE_VTABLE(getRegisterAccessor_impl);
-  }
-  ~ProcessArrayFactoryBackend() override {}
+  ProcessArrayFactoryBackend();
 
   void open() override { _opened = true; }
 
@@ -53,6 +52,10 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
 
   boost::shared_ptr<ProcessArray<std::string>> _pv;
 
+  RegisterCatalogue getRegisterCatalogue() const override { throw; }
+
+  MetadataCatalogue getMetadataCatalogue() const override { return {}; }
+
   class BackendRegisterer {
    public:
     BackendRegisterer();
@@ -69,6 +72,12 @@ ProcessArrayFactoryBackend::BackendRegisterer::BackendRegisterer() {
             << std::endl;
   ChimeraTK::BackendFactory::getInstance().registerBackendType(
       "ProcessArrayFactory", &ProcessArrayFactoryBackend::createInstance);
+}
+
+/********************************************************************************************************************/
+
+ProcessArrayFactoryBackend::ProcessArrayFactoryBackend() : DeviceBackendImpl() {
+  FILL_VIRTUAL_FUNCTION_TEMPLATE_VTABLE(getRegisterAccessor_impl);
 }
 
 /********************************************************************************************************************/
@@ -149,7 +158,8 @@ struct RegisterDescriptorBase {
     return {{generateValueFromCounter()}};
   }
 
-  static constexpr auto capabilities = TestCapabilities<>().disableForceDataLossWrite().disableAsyncReadInconsistency();
+  static constexpr auto capabilities =
+      TestCapabilities<>().disableForceDataLossWrite().disableAsyncReadInconsistency().disableTestCatalogue();
 
   size_t nRuntimeErrorCases() { return 0; }
   [[noreturn]] void setForceRuntimeError(bool, size_t) { std::terminate(); }
