@@ -23,6 +23,30 @@ using namespace ChimeraTK;
 // Create a test suite which holds all your tests.
 BOOST_AUTO_TEST_SUITE(TypeChangingDecoratorUnifiedTest)
 
+/**********************************************************************************************************************/
+
+std::pair<RegisterPath, DecoratorType> getPathAndType(RegisterPath path) {
+  DecoratorType type;
+  path.setAltSeparator(".");
+  auto typeName = path.getComponents().back();
+  if(typeName == "casted") {
+    type = DecoratorType::C_style_conversion;
+  }
+  else if(typeName == "limiting") {
+    type = DecoratorType::limiting;
+  }
+  else {
+    throw ChimeraTK::logic_error("Decorator type " + typeName + " not supported");
+  }
+
+  // drop last component
+  path--;
+
+  return {path, type};
+}
+
+/**********************************************************************************************************************/
+
 class DecoratorBackend : public ExceptionDummy {
  public:
   DecoratorBackend(std::string mapFileName) : ExceptionDummy(mapFileName) {
@@ -34,21 +58,7 @@ class DecoratorBackend : public ExceptionDummy {
       const RegisterPath& registerPathName, size_t numberOfWords, size_t wordOffsetInRegister, AccessModeFlags flags) {
     if(flags.has(AccessMode::raw)) throw ChimeraTK::logic_error("Raw accessors not supported");
 
-    DecoratorType type;
-    RegisterPath path = registerPathName;
-    path.setAltSeparator(".");
-    auto components = registerPathName.getComponents();
-    if(components.back() == "casted") {
-      type = DecoratorType::C_style_conversion;
-    }
-    else if(components.back() == "limiting") {
-      type = DecoratorType::limiting;
-    }
-    else
-      throw ChimeraTK::logic_error("Decorator type " + components.back() + " not supported");
-
-    // drop last component
-    path--;
+    auto [path, type] = getPathAndType(registerPathName);
 
     return getDecorator<UserType>(
         ExceptionDummy::getRegisterAccessor_impl<float>(path, numberOfWords, wordOffsetInRegister, flags), type);
@@ -63,8 +73,9 @@ class DecoratorBackend : public ExceptionDummy {
     BackendRegisterer();
   };
   static BackendRegisterer backendRegisterer;
-
 };
+
+/**********************************************************************************************************************/
 
 template<>
 boost::shared_ptr<NDRegisterAccessor<std::string>> DecoratorBackend::getRegisterAccessor_impl(
@@ -107,7 +118,8 @@ struct TestRegister {
                                            .disableForceDataLossWrite()
                                            .disableAsyncReadInconsistency()
                                            .disableSwitchReadOnly()
-                                           .disableSwitchWriteOnly();
+                                           .disableSwitchWriteOnly()
+                                           .disableTestCatalogue();
 
   // We cheat a bit here for the ro accessors. SCALA_RO is mapped to the same address
   // in the map file
@@ -120,10 +132,10 @@ struct TestRegister {
     try {
       val = numericToUserType<UserType>(acc + 3);
     }
-    catch(boost::numeric::positive_overflow &) {
+    catch(boost::numeric::positive_overflow&) {
       val = std::numeric_limits<UserType>::min();
     }
-    catch(boost::numeric::negative_overflow &) {
+    catch(boost::numeric::negative_overflow&) {
       val = std::numeric_limits<UserType>::max();
     }
 
@@ -132,9 +144,7 @@ struct TestRegister {
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
-    return {{
-        numericToUserType<UserType>(static_cast<double>(acc))
-    }};
+    return {{numericToUserType<UserType>(static_cast<double>(acc))}};
   }
 
   void setRemoteValue() { acc = generateValue<minimumUserType>()[0][0]; }
@@ -145,16 +155,22 @@ struct TestRegister {
   }
 };
 
+/**********************************************************************************************************************/
+
 template<typename T>
 struct TestRegisterRoCasted : TestRegister<T> {
   std::string path() { return "/SOME/SCALAR_RO/casted"; }
   bool isWriteable() { return false; }
 };
 
+/**********************************************************************************************************************/
+
 template<typename T>
 struct TestRegisterCasted : TestRegister<T> {
   std::string path() { return "/SOME/SCALAR/casted"; }
 };
+
+/**********************************************************************************************************************/
 
 template<typename T>
 struct TestRegisterCastedAsync : TestRegister<T> {
@@ -176,16 +192,22 @@ struct TestRegisterCastedAsync : TestRegister<T> {
   }
 };
 
+/**********************************************************************************************************************/
+
 template<typename T>
 struct TestRegisterCastedAsyncRo : TestRegisterCastedAsync<T> {
   std::string path() override { return "/SOME/SCALAR_RO/PUSH_READ/casted"; }
   bool isWriteable() { return false; }
 };
 
+/**********************************************************************************************************************/
+
 template<typename T>
 struct TestRegisterRangeChecked : TestRegister<T> {
   std::string path() { return "/SOME/SCALAR/limiting"; }
 };
+
+/**********************************************************************************************************************/
 
 template<typename T>
 struct TestRegisterRoRangeChecked : TestRegister<T> {
@@ -193,6 +215,7 @@ struct TestRegisterRoRangeChecked : TestRegister<T> {
   bool isWriteable() { return false; }
 };
 
+/**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testRegisterAccessor) {
