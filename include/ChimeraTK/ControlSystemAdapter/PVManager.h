@@ -150,12 +150,8 @@ namespace ChimeraTK {
 
     /**
      * Returns a reference to a process array that has been created earlier
-     * using one of the <code>createProcessArray...</code> methods. Returns a
-     * pointer to <code>null</code> if there is no process scalar or array
-     * with the specified name. Throws a bad_cast exception if there is a
-     * process scalar or array with the specified name but its type does not
-     * match.
-     *
+     * using one of the <code>createProcessArray...</code> methods. 
+     * Throws a logic_error if there is a process scalar or array with the specified name but its type does not match.
      * A pair of two process arrays is returned: The first member of the pair is
      * a reference to the instance intended for the control system and the
      * second member of the pair is a reference to the instance intended for the
@@ -164,6 +160,11 @@ namespace ChimeraTK {
     template<class T>
     std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr> getProcessArray(
         ChimeraTK::RegisterPath const& processVariableName) const;
+
+    /**
+     * Checks whether a process scalar or array with the specified name exists.
+     */
+    bool hasProcessArray(ChimeraTK::RegisterPath const& processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created
@@ -274,6 +275,11 @@ namespace ChimeraTK {
           processVariable.first->getValueType().name() + " of this process variable.");
     }
     return std::make_pair(csPV, devPV);
+  }
+
+  inline bool PVManager::hasProcessArray(ChimeraTK::RegisterPath const& processVariableName) const {
+    ProcessVariableMap::const_iterator i = _processVariables.find(processVariableName);
+    return (i != _processVariables.end());
   }
 
 } // namespace ChimeraTK
