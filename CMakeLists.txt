@@ -11,6 +11,7 @@ include(cmake/set_version_numbers.cmake)
 
 include(cmake/set_default_build_to_release.cmake)
 include(cmake/set_default_flags.cmake)
+include(cmake/enable_code_coverage_report.cmake)
 
 #boost as such is required for shared pointers e.g.
 FIND_PACKAGE(Boost 1.58 REQUIRED)
@@ -80,17 +81,6 @@ if(BUILD_TESTS)
     set_target_properties(${executableName} PROPERTIES LINK_FLAGS ${Boost_LINK_FLAGS} ${ChimeraTK-DeviceAccess_LINK_FLAGS})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
-
-  #The make coverage command is only available in debug mode
-  IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    configure_file(cmake/Makefile.coverage.in
-      ${PROJECT_BINARY_DIR}/Makefile.coverage @ONLY)
-    add_custom_target(coverage
-      make -f Makefile.coverage
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Generating test coverage documentation" VERBATIM
-      )
-  ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
   FILE(COPY tests/decoratorTest.map DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/changedType.persist DESTINATION ${PROJECT_BINARY_DIR})
