@@ -75,9 +75,8 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&), or
      * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
-     * pointer to <code>null</code> if there is no process scalar or array with
-     * the specified name.
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Throws
+     * a ChimeraTK::logic_error if the process variable does not exist.
      */
     /* (intentionally not doxygen)
      * FIXME: It these should be links, but Doxygen can't resolve then, so we
