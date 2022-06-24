@@ -164,7 +164,7 @@ namespace ChimeraTK {
     /**
      * Checks whether a process scalar or array with the specified name exists.
      */
-    bool hasProcessArray(ChimeraTK::RegisterPath const& processVariableName) const;
+    bool hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const;
 
     /**
      * Returns a reference to a process scalar or array that has been created
@@ -277,7 +277,7 @@ namespace ChimeraTK {
     return std::make_pair(csPV, devPV);
   }
 
-  inline bool PVManager::hasProcessArray(ChimeraTK::RegisterPath const& processVariableName) const {
+  inline bool PVManager::hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
     ProcessVariableMap::const_iterator i = _processVariables.find(processVariableName);
     return (i != _processVariables.end());
   }

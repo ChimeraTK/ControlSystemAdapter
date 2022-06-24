@@ -111,9 +111,9 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&) or
      * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
-     * pointer to <code>null</code> if there is no process scalar or array with
-     * the specified name. Throws a bad_cast exception if there is a process
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. 
+     * Throws a logic_error if there is no process scalar or array with
+     * the specified name. Also throws logic_error if there is a process
      * scalar or array with the specified name but its type does not match.
      */
     template<class T>
@@ -127,9 +127,10 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&), or
      * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
-     * pointer to <code>null</code> if there is no process scalar or array with
-     * the specified name.
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. 
+     * Throws a logic_error if there is no process scalar or array with
+     * the specified name. Also throws logic_error if there is a process
+     * scalar or array with the specified name but its type does not match.
      */
     /* (intentionally not doxygen)
      * FIXME: It these should be links, but Doxygen can't resolve then, so we
@@ -144,6 +145,13 @@ namespace ChimeraTK {
      * preferred if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(const ChimeraTK::RegisterPath& processVariableName) const;
+
+    /**
+     * Checks whether a process scalar or array with the specified name exists.
+     */
+    bool hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
+      return _pvManager->hasProcessVariable(processVariableName);
+    }
 
     /**
      * Returns a vector containing all process variables that are registered

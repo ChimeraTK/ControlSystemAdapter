@@ -59,9 +59,9 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&) or
      * DevicePVManager::createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
-     * pointer to <code>null</code> if there is no process scalar or array with
-     * the specified name. Throws a logic_error if there is a process
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method. 
+     * Throws logic_error if there is no process scalar or array with
+     * the specified name. Also throws a logic_error if there is a process
      * scalar or array with the specified name but its type does not match.
      */
     template<class T>
@@ -90,6 +90,13 @@ namespace ChimeraTK {
      * preferred if the type of the process variable is known at compile time.
      */
     ProcessVariable::SharedPtr getProcessVariable(const ChimeraTK::RegisterPath& processVariableName) const;
+
+    /**
+     * Checks whether a process scalar or array with the specified name exists.
+     */
+    bool hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
+      return _pvManager->hasProcessVariable(processVariableName);
+    }
 
     /**
      * Returns a vector containing all process variables that are registered
@@ -126,9 +133,6 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
       const ChimeraTK::RegisterPath& processVariableName) const {
-    if(!_pvManager->hasProcessArray(processVariableName)) {
-      return nullptr;
-    }
     auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
     if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
     return pv;
