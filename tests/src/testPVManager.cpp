@@ -165,8 +165,8 @@ BOOST_AUTO_TEST_CASE(testNonExistentPVName) {
   shared_ptr<ControlSystemPVManager> csManager = pvManagers.first;
   shared_ptr<DevicePVManager> devManager = pvManagers.second;
 
-  BOOST_CHECK(devManager->getProcessArray<double>("foo") == nullptr);
-  BOOST_CHECK(csManager->getProcessArray<double>("foo") == nullptr);
+  BOOST_CHECK_THROW(devManager->getProcessArray<double>("foo"), ChimeraTK::logic_error);
+  BOOST_CHECK_THROW(csManager->getProcessArray<double>("foo"), ChimeraTK::logic_error);
 }
 
 BOOST_AUTO_TEST_CASE(testInvalidCast) {

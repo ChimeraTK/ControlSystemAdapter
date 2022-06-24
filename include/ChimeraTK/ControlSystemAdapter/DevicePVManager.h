@@ -113,7 +113,7 @@ namespace ChimeraTK {
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
      * std::string&, bool, std::size_t, const AccessModeFlags&) method. Returns a
      * pointer to <code>null</code> if there is no process scalar or array with
-     * the specified name. Throws a logic_error if there is a process
+     * the specified name. Throws a bad_cast exception if there is a process
      * scalar or array with the specified name but its type does not match.
      */
     template<class T>
@@ -213,9 +213,6 @@ namespace ChimeraTK {
   template<class T>
   typename ProcessArray<T>::SharedPtr DevicePVManager::getProcessArray(
       const ChimeraTK::RegisterPath& processVariableName) const {
-    if(!_pvManager->hasProcessArray(processVariableName)) {
-      return nullptr;
-    }
     return _pvManager->getProcessArray<T>(processVariableName).second;
   }
 

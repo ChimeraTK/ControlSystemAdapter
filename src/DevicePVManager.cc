@@ -8,9 +8,6 @@ namespace ChimeraTK {
 
   ProcessVariable::SharedPtr DevicePVManager::getProcessVariable(
       const ChimeraTK::RegisterPath& processVariableName) const {
-    if(!_pvManager->hasProcessArray(processVariableName)) {
-      return nullptr;
-    }
     return _pvManager->getProcessVariable(processVariableName).second;
   }
 
