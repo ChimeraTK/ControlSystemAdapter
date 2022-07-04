@@ -74,7 +74,7 @@ namespace ChimeraTK {
 
    protected:
     /** Write out the file containing the persistent data */
-    void writeToFile();
+    void writeToFile() noexcept;
 
     /** Read the file containing the persistent data */
     void readFromFile();
@@ -224,7 +224,8 @@ namespace ChimeraTK {
       // check if resize required
       std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
       if(value.size() != nElements) {
-        std::cout << "PersistentDataStorage: changing size of variable " << name << std::endl;
+        std::cout << "PersistentDataStorage: changing size of variable " << name << " from " << value.size() << " to "
+                  << nElements << std::endl;
         value.resize(nElements);
       }
 
