@@ -16,20 +16,25 @@ namespace ChimeraTK {
 
   /*********************************************************************************************************************/
 
-PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
-                                             unsigned int fileWriteInterval) : _fileWriteInterval(fileWriteInterval) {
-  _filename = applicationName + ".persist";
-  _applicationName = applicationName;
-  readFromFile();
+  PersistentDataStorage::PersistentDataStorage(std::string const& applicationName, unsigned int fileWriteInterval)
+  : _fileWriteInterval(fileWriteInterval) {
+    _filename = applicationName + ".persist";
+    _applicationName = applicationName;
+    readFromFile();
 
-  writerThread = boost::thread([this] { this->writerThreadFunction(); });
-}
+    writerThread = boost::thread([this] { this->writerThreadFunction(); });
+  }
 
   /*********************************************************************************************************************/
 
   PersistentDataStorage::~PersistentDataStorage() {
-    writerThread.interrupt();
-    writerThread.join();
+    try {
+      writerThread.interrupt();
+      writerThread.join();
+    }
+    catch(...) {
+      std::cerr << "Cannot join writer thread!" << std::endl;
+    }
     writeToFile();
   }
 
@@ -41,99 +46,67 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
         sleep(1);
         boost::this_thread::interruption_point();
       }
-      /// @todo FIXME make the variable access proper for a multi-threaded
-      /// environment!!!
       writeToFile();
     }
   }
 
   /*********************************************************************************************************************/
 
-  void PersistentDataStorage::writeToFile() {
-    // create XML document with root node and a flat list of variables below this
-    // root
-    xmlpp::Document doc;
-    xmlpp::Element* rootElement =
-        doc.create_root_node("PersistentData", "https://github.com/ChimeraTK/ControlSystemAdapter");
-    rootElement->set_attribute("application", _applicationName);
+  void PersistentDataStorage::writeToFile() noexcept {
+    try {
+      // create XML document with root node and a flat list of variables below this root
+      xmlpp::Document doc;
+      xmlpp::Element* rootElement =
+          doc.create_root_node("PersistentData", "https://github.com/ChimeraTK/ControlSystemAdapter");
+      rootElement->set_attribute("application", _applicationName);
 
-    for(size_t i = 0; i < _variableNames.size(); ++i) {
-      if(!_variableRegisteredFromApp[i]) continue; // exclude variables no longer present in the application
+      for(size_t i = 0; i < _variableNames.size(); ++i) {
+        if(!_variableRegisteredFromApp[i]) continue; // exclude variables no longer present in the application
 
-      // create XML element for the variable and set name attribute
-      xmlpp::Element* variable = rootElement->add_child("variable");
-      variable->set_attribute("name", static_cast<std::string>(_variableNames[i]));
+        // create XML element for the variable and set name attribute
+        xmlpp::Element* variable = rootElement->add_child("variable");
+        variable->set_attribute("name", static_cast<std::string>(_variableNames[i]));
 
-      // generate value XML tags and set type name as a string
-      std::string dataTypeName{"unknown"};
-      if(*_variableTypes[i] == typeid(int8_t)) {
-        generateXmlValueTags<int8_t>(variable, i);
-        dataTypeName = "int8";
-      }
-      else if(*_variableTypes[i] == typeid(uint8_t)) {
-        generateXmlValueTags<uint8_t>(variable, i);
-        dataTypeName = "uint8";
-      }
-      else if(*_variableTypes[i] == typeid(int16_t)) {
-        generateXmlValueTags<int16_t>(variable, i);
-        dataTypeName = "int16";
-      }
-      else if(*_variableTypes[i] == typeid(uint16_t)) {
-        generateXmlValueTags<uint16_t>(variable, i);
-        dataTypeName = "uint16";
-      }
-      else if(*_variableTypes[i] == typeid(int32_t)) {
-        generateXmlValueTags<int32_t>(variable, i);
-        dataTypeName = "int32";
-      }
-      else if(*_variableTypes[i] == typeid(uint32_t)) {
-        generateXmlValueTags<uint32_t>(variable, i);
-        dataTypeName = "uint32";
-      }
-      else if(*_variableTypes[i] == typeid(float)) {
-        generateXmlValueTags<float>(variable, i);
-        dataTypeName = "float";
-      }
-      else if(*_variableTypes[i] == typeid(double)) {
-        generateXmlValueTags<double>(variable, i);
-        dataTypeName = "double";
-      }
-      else if(*_variableTypes[i] == typeid(std::string)) {
-        generateXmlValueTags<std::string>(variable, i);
-        dataTypeName = "string";
-      }
-      else if(*_variableTypes[i] == typeid(Boolean)){
-        generateXmlValueTags<Boolean>(variable, i);
-        dataTypeName = "Boolean";
-      }
-      else {
-        /// @todo TODO what todo here?
+        // generate value XML tags and set type name as a string
+        DataType dataType(*_variableTypes[i]);
+        callForType(dataType, [&](auto t) {
+          using UserType = decltype(t);
+          generateXmlValueTags<UserType>(variable, i);
+        });
+
+        // set type attribute
+        variable->set_attribute("type", dataType.getAsString());
       }
 
-      // set type attribute
-      variable->set_attribute("type", dataTypeName);
+      // write out to file
+      auto tempfile = _filename + ".new";
+      doc.write_to_file_formatted(tempfile);
+      std::rename(tempfile.c_str(), _filename.c_str());
     }
-
-    // write out to file
-    doc.write_to_file_formatted(_filename);
+    catch(const std::exception& e) {
+      std::cerr << "Error writing persistency file: " << e.what() << std::endl;
+    }
+    catch(...) {
+      std::cerr << "Error writing persistency file (unknown exception)" << std::endl;
+    }
   }
 
   /*********************************************************************************************************************/
 
-  template<typename DataType>
+  template<typename UserType>
   void PersistentDataStorage::generateXmlValueTags(xmlpp::Element* parent, size_t id) {
-    std::vector<DataType>* pValue;
+    std::vector<UserType>* pValue;
     {
       // obtain the data vector from the map
       std::lock_guard<std::mutex> lock(_queueReadMutex);
-      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+      auto& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].read_latest();
       pValue = &value;
     }
     // add one child element per element of the value
     for(size_t idx = 0; idx < pValue->size(); ++idx) {
       xmlpp::Element* valueElement = parent->add_child("val");
-      valueElement->set_attribute("i", boost::lexical_cast<std::string>(idx));
-      valueElement->set_attribute("v", boost::lexical_cast<std::string>((*pValue)[idx]));
+      valueElement->set_attribute("i", userTypeToUserType<std::string>(idx));
+      valueElement->set_attribute("v", userTypeToUserType<std::string>((*pValue)[idx]));
     }
   }
 
@@ -141,21 +114,18 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
 
   void PersistentDataStorage::readFromFile() {
     // check if file exists
-    struct stat buffer;
+    struct stat buffer {};
     if(stat(_filename.c_str(), &buffer) != 0) {
       // file does not exist: print message and do nothing
       std::cerr << "ChimeraTK::PersistentDataStorage: Persistency file '" << _filename
-                << "' does not exist. "
-                   "It will be created when exiting the application."
-                << std::endl;
+                << "' does not exist. It will be created when exiting the application." << std::endl;
       return;
     }
 
     try {
       xmlpp::DomParser parser;
       // parser.set_validate();
-      parser.set_substitute_entities(); // We just want the text to be
-                                        // resolved/unescaped automatically.
+      parser.set_substitute_entities(); // We just want the text to be resolved/unescaped automatically.
       parser.parse_file(_filename);
       if(parser) {
         // obtain root node
@@ -163,64 +133,41 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
         /// @todo TODO check if the application name is correct?
 
         // iterate through variables
-        for(auto& elem : rootElement->get_children()) {
-          const xmlpp::Element* child = dynamic_cast<const xmlpp::Element*>(elem);
+        for(const auto& elem : rootElement->get_children()) {
+          const auto* child = dynamic_cast<const xmlpp::Element*>(elem);
           if(!child) continue; // comment or white spaces...
           std::string name = child->get_attribute("name")->get_value();
           std::string type = child->get_attribute("type")->get_value();
-          if(type == "int8") {
-            readXmlValueTags<int8_t>(child, registerVariable<int8_t>(name, 0, true));
+          DataType dataType(type);
+          if(dataType == DataType::none) {
+            std::cerr << "Unknown data type '" + type + "' found in persist file: " << name << std::endl;
+            continue;
           }
-          else if(type == "uint8") {
-            readXmlValueTags<uint8_t>(child, registerVariable<uint8_t>(name, 0, true));
-          }
-          else if(type == "int16") {
-            readXmlValueTags<int16_t>(child, registerVariable<int16_t>(name, 0, true));
-          }
-          else if(type == "uint16") {
-            readXmlValueTags<uint16_t>(child, registerVariable<uint16_t>(name, 0, true));
-          }
-          else if(type == "int32") {
-            readXmlValueTags<int32_t>(child, registerVariable<int32_t>(name, 0, true));
-          }
-          else if(type == "uint32") {
-            readXmlValueTags<uint32_t>(child, registerVariable<uint32_t>(name, 0, true));
-          }
-          else if(type == "float") {
-            readXmlValueTags<float>(child, registerVariable<float>(name, 0, true));
-          }
-          else if(type == "double") {
-            readXmlValueTags<double>(child, registerVariable<double>(name, 0, true));
-          }
-          else if(type == "string") {
-            readXmlValueTags<std::string>(child, registerVariable<std::string>(name, 0, true));
-          }
-          else if(type == "Boolean") {
-            readXmlValueTags<Boolean>(child, registerVariable<Boolean>(name, 0, true));
-          }
-          else { /* @todo TODO ??? */
-          }
+          callForType(dataType, [&](auto t) {
+            using UserType = decltype(t);
+            readXmlValueTags<UserType>(child, registerVariable<UserType>(name, 0, true));
+          });
         }
       }
       else {
-        std::cout << "No parser... " << std::endl; // @todo TODO proper exception handling
+        throw ChimeraTK::logic_error("Could not parse persist file " + _filename + ": Failed to create the parser.");
       }
     }
-    catch(const std::exception& ex) { // @todo TODO proper exception handling
-      std::cout << "Exception caught: " << ex.what() << std::endl;
+    catch(const std::exception& ex) {
+      throw ChimeraTK::logic_error("Could not parse persist file " + _filename + ": " + ex.what());
     }
   }
 
   /*********************************************************************************************************************/
 
-  template<typename DataType>
+  template<typename UserType>
   void PersistentDataStorage::readXmlValueTags(const xmlpp::Element* parent, size_t id) {
     // obtain the data vector from the map
-    std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+    std::vector<UserType>& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].read_latest();
 
     // collect values
-    for(auto& valElems : parent->get_children()) {
-      const xmlpp::Element* valChild = dynamic_cast<const xmlpp::Element*>(valElems);
+    for(const auto& valElems : parent->get_children()) {
+      const auto* valChild = dynamic_cast<const xmlpp::Element*>(valElems);
       if(!valChild) continue; // comment or white spaces...
 
       // obtain index and value as string
@@ -228,8 +175,8 @@ PersistentDataStorage::PersistentDataStorage(std::string const &applicationName,
       std::string s_val = valChild->get_attribute("v")->get_value();
 
       // convert to data type
-      size_t idx = boost::lexical_cast<size_t>(s_idx);
-      DataType val = boost::lexical_cast<DataType>(s_val);
+      auto idx = userTypeToUserType<size_t>(s_idx);
+      auto val = userTypeToUserType<UserType>(s_val);
 
       // resize vector if needed
       if(value.size() <= idx) value.resize(idx + 1);
