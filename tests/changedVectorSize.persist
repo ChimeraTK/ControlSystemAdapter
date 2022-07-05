@@ -6,7 +6,7 @@
     <val i="2" v="34"/>
     <val i="3" v="51"/>
   </variable>
-  <variable name="/AnotherCsToDevVar" type="float">
+  <variable name="/AnotherCsToDevVar" type="float32">
     <val i="0" v="0"/>
     <val i="1" v="3.14149988e+12"/>
     <val i="2" v="6.28299976e+12"/>

@@ -9,7 +9,7 @@
     <val i="5" v="85"/>
     <val i="6" v="102"/>
   </variable>
-  <variable name="/PreviouslyCalledDifferently" type="float">
+  <variable name="/PreviouslyCalledDifferently" type="float32">
     <val i="0" v="0"/>
     <val i="1" v="3.14149988e+12"/>
     <val i="2" v="6.28299976e+12"/>
