@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PersistentData xmlns="https://github.com/ChimeraTK/ControlSystemAdapter" application="myTestApplication">
-  <variable name="/SomeCsToDevVar" type="double">
+  <variable name="/SomeCsToDevVar" type="float64">
     <val i="0" v="0.5"/>
     <val i="1" v="17.5"/>
     <val i="2" v="34.5"/>
@@ -9,7 +9,7 @@
     <val i="5" v="85.5"/>
     <val i="6" v="102.5"/>
   </variable>
-  <variable name="/AnotherCsToDevVar" type="int16_t">
+  <variable name="/AnotherCsToDevVar" type="int16">
     <val i="0" v="0"/>
     <val i="1" v="1"/>
     <val i="2" v="2"/>
