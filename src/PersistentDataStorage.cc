@@ -138,6 +138,9 @@ namespace ChimeraTK {
           if(!child) continue; // comment or white spaces...
           std::string name = child->get_attribute("name")->get_value();
           std::string type = child->get_attribute("type")->get_value();
+          // compatibility with old persistency files - remove after July 2023
+          if(type == "double") type = "float64";
+          if(type == "float") type = "float32";
           DataType dataType(type);
           if(dataType == DataType::none) {
             std::cerr << "Unknown data type '" + type + "' found in persist file: " << name << std::endl;
