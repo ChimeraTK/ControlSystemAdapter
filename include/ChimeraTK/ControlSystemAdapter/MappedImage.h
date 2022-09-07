@@ -132,7 +132,6 @@ namespace ChimeraTK {
       // - for the same Matrix, if we write M(x,y) for pixel value at coordite (x,y) of an image, this means
       //   that pixel _columns_ are stored without interleaving
       // So definition used here is opposite to matrix definition.
-      // TODO check how image gets distorted if wrong
       if constexpr((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) {
         return _vec[(dy * _h->width + dx) * _h->channels + c];
       }
