@@ -37,11 +37,11 @@ namespace ChimeraTK {
    public:
     enum class InitData { Yes, No };
     /// call with initData=false if data already contains valid struct data.
-    explicit MappedStruct(unsigned char* data, size_t dataLen, InitData doInitData = InitData::Yes) {
+    explicit MappedStruct(unsigned char* data, size_t capacity, InitData doInitData = InitData::Yes) {
       static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
           "MappedStruct expects StructHeader to implement OpaqueStructHeader");
       _data = data;
-      _dataMaxLen = dataLen;
+      _dataMaxLen = capacity;
       if(doInitData == InitData::Yes) {
         memset(_data, 0, _dataMaxLen);
         _header = new(_data) StructHeader;
@@ -64,16 +64,19 @@ namespace ChimeraTK {
       h->totalLength = sizeof(StructHeader);
     }
     unsigned char* data() { return _data; }
-    size_t dataLen() const { return _dataMaxLen; }
+    /// capacity of provided container
+    size_t capacity() const { return _dataMaxLen; }
+    /// currently used size
+    size_t size() const { return static_cast<OpaqueStructHeader*>(_header)->totalLength; }
     /// e.g. for setting meta data
     StructHeader& header() { return *_header; }
 
    protected:
     void realloc(size_t newLen) {
-        _dataMaxLen = newLen;
-        _allocatedBuf.resize(_dataMaxLen);
-        _data = _allocatedBuf.data();
-        _header = new (_data) StructHeader;
+      _dataMaxLen = newLen;
+      _allocatedBuf.resize(_dataMaxLen);
+      _data = _allocatedBuf.data();
+      _header = new(_data) StructHeader;
     }
 
     bool _allocate = false;
@@ -192,6 +195,8 @@ namespace ChimeraTK {
       _header->channels = channels;
       _header->bpp = bpp;
     }
+    /// returns pointer to image payload data
+    unsigned char *imgBody() { return _data + sizeof(ImgHeader); }
 
     /// returns an ImgView object which can be used like a matrix. The ImgView becomes invalid at next setShape call.
     template<typename UserType, ImgOptions OPTIONS = ImgOptions::RowMajor>
@@ -204,7 +209,7 @@ namespace ChimeraTK {
           "inconsistent data ordering col/row major");
       ImgView<UserType, OPTIONS> ret;
       ret._h = _header;
-      ret._vec = reinterpret_cast<UserType*>(_data + sizeof(ImgHeader));
+      ret._vec = reinterpret_cast<UserType *>(imgBody());
       return ret;
     }
   };
