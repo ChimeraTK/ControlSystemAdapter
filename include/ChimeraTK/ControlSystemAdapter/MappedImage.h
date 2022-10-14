@@ -36,54 +36,85 @@ namespace ChimeraTK {
   class MappedStruct {
    public:
     enum class InitData { Yes, No };
-    /// call with initData=false if data already contains valid struct data.
-    explicit MappedStruct(unsigned char* data, size_t capacity, InitData doInitData = InitData::Yes) {
-      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-          "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-      _data = data;
-      _dataMaxLen = capacity;
-      if(doInitData == InitData::Yes) {
-        memset(_data, 0, _dataMaxLen);
-        _header = new(_data) StructHeader;
-        _header->totalLength = sizeof(StructHeader); // minimal length, could be larger
-      }
-      else {
-        _header = reinterpret_cast<StructHeader*>(_data);
-      }
-      assert(_header->totalLength <= _dataMaxLen);
+    /// keeps a reference to given vector.
+    /// call with InitData::Yes if data already contains valid struct data.
+    explicit MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData = InitData::Yes) {
+      _containerImpl = ContainerImpl::Vector;
+      _vectorToData = &buffer;
+      helpInit(doInitData == InitData::Yes);
     }
-    /// convenience: same as above but for OneDRegisterAccessor
+    /// like above, but keeps a pointer for the data
+    explicit MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData = InitData::Yes)
+    : _containerImpl(ContainerImpl::CArray), _cArrToData(buffer), _cArrLenth(bufferLen) {
+      helpInit(doInitData == InitData::Yes);
+    }
+
+    /// this stores a OneDRegisterAccessor instead of a vector. If the underlying vector is swapped out,
+    /// the MappedStruct stays valid if the swapped-in vector was also setup as MappedStruct
     explicit MappedStruct(
         ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData = InitData::Yes)
-    : MappedStruct(accToData.data(), accToData.getNElements(), doInitData) {}
-    /// provided for convenience, if MappedStruct should allocate the data vector
-    MappedStruct() {
-      _allocate = true;
-      realloc(sizeof(StructHeader));
-      OpaqueStructHeader* h = _header;
-      h->totalLength = sizeof(StructHeader);
+    : _containerImpl(ContainerImpl::Accessor), _accToData(accToData) {
+      helpInit(doInitData == InitData::Yes);
     }
-    unsigned char* data() { return _data; }
-    /// capacity of provided container
-    size_t capacity() const { return _dataMaxLen; }
+
+    /// returns pointer to data for header and struct content
+    unsigned char* data() {
+      switch(_containerImpl) {
+        case ContainerImpl::Accessor:
+          return _accToData.data();
+        case ContainerImpl::Vector:
+          return _vectorToData->data();
+        case ContainerImpl::CArray:
+          return _cArrToData;
+      }
+    }
+    /// capacity of used container
+    size_t capacity() const {
+      switch(_containerImpl) {
+        case ContainerImpl::Accessor:
+          // reason for cast: getNElements not declared const
+          return const_cast<MappedStruct*>(this)->_accToData.getNElements();
+        case ContainerImpl::Vector:
+          return _vectorToData->capacity();
+        case ContainerImpl::CArray:
+          return _cArrLenth;
+      }
+    }
     /// currently used size
-    size_t size() const { return static_cast<OpaqueStructHeader*>(_header)->totalLength; }
-    /// e.g. for setting meta data
-    StructHeader& header() { return *_header; }
+    size_t size() const { return static_cast<OpaqueStructHeader*>(header())->totalLength; }
+    /// returns header, e.g. for setting meta data
+    StructHeader* header() { return reinterpret_cast<StructHeader*>(data()); }
 
    protected:
-    void realloc(size_t newLen) {
-      _dataMaxLen = newLen;
-      _allocatedBuf.resize(_dataMaxLen);
-      _data = _allocatedBuf.data();
-      _header = new(_data) StructHeader;
+    void helpInit(bool doInitData) {
+      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+          "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+      if(doInitData) {
+        if(capacity() < sizeof(StructHeader)) {
+          throw logic_error("buffer provided to MappedStruct is too small for correct initialization");
+        }
+
+        auto* p = data();
+        memset(p, 0, capacity());
+        new(p) StructHeader;
+        header()->totalLength = sizeof(StructHeader); // minimal length, could be larger
+      }
+      else {
+        if(header()->totalLength > capacity()) {
+          throw logic_error("buffer provided to MappedStruct is too small for assumed content");
+        }
+      }
     }
 
-    bool _allocate = false;
-    std::vector<unsigned char> _allocatedBuf; // used only if _allocate=true
-    StructHeader* _header;
-    unsigned char* _data = nullptr; // pointer to data for header and struct content
-    size_t _dataMaxLen = 0;         // this is the capacity of the container, actual datalen is less
+    // implementation choice for referred data container
+    enum class ContainerImpl { Accessor, Vector, CArray };
+    ContainerImpl _containerImpl;
+    // We keep the accessor instead of the naked pointer to
+    // simplify usage, like this the object can exist even after memory used by accessor was swapped.
+    ChimeraTK::OneDRegisterAccessor<unsigned char> _accToData;
+    std::vector<unsigned char>* _vectorToData;
+    unsigned char* _cArrToData;
+    size_t _cArrLenth;
   };
 
   /*******************************  application to Image encoding *********************************/
@@ -125,6 +156,7 @@ namespace ChimeraTK {
 
    public:
     /// dx, dy are relative to x_start, y_start, i.e. x = x_start+dx  on output side
+    /// this method is for random access. for sequential access, iterators provide better performance
     ValType& operator()(unsigned dx, unsigned dy, unsigned c = 0) {
       assert(dy < _h->height);
       assert(dx < _h->width);
@@ -143,6 +175,16 @@ namespace ChimeraTK {
       }
     }
 
+    // simply define iterator access via pointers
+    using iterator = ValType*;
+    using value_type = ValType;
+    // for iteration over whole image
+    ValType* begin() { return beginRow(0); }
+    ValType* end() { return beginRow(_h->height); }
+    // these assume ROW-MAJOR ordering
+    ValType* beginRow(unsigned row) { return _vec + row * _h->width * _h->channels; }
+    ValType* endRow(unsigned row) { beginRow(row + 1); }
+
    protected:
     ImgHeader* _h;
     ValType* _vec;
@@ -155,13 +197,10 @@ namespace ChimeraTK {
    public:
     using MappedStruct<ImgHeader>::MappedStruct;
 
-    /// needs to be called after construction. corrupts all data.
-    void setShape(unsigned width, unsigned height, ImgFormat fmt) {
-      unsigned channels;
-      unsigned bpp;
+    size_t formatsDefinition(ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp) {
       switch(fmt) {
         case ImgFormat::Unset:
-          assert(false && "ImgFormat::Unset not allowed in setShape");
+          assert(false && "ImgFormat::Unset not allowed");
           break;
         case ImgFormat::Gray8:
           channels = 1;
@@ -180,36 +219,47 @@ namespace ChimeraTK {
           bpp = 4;
           break;
       }
+      return sizeof(ImgHeader) + (size_t)width * height * bpp;
+    }
 
-      size_t totalLen = sizeof(ImgHeader) + (size_t)width * height * bpp;
-      if(!_allocate) {
-          assert(totalLen <= _dataMaxLen);
+    size_t lengthForShape(unsigned width, unsigned height, ImgFormat fmt) {
+      unsigned channels;
+      unsigned bpp;
+      return formatsDefinition(fmt, width, height, channels, bpp);
+    }
+
+    /// needs to be called after construction. corrupts all data.
+    /// this throws logic_error if our buffer size is too small. Try lenghtForShape() to check that in advance
+    void setShape(unsigned width, unsigned height, ImgFormat fmt) {
+      unsigned channels;
+      unsigned bpp;
+      size_t totalLen = formatsDefinition(fmt, width, height, channels, bpp);
+      if(totalLen > capacity()) {
+        throw logic_error("MappedImage: provided buffer to small for requested image shape");
       }
-      else {
-        realloc(totalLen);
-      }
-      _header->image_format = fmt;
-      _header->totalLength = totalLen;
-      _header->width = width;
-      _header->height = height;
-      _header->channels = channels;
-      _header->bpp = bpp;
+      auto* h = header();
+      h->image_format = fmt;
+      h->totalLength = totalLen;
+      h->width = width;
+      h->height = height;
+      h->channels = channels;
+      h->bpp = bpp;
     }
     /// returns pointer to image payload data
-    unsigned char *imgBody() { return _data + sizeof(ImgHeader); }
+    unsigned char* imgBody() { return data() + sizeof(ImgHeader); }
 
     /// returns an ImgView object which can be used like a matrix. The ImgView becomes invalid at next setShape call.
     template<typename UserType, ImgOptions OPTIONS = ImgOptions::RowMajor>
     ImgView<UserType, OPTIONS> interpretedView() {
-      assert(_header->channels > 0 && "call setShape() before interpretedView()!");
-      assert(_header->bpp == _header->channels * sizeof(UserType) &&
-          "choose correct bpp and channels value before conversion!");
-      assert(((unsigned)_header->options & (unsigned)ImgOptions::RowMajor) ==
+      auto* h = header();
+      assert(h->channels > 0 && "call setShape() before interpretedView()!");
+      assert(h->bpp == h->channels * sizeof(UserType) && "choose correct bpp and channels value before conversion!");
+      assert(((unsigned)h->options & (unsigned)ImgOptions::RowMajor) ==
               ((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) &&
           "inconsistent data ordering col/row major");
       ImgView<UserType, OPTIONS> ret;
-      ret._h = _header;
-      ret._vec = reinterpret_cast<UserType *>(imgBody());
+      ret._h = h;
+      ret._vec = reinterpret_cast<UserType*>(imgBody());
       return ret;
     }
   };
