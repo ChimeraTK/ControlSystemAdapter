@@ -38,73 +38,26 @@ namespace ChimeraTK {
     enum class InitData { Yes, No };
     /// keeps a reference to given vector.
     /// call with InitData::Yes if data already contains valid struct data.
-    explicit MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData = InitData::Yes) {
-      _containerImpl = ContainerImpl::Vector;
-      _vectorToData = &buffer;
-      helpInit(doInitData == InitData::Yes);
-    }
+    explicit MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData = InitData::Yes);
     /// like above, but keeps a pointer for the data
-    explicit MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData = InitData::Yes)
-    : _containerImpl(ContainerImpl::CArray), _cArrToData(buffer), _cArrLenth(bufferLen) {
-      helpInit(doInitData == InitData::Yes);
-    }
+    explicit MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData = InitData::Yes);
 
     /// this stores a OneDRegisterAccessor instead of a vector. If the underlying vector is swapped out,
     /// the MappedStruct stays valid if the swapped-in vector was also setup as MappedStruct
     explicit MappedStruct(
-        ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData = InitData::Yes)
-    : _containerImpl(ContainerImpl::Accessor), _accToData(accToData) {
-      helpInit(doInitData == InitData::Yes);
-    }
+        ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData = InitData::Yes);
 
     /// returns pointer to data for header and struct content
-    unsigned char* data() {
-      switch(_containerImpl) {
-        case ContainerImpl::Accessor:
-          return _accToData.data();
-        case ContainerImpl::Vector:
-          return _vectorToData->data();
-        case ContainerImpl::CArray:
-          return _cArrToData;
-      }
-    }
+    unsigned char* data();
     /// capacity of used container
-    size_t capacity() const {
-      switch(_containerImpl) {
-        case ContainerImpl::Accessor:
-          // reason for cast: getNElements not declared const
-          return const_cast<MappedStruct*>(this)->_accToData.getNElements();
-        case ContainerImpl::Vector:
-          return _vectorToData->capacity();
-        case ContainerImpl::CArray:
-          return _cArrLenth;
-      }
-    }
+    size_t capacity() const;
     /// currently used size
     size_t size() const { return static_cast<OpaqueStructHeader*>(header())->totalLength; }
     /// returns header, e.g. for setting meta data
     StructHeader* header() { return reinterpret_cast<StructHeader*>(data()); }
 
    protected:
-    void helpInit(bool doInitData) {
-      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-          "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-      if(doInitData) {
-        if(capacity() < sizeof(StructHeader)) {
-          throw logic_error("buffer provided to MappedStruct is too small for correct initialization");
-        }
-
-        auto* p = data();
-        memset(p, 0, capacity());
-        new(p) StructHeader;
-        header()->totalLength = sizeof(StructHeader); // minimal length, could be larger
-      }
-      else {
-        if(header()->totalLength > capacity()) {
-          throw logic_error("buffer provided to MappedStruct is too small for assumed content");
-        }
-      }
-    }
+    void helpInit(bool doInitData);
 
     // implementation choice for referred data container
     enum class ContainerImpl { Accessor, Vector, CArray };
@@ -157,23 +110,7 @@ namespace ChimeraTK {
    public:
     /// dx, dy are relative to x_start, y_start, i.e. x = x_start+dx  on output side
     /// this method is for random access. for sequential access, iterators provide better performance
-    ValType& operator()(unsigned dx, unsigned dy, unsigned c = 0) {
-      assert(dy < _h->height);
-      assert(dx < _h->width);
-      assert(c < _h->channels);
-      // this is the only place where row-major / column-major storage is decided
-      // note, definition of row major/column major is confusing for images.
-      // - for a matrix M(i,j) we say it is stored row-major if rows are stored without interleaving: M11, M12,...
-      // - for the same Matrix, if we write M(x,y) for pixel value at coordite (x,y) of an image, this means
-      //   that pixel _columns_ are stored without interleaving
-      // So definition used here is opposite to matrix definition.
-      if constexpr((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) {
-        return _vec[(dy * _h->width + dx) * _h->channels + c];
-      }
-      else {
-        return _vec[(dy + dx * _h->height) * _h->channels + c];
-      }
-    }
+    ValType& operator()(unsigned dx, unsigned dy, unsigned c = 0);
 
     // simply define iterator access via pointers
     using iterator = ValType*;
@@ -183,7 +120,7 @@ namespace ChimeraTK {
     ValType* end() { return beginRow(_h->height); }
     // these assume ROW-MAJOR ordering
     ValType* beginRow(unsigned row) { return _vec + row * _h->width * _h->channels; }
-    ValType* endRow(unsigned row) { beginRow(row + 1); }
+    ValType* endRow(unsigned row) { return beginRow(row + 1); }
 
    protected:
     ImgHeader* _h;
@@ -197,54 +134,10 @@ namespace ChimeraTK {
    public:
     using MappedStruct<ImgHeader>::MappedStruct;
 
-    size_t formatsDefinition(ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp) {
-      switch(fmt) {
-        case ImgFormat::Unset:
-          assert(false && "ImgFormat::Unset not allowed");
-          break;
-        case ImgFormat::Gray8:
-          channels = 1;
-          bpp = 1;
-          break;
-        case ImgFormat::Gray16:
-          channels = 1;
-          bpp = 2;
-          break;
-        case ImgFormat::RGB24:
-          channels = 3;
-          bpp = 3;
-          break;
-        case ImgFormat::RGBA32:
-          channels = 4;
-          bpp = 4;
-          break;
-      }
-      return sizeof(ImgHeader) + (size_t)width * height * bpp;
-    }
-
-    size_t lengthForShape(unsigned width, unsigned height, ImgFormat fmt) {
-      unsigned channels;
-      unsigned bpp;
-      return formatsDefinition(fmt, width, height, channels, bpp);
-    }
-
     /// needs to be called after construction. corrupts all data.
     /// this throws logic_error if our buffer size is too small. Try lenghtForShape() to check that in advance
-    void setShape(unsigned width, unsigned height, ImgFormat fmt) {
-      unsigned channels;
-      unsigned bpp;
-      size_t totalLen = formatsDefinition(fmt, width, height, channels, bpp);
-      if(totalLen > capacity()) {
-        throw logic_error("MappedImage: provided buffer to small for requested image shape");
-      }
-      auto* h = header();
-      h->image_format = fmt;
-      h->totalLength = totalLen;
-      h->width = width;
-      h->height = height;
-      h->channels = channels;
-      h->bpp = bpp;
-    }
+    void setShape(unsigned width, unsigned height, ImgFormat fmt);
+    size_t lengthForShape(unsigned width, unsigned height, ImgFormat fmt);
     /// returns pointer to image payload data
     unsigned char* imgBody() { return data() + sizeof(ImgHeader); }
 
@@ -262,6 +155,152 @@ namespace ChimeraTK {
       ret._vec = reinterpret_cast<UserType*>(imgBody());
       return ret;
     }
+
+   protected:
+    size_t formatsDefinition(ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp);
   };
+
+  /*************************** begin MappedStruct implementations  ************************************************/
+
+  template<class StructHeader>
+  MappedStruct<StructHeader>::MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData) {
+    _containerImpl = ContainerImpl::Vector;
+    _vectorToData = &buffer;
+    helpInit(doInitData == InitData::Yes);
+  }
+
+  template<class StructHeader>
+  MappedStruct<StructHeader>::MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData)
+  : _containerImpl(ContainerImpl::CArray), _cArrToData(buffer), _cArrLenth(bufferLen) {
+    helpInit(doInitData == InitData::Yes);
+  }
+
+  template<class StructHeader>
+  MappedStruct<StructHeader>::MappedStruct(
+      ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData)
+  : _containerImpl(ContainerImpl::Accessor), _accToData(accToData) {
+    helpInit(doInitData == InitData::Yes);
+  }
+
+  template<class StructHeader>
+  unsigned char* MappedStruct<StructHeader>::data() {
+    switch(_containerImpl) {
+      case ContainerImpl::Accessor:
+        return _accToData.data();
+      case ContainerImpl::Vector:
+        return _vectorToData->data();
+      case ContainerImpl::CArray:
+        return _cArrToData;
+    }
+    // just to get rid of compiler warnings
+    assert(false);
+    return nullptr;
+  }
+
+  template<class StructHeader>
+  size_t MappedStruct<StructHeader>::capacity() const {
+    switch(_containerImpl) {
+      case ContainerImpl::Accessor:
+        // reason for cast: getNElements not declared const
+        return const_cast<MappedStruct*>(this)->_accToData.getNElements();
+      case ContainerImpl::Vector:
+        return _vectorToData->capacity();
+      case ContainerImpl::CArray:
+        return _cArrLenth;
+    }
+    // just to get rid of compiler warnings
+    assert(false);
+    return 0;
+  }
+
+  template<class StructHeader>
+  void MappedStruct<StructHeader>::helpInit(bool doInitData) {
+    static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+        "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+    if(doInitData) {
+      if(capacity() < sizeof(StructHeader)) {
+        throw logic_error("buffer provided to MappedStruct is too small for correct initialization");
+      }
+
+      auto* p = data();
+      memset(p, 0, capacity());
+      new(p) StructHeader;
+      header()->totalLength = sizeof(StructHeader); // minimal length, could be larger
+    }
+    else {
+      if(header()->totalLength > capacity()) {
+        throw logic_error("buffer provided to MappedStruct is too small for assumed content");
+      }
+    }
+  }
+
+  /*************************** begin MappedImage implementations  ************************************************/
+
+  inline size_t MappedImage::formatsDefinition(
+      ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp) {
+    switch(fmt) {
+      case ImgFormat::Unset:
+        assert(false && "ImgFormat::Unset not allowed");
+        break;
+      case ImgFormat::Gray8:
+        channels = 1;
+        bpp = 1;
+        break;
+      case ImgFormat::Gray16:
+        channels = 1;
+        bpp = 2;
+        break;
+      case ImgFormat::RGB24:
+        channels = 3;
+        bpp = 3;
+        break;
+      case ImgFormat::RGBA32:
+        channels = 4;
+        bpp = 4;
+        break;
+    }
+    return sizeof(ImgHeader) + (size_t)width * height * bpp;
+  }
+
+  inline size_t MappedImage::lengthForShape(unsigned width, unsigned height, ImgFormat fmt) {
+    unsigned channels;
+    unsigned bpp;
+    return formatsDefinition(fmt, width, height, channels, bpp);
+  }
+
+  inline void MappedImage::setShape(unsigned width, unsigned height, ImgFormat fmt) {
+    unsigned channels;
+    unsigned bpp;
+    size_t totalLen = formatsDefinition(fmt, width, height, channels, bpp);
+    if(totalLen > capacity()) {
+      throw logic_error("MappedImage: provided buffer to small for requested image shape");
+    }
+    auto* h = header();
+    h->image_format = fmt;
+    h->totalLength = totalLen;
+    h->width = width;
+    h->height = height;
+    h->channels = channels;
+    h->bpp = bpp;
+  }
+
+  template<typename ValType, ImgOptions OPTIONS>
+  ValType& ImgView<ValType, OPTIONS>::operator()(unsigned dx, unsigned dy, unsigned c) {
+    assert(dy < _h->height);
+    assert(dx < _h->width);
+    assert(c < _h->channels);
+    // this is the only place where row-major / column-major storage is decided
+    // note, definition of row major/column major is confusing for images.
+    // - for a matrix M(i,j) we say it is stored row-major if rows are stored without interleaving: M11, M12,...
+    // - for the same Matrix, if we write M(x,y) for pixel value at coordite (x,y) of an image, this means
+    //   that pixel _columns_ are stored without interleaving
+    // So definition used here is opposite to matrix definition.
+    if constexpr((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) {
+      return _vec[(dy * _h->width + dx) * _h->channels + c];
+    }
+    else {
+      return _vec[(dy + dx * _h->height) * _h->channels + c];
+    }
+  }
 
 } // namespace ChimeraTK
