@@ -222,17 +222,17 @@ BOOST_AUTO_TEST_CASE(testRegisterAccessor) {
   std::cout << "*** testRegisterAccessor *** " << std::endl;
   ChimeraTK::UnifiedBackendTest<>()
       .testOnlyTransferElement()
-      .addRegister<TestRegisterCasted<long>>()
+      .addRegister<TestRegisterCasted<int64_t>>()
       .addRegister<TestRegisterCasted<double>>()
-      .addRegister<TestRegisterRoCasted<long>>()
+      .addRegister<TestRegisterRoCasted<int64_t>>()
       .addRegister<TestRegisterRoCasted<double>>()
-      .addRegister<TestRegisterCastedAsync<long>>()
+      .addRegister<TestRegisterCastedAsync<int64_t>>()
       .addRegister<TestRegisterCastedAsync<double>>()
-      .addRegister<TestRegisterCastedAsyncRo<long>>()
+      .addRegister<TestRegisterCastedAsyncRo<int64_t>>()
       .addRegister<TestRegisterCastedAsyncRo<double>>()
-      .addRegister<TestRegisterRangeChecked<int>>()
+      .addRegister<TestRegisterRangeChecked<int32_t>>()
       .addRegister<TestRegisterRangeChecked<float>>()
-      .addRegister<TestRegisterRoRangeChecked<int>>()
+      .addRegister<TestRegisterRoRangeChecked<int32_t>>()
       .addRegister<TestRegisterRoRangeChecked<float>>()
       .runTests(cdd);
 }
