@@ -29,7 +29,7 @@ namespace ChimeraTK {
 
   /**
    * Provides interface to a struct that is mapped onto a 1D array of ValType
-   * The struct must be derived from OpaqueStructHeader.
+   * StructHeader must be derived from OpaqueStructHeader.
    * Variable-length structs are supported, as long as they do not grow beyond the size of the given 1D array.
    */
   template<class StructHeader>
@@ -37,7 +37,7 @@ namespace ChimeraTK {
    public:
     enum class InitData { Yes, No };
     /// keeps a reference to given vector.
-    /// call with InitData::Yes if data already contains valid struct data.
+    /// call with InitData::No if data already contains valid struct data.
     explicit MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData = InitData::Yes);
     /// like above, but keeps a pointer for the data
     explicit MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData = InitData::Yes);
@@ -62,10 +62,12 @@ namespace ChimeraTK {
     // implementation choice for referred data container
     enum class ContainerImpl { Accessor, Vector, CArray };
     ContainerImpl _containerImpl;
-    // We keep the accessor instead of the naked pointer to
+    // ContainerImpl::Accessor: We keep the accessor instead of the naked pointer to
     // simplify usage, like this the object can exist even after memory used by accessor was swapped.
     ChimeraTK::OneDRegisterAccessor<unsigned char> _accToData;
+    // used only for ContainerImpl::Vector
     std::vector<unsigned char>* _vectorToData;
+    // used only for ContainerImpl::CArray
     unsigned char* _cArrToData;
     size_t _cArrLenth;
   };
@@ -82,21 +84,20 @@ namespace ChimeraTK {
 
     uint32_t width = 0;
     uint32_t height = 0;
-    // start coordinates, in output
+    /// start coordinates, in output
     int32_t x_start = 0;
     int32_t y_start = 0;
-    // can be used in output to provide scaled coordinates
+    /// can be used in output to provide scaled coordinates
     float scale_x = 1;
     float scale_y = 1;
-    // gray=1, rgb=3, rgba=4
+    /// gray=1, rgb=3, rgba=4
     uint32_t channels = 0;
-    // bytes per pixel
-    uint32_t bpp = 0;
-    // effective bits per pixel
-    uint32_t ebitpp = 0;
+    uint32_t bytesPerPixel = 0;
+    /// effective bits per pixel
+    uint32_t effBitsPerPixel = 0;
     ImgFormat image_format{ImgFormat::Unset};
     ImgOptions options{ImgOptions::RowMajor};
-    // frame number/counter
+    /// frame number/counter
     uint32_t frame = 0;
   };
 
@@ -108,9 +109,13 @@ namespace ChimeraTK {
     friend class MappedImage;
 
    public:
-    /// dx, dy are relative to x_start, y_start, i.e. x = x_start+dx  on output side
-    /// this method is for random access. for sequential access, iterators provide better performance
-    ValType& operator()(unsigned dx, unsigned dy, unsigned c = 0);
+    /**
+     * This allows to read/write image pixel values, for given coordinates.
+     * dx, dy are relative to x_start, y_start, i.e. x = x_start+dx  on output side
+     * channel is 0..2 for RGB
+     * this method is for random access. for sequential access, iterators provide better performance
+     */
+    ValType& operator()(unsigned dx, unsigned dy, unsigned channel = 0);
 
     // simply define iterator access via pointers
     using iterator = ValType*;
@@ -142,11 +147,13 @@ namespace ChimeraTK {
     unsigned char* imgBody() { return data() + sizeof(ImgHeader); }
 
     /// returns an ImgView object which can be used like a matrix. The ImgView becomes invalid at next setShape call.
+    /// It also becomes invalid when memory location of underlying MappedStruct changes.
     template<typename UserType, ImgOptions OPTIONS = ImgOptions::RowMajor>
     ImgView<UserType, OPTIONS> interpretedView() {
       auto* h = header();
       assert(h->channels > 0 && "call setShape() before interpretedView()!");
-      assert(h->bpp == h->channels * sizeof(UserType) && "choose correct bpp and channels value before conversion!");
+      assert(h->bytesPerPixel == h->channels * sizeof(UserType) &&
+          "choose correct bytesPerPixel and channels value before conversion!");
       assert(((unsigned)h->options & (unsigned)ImgOptions::RowMajor) ==
               ((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) &&
           "inconsistent data ordering col/row major");
@@ -157,7 +164,8 @@ namespace ChimeraTK {
     }
 
    protected:
-    size_t formatsDefinition(ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp);
+    size_t formatsDefinition(
+        ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bytesPerPixel);
   };
 
   /*************************** begin MappedStruct implementations  ************************************************/
@@ -237,41 +245,41 @@ namespace ChimeraTK {
   /*************************** begin MappedImage implementations  ************************************************/
 
   inline size_t MappedImage::formatsDefinition(
-      ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bpp) {
+      ImgFormat fmt, unsigned width, unsigned height, unsigned& channels, unsigned& bytesPerPixel) {
     switch(fmt) {
       case ImgFormat::Unset:
         assert(false && "ImgFormat::Unset not allowed");
         break;
       case ImgFormat::Gray8:
         channels = 1;
-        bpp = 1;
+        bytesPerPixel = 1;
         break;
       case ImgFormat::Gray16:
         channels = 1;
-        bpp = 2;
+        bytesPerPixel = 2;
         break;
       case ImgFormat::RGB24:
         channels = 3;
-        bpp = 3;
+        bytesPerPixel = 3;
         break;
       case ImgFormat::RGBA32:
         channels = 4;
-        bpp = 4;
+        bytesPerPixel = 4;
         break;
     }
-    return sizeof(ImgHeader) + (size_t)width * height * bpp;
+    return sizeof(ImgHeader) + (size_t)width * height * bytesPerPixel;
   }
 
   inline size_t MappedImage::lengthForShape(unsigned width, unsigned height, ImgFormat fmt) {
     unsigned channels;
-    unsigned bpp;
-    return formatsDefinition(fmt, width, height, channels, bpp);
+    unsigned bytesPerPixel;
+    return formatsDefinition(fmt, width, height, channels, bytesPerPixel);
   }
 
   inline void MappedImage::setShape(unsigned width, unsigned height, ImgFormat fmt) {
     unsigned channels;
-    unsigned bpp;
-    size_t totalLen = formatsDefinition(fmt, width, height, channels, bpp);
+    unsigned bytesPerPixel;
+    size_t totalLen = formatsDefinition(fmt, width, height, channels, bytesPerPixel);
     if(totalLen > capacity()) {
       throw logic_error("MappedImage: provided buffer to small for requested image shape");
     }
@@ -281,14 +289,14 @@ namespace ChimeraTK {
     h->width = width;
     h->height = height;
     h->channels = channels;
-    h->bpp = bpp;
+    h->bytesPerPixel = bytesPerPixel;
   }
 
   template<typename ValType, ImgOptions OPTIONS>
-  ValType& ImgView<ValType, OPTIONS>::operator()(unsigned dx, unsigned dy, unsigned c) {
+  ValType& ImgView<ValType, OPTIONS>::operator()(unsigned dx, unsigned dy, unsigned channel) {
     assert(dy < _h->height);
     assert(dx < _h->width);
-    assert(c < _h->channels);
+    assert(channel < _h->channels);
     // this is the only place where row-major / column-major storage is decided
     // note, definition of row major/column major is confusing for images.
     // - for a matrix M(i,j) we say it is stored row-major if rows are stored without interleaving: M11, M12,...
@@ -296,10 +304,10 @@ namespace ChimeraTK {
     //   that pixel _columns_ are stored without interleaving
     // So definition used here is opposite to matrix definition.
     if constexpr((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) {
-      return _vec[(dy * _h->width + dx) * _h->channels + c];
+      return _vec[(dy * _h->width + dx) * _h->channels + channel];
     }
     else {
-      return _vec[(dy + dx * _h->height) * _h->channels + c];
+      return _vec[(dy + dx * _h->height) * _h->channels + channel];
     }
   }
 

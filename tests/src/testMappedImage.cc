@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(testStructMapping) {
   // this test shows an example how to map user-defined opaque structs onto a byte array
   struct AStruct : public OpaqueStructHeader {
     int a = 0;
-    float x = 0, y = 0;
+    float x = 0, y = 1;
     AStruct() : OpaqueStructHeader(typeid(AStruct)) {}
   };
   unsigned len = 100;
@@ -30,11 +30,12 @@ BOOST_AUTO_TEST_CASE(testStructMapping) {
 
   MappedStruct<AStruct> ms1(buf, MappedStruct<AStruct>::InitData::No);
   BOOST_CHECK(ms1.header()->x == 4.);
+  BOOST_CHECK(ms1.header()->y == 1.); // a value set in constructor of AStruct
 }
 
 BOOST_AUTO_TEST_CASE(testMappedImage) {
   // this test shows MappedImage usage
-  std::vector<uint8_t> buffer(100);
+  std::vector<uint8_t> buffer(100); // includes header: 64 bytes
   MappedImage A0(buffer);
   unsigned w = 4, h = 2;
   A0.setShape(w, h, ImgFormat::Gray16);
@@ -67,6 +68,22 @@ BOOST_AUTO_TEST_CASE(testMappedImage) {
   for(auto& pixVal : Av) {
     counter++;
     BOOST_CHECK(pixVal == counter);
+  }
+
+  // test actual header contents of our buffer
+  auto* head = reinterpret_cast<ImgHeader*>(buffer.data());
+  BOOST_CHECK(head->width == w);
+  BOOST_CHECK(head->height == h);
+  BOOST_CHECK(head->image_format == ImgFormat::Gray16);
+  BOOST_CHECK(head->channels == 1);
+  BOOST_CHECK(head->bytesPerPixel == 2);
+
+  // test actual image body contents of buffer
+  auto* imgBody = reinterpret_cast<uint16_t*>(buffer.data() + sizeof(ImgHeader));
+  unsigned i = 0;
+  for(auto& pixVal : Av) {
+    BOOST_CHECK(imgBody[i] == pixVal);
+    i++;
   }
 }
 
