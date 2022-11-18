@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(testStructMapping) {
   };
   unsigned len = 100;
   std::vector<unsigned char> buf(len);
-  MappedStruct<AStruct> ms(buf);
+  MappedStruct<AStruct> ms(buf, MappedStruct<AStruct>::InitData::Yes);
   auto* h = ms.header();
   h->x = 4.;
   BOOST_CHECK(h->totalLength == sizeof(AStruct));
