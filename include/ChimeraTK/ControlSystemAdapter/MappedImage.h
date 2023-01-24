@@ -38,14 +38,16 @@ namespace ChimeraTK {
     enum class InitData { Yes, No };
     /// keeps a reference to given vector.
     /// call with InitData::No if data already contains valid struct data.
-    explicit MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData = InitData::Yes);
+    explicit MappedStruct(std::vector<unsigned char> &buffer, InitData doInitData = InitData::No);
     /// like above, but keeps a pointer for the data
-    explicit MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData = InitData::Yes);
+    explicit MappedStruct(unsigned char *buffer,
+                          size_t bufferLen,
+                          InitData doInitData = InitData::No);
 
-    /// this stores a OneDRegisterAccessor instead of a vector. If the underlying vector is swapped out,
-    /// the MappedStruct stays valid if the swapped-in vector was also setup as MappedStruct
-    explicit MappedStruct(
-        ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData = InitData::Yes);
+    /// This keeps a reference to given OneDRegisterAccessor. If its underlying vector is swapped out,
+    /// the MappedStruct stays valid only if the swapped-in vector was also setup as MappedStruct.
+    explicit MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
+                          InitData doInitData = InitData::No);
 
     /// returns pointer to data for header and struct content
     unsigned char* data();
@@ -55,10 +57,10 @@ namespace ChimeraTK {
     size_t size() const { return static_cast<OpaqueStructHeader*>(header())->totalLength; }
     /// returns header, e.g. for setting meta data
     StructHeader* header() { return reinterpret_cast<StructHeader*>(data()); }
+    /// default initialize header and zero out data that follows
+    void initData();
 
-   protected:
-    void helpInit(bool doInitData);
-
+protected:
     // implementation choice for referred data container
     enum class ContainerImpl { Accessor, Vector, CArray };
     ContainerImpl _containerImpl;
@@ -174,20 +176,39 @@ namespace ChimeraTK {
   MappedStruct<StructHeader>::MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData) {
     _containerImpl = ContainerImpl::Vector;
     _vectorToData = &buffer;
-    helpInit(doInitData == InitData::Yes);
+    static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+                  "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+    if (doInitData == InitData::Yes) {
+        initData();
+    }
   }
 
   template<class StructHeader>
-  MappedStruct<StructHeader>::MappedStruct(unsigned char* buffer, size_t bufferLen, InitData doInitData)
-  : _containerImpl(ContainerImpl::CArray), _cArrToData(buffer), _cArrLenth(bufferLen) {
-    helpInit(doInitData == InitData::Yes);
+  MappedStruct<StructHeader>::MappedStruct(unsigned char *buffer,
+                                           size_t bufferLen,
+                                           InitData doInitData)
+      : _containerImpl(ContainerImpl::CArray)
+      , _cArrToData(buffer)
+      , _cArrLenth(bufferLen)
+  {
+      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+                    "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+      if (doInitData == InitData::Yes) {
+          initData();
+      }
   }
 
   template<class StructHeader>
-  MappedStruct<StructHeader>::MappedStruct(
-      ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData)
-  : _containerImpl(ContainerImpl::Accessor), _accToData(accToData) {
-    helpInit(doInitData == InitData::Yes);
+  MappedStruct<StructHeader>::MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
+                                           InitData doInitData)
+      : _containerImpl(ContainerImpl::Accessor)
+      , _accToData(accToData)
+  {
+      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+                    "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+      if (doInitData == InitData::Yes) {
+          initData();
+      }
   }
 
   template<class StructHeader>
@@ -222,24 +243,17 @@ namespace ChimeraTK {
   }
 
   template<class StructHeader>
-  void MappedStruct<StructHeader>::helpInit(bool doInitData) {
-    static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-        "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-    if(doInitData) {
-      if(capacity() < sizeof(StructHeader)) {
-        throw logic_error("buffer provided to MappedStruct is too small for correct initialization");
+  void MappedStruct<StructHeader>::initData()
+  {
+      size_t sh = sizeof(StructHeader);
+      if (capacity() < sh) {
+          throw logic_error(
+              "buffer provided to MappedStruct is too small for correct initialization");
       }
-
       auto* p = data();
-      memset(p, 0, capacity());
       new(p) StructHeader;
-      header()->totalLength = sizeof(StructHeader); // minimal length, could be larger
-    }
-    else {
-      if(header()->totalLength > capacity()) {
-        throw logic_error("buffer provided to MappedStruct is too small for assumed content");
-      }
-    }
+      header()->totalLength = sh; // minimal length, could be larger
+      memset(p + sh, 0, capacity() - sh);
   }
 
   /*************************** begin MappedImage implementations  ************************************************/
@@ -284,6 +298,8 @@ namespace ChimeraTK {
       throw logic_error("MappedImage: provided buffer to small for requested image shape");
     }
     auto* h = header();
+    // start with default values
+    new (h) ImgHeader;
     h->image_format = fmt;
     h->totalLength = totalLen;
     h->width = width;
