@@ -44,8 +44,8 @@ namespace ChimeraTK {
                           size_t bufferLen,
                           InitData doInitData = InitData::No);
 
-    /// this stores a OneDRegisterAccessor instead of a vector. If the underlying vector is swapped out,
-    /// the MappedStruct stays valid if the swapped-in vector was also setup as MappedStruct
+    /// This keeps a reference to given OneDRegisterAccessor. If its underlying vector is swapped out,
+    /// the MappedStruct stays valid only if the swapped-in vector was also setup as MappedStruct.
     explicit MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
                           InitData doInitData = InitData::No);
 
