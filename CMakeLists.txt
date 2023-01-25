@@ -86,6 +86,7 @@ if(BUILD_TESTS)
   FILE(COPY tests/changedType.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/changedVectorSize.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/renamedVariable.persist DESTINATION ${PROJECT_BINARY_DIR})
+  FILE(COPY tests/testMappedImage.dmap tests/testMappedImage.map DESTINATION ${PROJECT_BINARY_DIR})
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )

@@ -36,20 +36,13 @@ namespace ChimeraTK {
   class MappedStruct {
    public:
     enum class InitData { Yes, No };
-    /// keeps a reference to given vector.
-    /// call with InitData::No if data already contains valid struct data.
-    explicit MappedStruct(std::vector<unsigned char> &buffer, InitData doInitData = InitData::No);
-    /// like above, but keeps a pointer for the data
-    explicit MappedStruct(unsigned char *buffer,
-                          size_t bufferLen,
-                          InitData doInitData = InitData::No);
-
     /// This keeps a reference to given OneDRegisterAccessor. If its underlying vector is swapped out,
     /// the MappedStruct stays valid only if the swapped-in vector was also setup as MappedStruct.
     explicit MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
                           InitData doInitData = InitData::No);
 
-    /// returns pointer to data for header and struct content
+    /// returns pointer to data for header and struct content. The returned pointer stays valid until
+    /// write() or read() is called for the underlying accessor.
     unsigned char* data();
     /// capacity of used container
     size_t capacity() const;
@@ -103,6 +96,7 @@ protected:
     uint32_t frame = 0;
   };
 
+  class MappedImage;
   /**
    * provides convenient matrix-like access for MappedImage
    */
@@ -111,6 +105,7 @@ protected:
     friend class MappedImage;
 
    public:
+    ImgView(MappedImage* owner) : _mi(owner) {}
     /**
      * This allows to read/write image pixel values, for given coordinates.
      * dx, dy are relative to x_start, y_start, i.e. x = x_start+dx  on output side
@@ -124,14 +119,15 @@ protected:
     using value_type = ValType;
     // for iteration over whole image
     ValType* begin() { return beginRow(0); }
-    ValType* end() { return beginRow(_h->height); }
+    ValType* end() { return beginRow(header()->height); }
     // these assume ROW-MAJOR ordering
-    ValType* beginRow(unsigned row) { return _vec + row * _h->width * _h->channels; }
+    ValType* beginRow(unsigned row) { return vec() + row * header()->width * header()->channels; }
     ValType* endRow(unsigned row) { return beginRow(row + 1); }
+    ImgHeader* header();
 
    protected:
-    ImgHeader* _h;
-    ValType* _vec;
+    ValType* vec();
+    MappedImage* _mi;
   };
 
   /**
@@ -152,16 +148,14 @@ protected:
     /// It also becomes invalid when memory location of underlying MappedStruct changes.
     template<typename UserType, ImgOptions OPTIONS = ImgOptions::RowMajor>
     ImgView<UserType, OPTIONS> interpretedView() {
-      auto* h = header();
+      [[maybe_unused]] auto* h = header();
       assert(h->channels > 0 && "call setShape() before interpretedView()!");
       assert(h->bytesPerPixel == h->channels * sizeof(UserType) &&
           "choose correct bytesPerPixel and channels value before conversion!");
       assert(((unsigned)h->options & (unsigned)ImgOptions::RowMajor) ==
               ((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) &&
           "inconsistent data ordering col/row major");
-      ImgView<UserType, OPTIONS> ret;
-      ret._h = h;
-      ret._vec = reinterpret_cast<UserType*>(imgBody());
+      ImgView<UserType, OPTIONS> ret(this);
       return ret;
     }
 
@@ -171,32 +165,6 @@ protected:
   };
 
   /*************************** begin MappedStruct implementations  ************************************************/
-
-  template<class StructHeader>
-  MappedStruct<StructHeader>::MappedStruct(std::vector<unsigned char>& buffer, InitData doInitData) {
-    _containerImpl = ContainerImpl::Vector;
-    _vectorToData = &buffer;
-    static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-                  "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-    if (doInitData == InitData::Yes) {
-        initData();
-    }
-  }
-
-  template<class StructHeader>
-  MappedStruct<StructHeader>::MappedStruct(unsigned char *buffer,
-                                           size_t bufferLen,
-                                           InitData doInitData)
-      : _containerImpl(ContainerImpl::CArray)
-      , _cArrToData(buffer)
-      , _cArrLenth(bufferLen)
-  {
-      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-                    "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-      if (doInitData == InitData::Yes) {
-          initData();
-      }
-  }
 
   template<class StructHeader>
   MappedStruct<StructHeader>::MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
@@ -213,33 +181,13 @@ protected:
 
   template<class StructHeader>
   unsigned char* MappedStruct<StructHeader>::data() {
-    switch(_containerImpl) {
-      case ContainerImpl::Accessor:
         return _accToData.data();
-      case ContainerImpl::Vector:
-        return _vectorToData->data();
-      case ContainerImpl::CArray:
-        return _cArrToData;
-    }
-    // just to get rid of compiler warnings
-    assert(false);
-    return nullptr;
   }
 
   template<class StructHeader>
   size_t MappedStruct<StructHeader>::capacity() const {
-    switch(_containerImpl) {
-      case ContainerImpl::Accessor:
         // reason for cast: getNElements not declared const
         return const_cast<MappedStruct*>(this)->_accToData.getNElements();
-      case ContainerImpl::Vector:
-        return _vectorToData->capacity();
-      case ContainerImpl::CArray:
-        return _cArrLenth;
-    }
-    // just to get rid of compiler warnings
-    assert(false);
-    return 0;
   }
 
   template<class StructHeader>
@@ -310,9 +258,10 @@ protected:
 
   template<typename ValType, ImgOptions OPTIONS>
   ValType& ImgView<ValType, OPTIONS>::operator()(unsigned dx, unsigned dy, unsigned channel) {
-    assert(dy < _h->height);
-    assert(dx < _h->width);
-    assert(channel < _h->channels);
+    auto* h = header();
+    assert(dy < h->height);
+    assert(dx < h->width);
+    assert(channel < h->channels);
     // this is the only place where row-major / column-major storage is decided
     // note, definition of row major/column major is confusing for images.
     // - for a matrix M(i,j) we say it is stored row-major if rows are stored without interleaving: M11, M12,...
@@ -320,11 +269,21 @@ protected:
     //   that pixel _columns_ are stored without interleaving
     // So definition used here is opposite to matrix definition.
     if constexpr((unsigned)OPTIONS & (unsigned)ImgOptions::RowMajor) {
-      return _vec[(dy * _h->width + dx) * _h->channels + channel];
+      return vec()[(dy * h->width + dx) * h->channels + channel];
     }
     else {
-      return _vec[(dy + dx * _h->height) * _h->channels + channel];
+      return vec()[(dy + dx * h->height) * h->channels + channel];
     }
+  }
+
+  template<typename ValType, ImgOptions OPTIONS>
+  ImgHeader* ImgView<ValType, OPTIONS>::header() {
+    return _mi->header();
+  }
+
+  template<typename ValType, ImgOptions OPTIONS>
+  ValType* ImgView<ValType, OPTIONS>::vec() {
+    return reinterpret_cast<ValType*>(_mi->imgBody());
   }
 
 } // namespace ChimeraTK
