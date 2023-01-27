@@ -85,7 +85,7 @@ namespace ChimeraTK {
     ImgFormat image_format{ImgFormat::Unset};
     ImgOptions options{ImgOptions::RowMajor};
     /// frame number/counter
-    uint32_t frame = 0;
+    uint64_t frame = 0;
   };
 
   class MappedImage;
