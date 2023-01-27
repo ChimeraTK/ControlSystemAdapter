@@ -1,14 +1,13 @@
 // SPDX-FileCopyrightText: Deutsches Elektronen-Synchrotron DESY, MSK, ChimeraTK Project <chimeratk-support@desy.de>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "ChimeraTK/Device.h"
 #define BOOST_TEST_MODULE MappedImageTest
 // Only after defining the name include the unit test header.
 #include <boost/test/included/unit_test.hpp>
 // boost unit_test needs to be included before serverBasedTestTools.h
 #include "MappedImage.h"
 
-#include <ChimeraTK/DummyBackend.h>
+#include <ChimeraTK/Device.h>
 #include <ChimeraTK/OneDRegisterAccessor.h>
 
 #include <boost/test/unit_test.hpp>
@@ -19,14 +18,14 @@ using namespace ChimeraTK;
 BOOST_AUTO_TEST_SUITE(MappedImageTestSuite)
 
 struct DummyFixture {
-  unsigned len = 100;
+  unsigned bufLen = 100; // includes header: 64 bytes
   ChimeraTK::OneDRegisterAccessor<unsigned char> buf;
   DummyFixture() {
     setDMapFilePath("testMappedImage.dmap");
     Device device;
     device.open("DUMMY");
 
-    buf.replace(device.getOneDRegisterAccessor<unsigned char>("DAQ/IMAGE", len));
+    buf.replace(device.getOneDRegisterAccessor<unsigned char>("DAQ/IMAGE", bufLen));
   }
 };
 
@@ -110,14 +109,14 @@ BOOST_FIXTURE_TEST_CASE(testMappedImage, DummyFixture) {
 
   ImgHeader head0 = *head;
   buf.write(); // this allows to analyse data in dummy device, e.g. with shm dummy
+  // set up memory location buf1 with slightly modified image content
   std::vector<unsigned char> buf1(buf.getNElements());
+  *reinterpret_cast<ImgHeader*>(buf1.data()) = head0; // copy back header
   auto* imgBody1 = reinterpret_cast<uint16_t*>(buf1.data() + sizeof(ImgHeader));
   imgBody1[w * h - 1] = 42;
   buf.swap(buf1);
   BOOST_CHECK(buf.data() != bufData0);
-  // check that ImgView can still be used, even though user buffer of accessor was swapped, but now refers to buf1
-  // content
-  *Av.header() = head0; // copy back header
+  // check that ImgView can still be used, even though user buffer of accessor was swapped
   // compare bottow right value with previously written content.
   auto lastVal = Av(w - 1, h - 1);
   BOOST_CHECK(lastVal == 42);

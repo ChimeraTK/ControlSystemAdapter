@@ -53,18 +53,10 @@ namespace ChimeraTK {
     /// default initialize header and zero out data that follows
     void initData();
 
-protected:
-    // implementation choice for referred data container
-    enum class ContainerImpl { Accessor, Vector, CArray };
-    ContainerImpl _containerImpl;
-    // ContainerImpl::Accessor: We keep the accessor instead of the naked pointer to
-    // simplify usage, like this the object can exist even after memory used by accessor was swapped.
-    ChimeraTK::OneDRegisterAccessor<unsigned char> _accToData;
-    // used only for ContainerImpl::Vector
-    std::vector<unsigned char>* _vectorToData;
-    // used only for ContainerImpl::CArray
-    unsigned char* _cArrToData;
-    size_t _cArrLenth;
+   protected:
+    // We keep the accessor instead of the naked pointer to simplify usage, like this the object stays valid even after
+    // memory used by accessor was swapped.
+    ChimeraTK::OneDRegisterAccessor<unsigned char>& _accToData;
   };
 
   /*******************************  application to Image encoding *********************************/
@@ -102,8 +94,6 @@ protected:
    */
   template<typename ValType, ImgOptions OPTIONS>
   class ImgView {
-    friend class MappedImage;
-
    public:
     ImgView(MappedImage* owner) : _mi(owner) {}
     /**
@@ -167,16 +157,14 @@ protected:
   /*************************** begin MappedStruct implementations  ************************************************/
 
   template<class StructHeader>
-  MappedStruct<StructHeader>::MappedStruct(ChimeraTK::OneDRegisterAccessor<unsigned char> &accToData,
-                                           InitData doInitData)
-      : _containerImpl(ContainerImpl::Accessor)
-      , _accToData(accToData)
-  {
-      static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
-                    "MappedStruct expects StructHeader to implement OpaqueStructHeader");
-      if (doInitData == InitData::Yes) {
-          initData();
-      }
+  MappedStruct<StructHeader>::MappedStruct(
+      ChimeraTK::OneDRegisterAccessor<unsigned char>& accToData, InitData doInitData)
+  : _accToData(accToData) {
+    static_assert(std::is_base_of<OpaqueStructHeader, StructHeader>::value,
+        "MappedStruct expects StructHeader to implement OpaqueStructHeader");
+    if(doInitData == InitData::Yes) {
+      initData();
+    }
   }
 
   template<class StructHeader>
