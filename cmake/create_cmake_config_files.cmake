@@ -70,8 +70,10 @@ endif()
 # we have nested @-statements, so we have to parse twice:
 
 # create the cmake find_package configuration file
-configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in" @ONLY)
-configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
+set(PACKAGE_INIT "PACKAGE_INIT") # replacement handled later, so leave untouched here
+cmake_policy(SET CMP0053 NEW) # less warnings about irrelevant stuff in comments
+configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/Config.cmake.in" @ONLY)
+#configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
 configure_file(cmake/PROJECT_NAMEConfigVersion.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in" @ONLY)
 configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
 
@@ -85,10 +87,10 @@ configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}.pc.in "${PROJECT_BINA
 
 
 # install cmake find_package configuration file
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  DESTINATION lib/cmake/${PROJECT_NAME} COMPONENT dev)
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  DESTINATION lib/cmake/${PROJECT_NAME} COMPONENT dev)
+#install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+#  DESTINATION lib/cmake/${PROJECT_NAME} COMPONENT dev)
+#install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+#  DESTINATION lib/cmake/${PROJECT_NAME} COMPONENT dev)
 
 # install same cmake configuration file another time into the Modules cmake subdirectory for compatibility reasons
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
@@ -99,3 +101,76 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION 
 
 # install configuration file for pkgconfig
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}.pc" DESTINATION share/pkgconfig COMPONENT dev)
+
+
+# Below comes stuff for the new auto-generated Target config by cmake, for imported targets
+# TODO - make the output merge with that defined above
+
+# set up namespaced alias
+# TODO - discuss naming. Should "ChimeraTK" appear inside namespace?
+# TODO - find out how name spacing should be used.
+#  - docu says, imported targets should be namespaced.
+#  - but it seems, file names and arguments to find_package do not use namespaces
+add_library(ChimeraTK::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+# add include directories
+# system includes, dependency includes, own includes
+# dependency includes: I think we can skip them if via imported target ?
+# system includes: PRIVATE, if consuming code also wants these, it should set it up by itself
+#target_include_directories(${PROJECT_NAME2}
+#                           PRIVATE
+#                           ${Boost_INCLUDE_DIRS} ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
+
+# For the exported target, all that we need is the own includes. Includes from our dependencies are added automatically, if they are handled via imported target
+# TODO - check exported target, does list include all the clutter from above?
+#  YES! Include dirs, all linker flags in main targets file, library location in targets-debug config file.
+# TODO - what does INSTALL_INTERFACE logic mean?
+# own includes: PUBLIC because consuming code might also use these
+#target_include_directories(${PROJECT_NAME}
+#                           PUBLIC
+#                           "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter>"
+#                           "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ChimeraTK/ControlSystemAdapter>")
+
+include(GNUInstallDirs) # defines CMAKE_INSTALL_LIBDIR etc
+
+# generate and install export file
+# TODO discuss - should we care about CONFIGURATIONS? They are only relevant if we intend to install e.g. Debug and Release into the same dir.
+# If it's clear that in production, only one (Release) config will be needed, we don't need them.
+install(EXPORT ${PROJECT_NAME}Targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        NAMESPACE ChimeraTK::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+)
+
+# include CMakePackageConfigHelpers macro
+include(CMakePackageConfigHelpers)
+
+# TODO - check how this merges with our version defs
+# generate the version file for the config file
+#write_basic_package_version_file(
+# TODO check - we might have a problem with overwitten files
+#  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
+# TODO - which version from set_version_numbers makes sense here?
+# for now, just take full version major.minor.patch
+#  VERSION "${PROJECT_NAME}_VERSION"
+  # TODO - look up whether that applies to us
+#  COMPATIBILITY AnyNewerVersion
+#)
+
+# create config file
+configure_package_config_file("${PROJECT_BINARY_DIR}/cmake/Config.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+
+message("install config files to DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
+# install cmake find_package configuration file
+install(FILES
+          "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+          "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+        # TODO - check whether this makes sense:
+        COMPONENT dev
+)
