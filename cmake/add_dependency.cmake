@@ -43,15 +43,28 @@ FUNCTION(add_dependency dependency_project_name required_version)
   # The depending target should either make use of the (modern) exported target, or use (legacy) ${dependency_project_name}_LIBRARY_DIRS
   
   #set the cxx flags used in the child project
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${${dependency_project_name}_CXX_FLAGS}" PARENT_SCOPE)
+  # CMAKE_CXX_FLAGS is space-separated
+  string(REPLACE ";" " " cmakeExtraCxxFlags "${${dependency_project_name}_CXX_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${cmakeExtraCxxFlags}" PARENT_SCOPE)
+  message("new CXX_FLAGS (${dependency_project_name}): ${cmakeExtraCxxFlags}")
   #set all the flags we found also in the parent scope, so the child can hand them over to the grand children
+  # <>_LIBRARIES is semicolon seperated in order that it can be used with target_link_libraries()
+  string(REPLACE " " ";" ${dependency_project_name}_LIBRARIES "${${dependency_project_name}_LIBRARIES}")
   SET(${dependency_project_name}_LIBRARIES ${${dependency_project_name}_LIBRARIES} PARENT_SCOPE)
-  SET(${dependency_project_name}_LIBRARY_DIRS "${${dependency_project_name}_LIBRARY_DIRS} ${${dependency_project_name}_LIBRARY_DIR}" PARENT_SCOPE)
-  SET(${dependency_project_name}_LINKER_FLAGS "${${dependency_project_name}_LINKER_FLAGS} ${${dependency_project_name}_LINK_FLAGS}" PARENT_SCOPE)
-  SET(${dependency_project_name}_LINK_FLAGS "${${dependency_project_name}_LINKER_FLAGS} ${${dependency_project_name}_LINK_FLAGS}" PARENT_SCOPE)
+  # <>_LIBRARY_DIRS is semicolon seperated in order that it can be used with target_link_directories()
+  string(REPLACE " " ";" ${dependency_project_name}_LIBRARY_DIRS "${${dependency_project_name}_LIBRARY_DIRS}")
+  SET(${dependency_project_name}_LIBRARY_DIRS "${${dependency_project_name}_LIBRARY_DIRS};${${dependency_project_name}_LIBRARY_DIR}" PARENT_SCOPE)
+  # <>_LINKER_FLAGS is semicolon seperated in order that it can be used with target_link_options()
+  string(REPLACE " " ";" ${dependency_project_name}_LINKER_FLAGS "${${dependency_project_name}_LINKER_FLAGS}")
+  SET(${dependency_project_name}_LINKER_FLAGS "${${dependency_project_name}_LINKER_FLAGS};${${dependency_project_name}_LINK_FLAGS}" PARENT_SCOPE)
+  SET(${dependency_project_name}_LINK_FLAGS "${${dependency_project_name}_LINKER_FLAGS};${${dependency_project_name}_LINK_FLAGS}" PARENT_SCOPE)
+  # <>_CXX_FLAGS is semicolon seperated in order that it can be used with target_compile_options
+  string(REPLACE " " ";" ${dependency_project_name}_CXX_FLAGS "${${dependency_project_name}_CXX_FLAGS}")
   SET(${dependency_project_name}_CXX_FLAGS "${${dependency_project_name}_CXX_FLAGS}" PARENT_SCOPE)
   SET(${dependency_project_name}_FOUND ${${dependency_project_name}_FOUND} PARENT_SCOPE)
   SET(${dependency_project_name}_VERSION ${${dependency_project_name}_VERSION} PARENT_SCOPE)
+  # <>_INCLUDE_DIRS is semicolon seperated in order that it can be used with target_include_directories
+  string(REPLACE " " ";" ${dependency_project_name}_INCLUDE_DIRS "${${dependency_project_name}_INCLUDE_DIRS}")
   SET(${dependency_project_name}_INCLUDE_DIRS ${${dependency_project_name}_INCLUDE_DIRS} PARENT_SCOPE)
   SET(${dependency_project_name}_PREFIX ${${dependency_project_name}_PREFIX} PARENT_SCOPE)
 ENDFUNCTION(add_dependency)

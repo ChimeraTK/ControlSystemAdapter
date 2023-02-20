@@ -70,7 +70,7 @@ endif()
 # we have nested @-statements, so we have to parse twice:
 
 # create the cmake find_package configuration file
-set(PACKAGE_INIT "PACKAGE_INIT") # replacement handled later, so leave untouched here
+set(PACKAGE_INIT "@PACKAGE_INIT@") # replacement handled later, so leave untouched here
 cmake_policy(SET CMP0053 NEW) # less warnings about irrelevant stuff in comments
 configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/Config.cmake.in" @ONLY)
 #configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
@@ -93,8 +93,9 @@ configure_file(${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}.pc.in "${PROJECT_BINA
 #  DESTINATION lib/cmake/${PROJECT_NAME} COMPONENT dev)
 
 # install same cmake configuration file another time into the Modules cmake subdirectory for compatibility reasons
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  DESTINATION share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules RENAME Find${PROJECT_NAME}.cmake COMPONENT dev)
+# TODO discuss whether necc. - it seems it breaks things now!
+#install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+#  DESTINATION share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules RENAME Find${PROJECT_NAME}.cmake COMPONENT dev)
 
 # install script for Makefiles
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config DESTINATION bin COMPONENT dev)
@@ -161,7 +162,6 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file("${PROJECT_BINARY_DIR}/cmake/Config.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-  NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
 message("install config files to DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
@@ -171,6 +171,5 @@ install(FILES
           "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
           "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-        # TODO - check whether this makes sense:
         COMPONENT dev
 )
