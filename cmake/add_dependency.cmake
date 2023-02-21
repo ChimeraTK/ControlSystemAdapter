@@ -33,15 +33,9 @@ FUNCTION(add_dependency dependency_project_name required_version)
     SET(components ${components} ${arg})
   endforeach()
   FIND_PACKAGE(${dependency_project_name} ${required_version} COMPONENTS ${components})
-  # putting include_directories here is BAD because it propages everything into the PUBLIC flags for all targets which are exported.
-  # include_directories(SYSTEM ${${dependency_project_name}_INCLUDE_DIRS} ${${dependency_project_name}_INCLUDE_DIR})
-  
-  # link_directories is BAD because it propages everything into the PUBLIC flags for all targets which are exported.
-  #link_directories(${${dependency_project_name}_LIBRARY_DIRS})
-  #link_directories(${${dependency_project_name}_LIBRARY_DIR})
-  # If build of a depending target fails because we remove this, it was not done correctly in the first place.
-  # The depending target should either make use of the (modern) exported target, or use (legacy) ${dependency_project_name}_LIBRARY_DIRS
-  
+  include_directories(SYSTEM ${${dependency_project_name}_INCLUDE_DIRS} ${${dependency_project_name}_INCLUDE_DIR})
+  link_directories(${${dependency_project_name}_LIBRARY_DIRS})
+  link_directories(${${dependency_project_name}_LIBRARY_DIR})
   #set the cxx flags used in the child project
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${${dependency_project_name}_CXX_FLAGS}" PARENT_SCOPE)
   #set all the flags we found also in the parent scope, so the child can hand them over to the grand children
