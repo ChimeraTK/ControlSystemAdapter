@@ -66,6 +66,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # no longer use add_dependency by directly find_package because we don't want pulled in options become PUBLIC
 FIND_PACKAGE(ChimeraTK-DeviceAccess 03.02 REQUIRED)
 formatOptionsAsArray(deviceAccessCxxFlags ${ChimeraTK-DeviceAccess_CXX_FLAGS})
+formatOptionsAsArray(deviceAccessLinkFlags ${ChimeraTK-DeviceAccess_LINK_FLAGS})
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
@@ -99,7 +100,6 @@ if(BUILD_TESTS)
     
     target_include_directories(${executableName} SYSTEM PRIVATE ${privateSystemIncludes})
     #Includes inside the library are local includes, so we give the full path to the include directory
-    # TODO check - maybe following line not neccesary
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
@@ -108,8 +108,7 @@ if(BUILD_TESTS)
     # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
     target_compile_options(${executableName} PUBLIC ${deviceAccessCxxFlags})
     target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
-    # TODO check - rpath should no longer be necc. here
-    set_target_properties(${executableName} PROPERTIES LINK_FLAGS "-Wl,-rpath,${PROJECT_BINARY_DIR} ${Boost_LINK_FLAGS} ${ChimeraTK-DeviceAccess_LINK_FLAGS}")
+    target_link_options(${executableName} PRIVATE ${Boost_LINK_FLAGS} ${deviceAccessLinkFlags})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 
