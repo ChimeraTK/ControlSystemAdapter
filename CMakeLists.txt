@@ -28,29 +28,14 @@ endfunction()
 
 #boost as such is required for shared pointers e.g.
 FIND_PACKAGE(Boost 1.58 REQUIRED)
-# these are becoming PUBLIC (TODO - should not do this)
-# TODO analyse what boost does. Since it already comes with exported target, does it also provide vars? Yes.
-# we certainly need them for compatibility with exports in pkgconfig format.
-# in which format are they then? Seperated by " " or ";" ? only up to one entry. But may be imported target name.
-# TODO - in our exported target, if necc. simply refer PUBLIC BOOST but not to details
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-
 #boost chrono is needed for measuring time intervals.
 FIND_PACKAGE(Boost REQUIRED COMPONENTS chrono)
-
 #boost system is needed by boost::lockfree.
 FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
-
 #boost thread is needed for synchronization and multi-threading
 FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
-
 #boost system is needed by some tests
 FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
-
-message("boost:${Boost_INCLUDE_DIRS}|${Boost_CXX_FLAGS}|${Boost_LINK_FLAGS}|${Boost_LIBRARY_DIRS}|${Boost_LIBRARIES}")
-message("boost component libs:${Boost_CHRONO_LIBRARY}|${Boost_SYSTEM_LIBRARY}|${Boost_THREAD_LIBRARY}")
-message("boost chrono details:${Boost_CHRONO_INCLUDE_DIRS}|${Boost_CHRONO_CXX_FLAGS}|${Boost_CHRONO_LINK_FLAGS}|${Boost_CHRONO_LIBRARY_DIRS}|${Boost_CHRONO_LIBRARIES}")
-message("boost thread details:${Boost_THREAD_INCLUDE_DIRS}|${Boost_THREAD_CXX_FLAGS}|${Boost_THREAD_LINK_FLAGS}|${Boost_THREAD_LIBRARY_DIRS}|${Boost_THREAD_LIBRARIES}")
 
 #the unit test component is optional
 option(BUILD_TESTS "Build test programs" ON)
