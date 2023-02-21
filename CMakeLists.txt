@@ -82,8 +82,6 @@ if(BUILD_TESTS)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
-    # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
-    target_compile_options(${executableName} PUBLIC ${ChimeraTK-DeviceAccess_CXX_FLAGS})
     target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
     set_target_properties(${executableName} PROPERTIES LINK_FLAGS "-Wl,-rpath,${PROJECT_BINARY_DIR} ${Boost_LINK_FLAGS} ${ChimeraTK-DeviceAccess_LINK_FLAGS}")
     add_test(${executableName} ${executableName})
@@ -104,9 +102,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/C
 target_include_directories(${PROJECT_NAME} PUBLIC 
     "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>")
-# TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
-message("new compile options from deviceAccess: ${ChimeraTK-DeviceAccess_CXX_FLAGS}")
-target_compile_options(${PROJECT_NAME} PUBLIC ${ChimeraTK-DeviceAccess_CXX_FLAGS})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LibXML++_LDFLAGS} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})

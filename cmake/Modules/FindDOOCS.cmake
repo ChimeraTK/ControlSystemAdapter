@@ -82,6 +82,9 @@ list(APPEND DOOCS_FIND_COMPONENTS libgul14)
 
 pkg_check_modules(DOOCS REQUIRED ${DOOCS_FIND_COMPONENTS})
 
+string(REPLACE ";" " " DOOCS_CFLAGS "${DOOCS_CFLAGS}")
+string(REPLACE ";" " " DOOCS_LDFLAGS "${DOOCS_LDFLAGS}")
+
 # thread libraries are required by DOOCS but seem not to be added through pkgconfig...
 find_package(Threads REQUIRED)
 
