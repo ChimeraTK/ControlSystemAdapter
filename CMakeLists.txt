@@ -42,11 +42,13 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # no longer use add_dependency by directly find_package because we don't want pulled in options become PUBLIC
 FIND_PACKAGE(ChimeraTK-DeviceAccess 03.02 REQUIRED)
 formatOptionsAsArray(deviceAccessCxxFlags ${ChimeraTK-DeviceAccess_CXX_FLAGS})
+formatOptionsAsArray(deviceAccessIncDirs ${ChimeraTK-DeviceAccess_INCLUDE_DIRS})
 formatOptionsAsArray(deviceAccessLinkFlags ${ChimeraTK-DeviceAccess_LINK_FLAGS})
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
+#TODO use imported target
 PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
 PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
 # note, privateSystemIncludes is already defined as array so it can we used with target_link_libs
@@ -82,8 +84,9 @@ if(BUILD_TESTS)
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
     # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
+    target_include_directories(${executableName} PRIVATE ${deviceAccessIncDirs})
     target_compile_options(${executableName} PRIVATE ${deviceAccessCxxFlags})
-    target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
+    target_link_libraries(${executableName} PRIVATE ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
     target_link_options(${executableName} PRIVATE ${Boost_LINK_FLAGS} ${deviceAccessLinkFlags})
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
@@ -104,6 +107,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     # relative to ${CMAKE_INSTALL_PREFIX} but don't explicitly mention it, to make result relocatable
     "$<INSTALL_INTERFACE:include>")
 # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
+message("deviceAccess inc dirs: ${deviceAccessIncDirs}")
+target_include_directories(${PROJECT_NAME} PRIVATE ${deviceAccessIncDirs})
 target_compile_options(${PROJECT_NAME} PUBLIC ${deviceAccessCxxFlags})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
