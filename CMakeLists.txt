@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
-cmake_policy(SET CMP0028 NEW) # disables a warning
+cmake_minimum_required(VERSION 3.16)
 
 project(ChimeraTK-ControlSystemAdapter)
 
@@ -16,15 +15,7 @@ include(cmake/enable_code_coverage_report.cmake)
 
 # we support our cmake EXPORTS as imported targets
 set(PROVIDES_EXPORTED_TARGETS 1)
-
-# TODO - maybe move this to project template:
-# function that reformat flags so they become compatible with target_compile_options, target_link_options etc.
-function(formatOptionsAsArray outVar inVar)
-    string(REGEX REPLACE " +" ";" tmpVar "${inVar}")
-    string(REGEX REPLACE "^;+" "" tmpVar "${tmpVar}")
-    string(REGEX REPLACE ";+$" "" tmpVar "${tmpVar}")
-    set(${outVar} "${tmpVar}" PARENT_SCOPE)
-endfunction()
+include(cmake/format_options.cmake)
 
 #boost as such is required for shared pointers e.g.
 FIND_PACKAGE(Boost 1.58 REQUIRED)
@@ -58,7 +49,7 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
 PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
 PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
-# note, privateSystemIncludes is already separated by ; so it can we used with target_link_libs
+# note, privateSystemIncludes is already defined as array so it can we used with target_link_libs
 set(privateSystemIncludes ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
 
 # libatomic is required on some patforms (and doesn't hurt on the others)
@@ -89,9 +80,9 @@ if(BUILD_TESTS)
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
-    target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
+    target_include_directories(${executableName} SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
     # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
-    target_compile_options(${executableName} PUBLIC ${deviceAccessCxxFlags})
+    target_compile_options(${executableName} PRIVATE ${deviceAccessCxxFlags})
     target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
     target_link_options(${executableName} PRIVATE ${Boost_LINK_FLAGS} ${deviceAccessLinkFlags})
     add_test(${executableName} ${executableName})
@@ -108,10 +99,10 @@ add_library(${PROJECT_NAME} SHARED ${library_sources} )
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${privateSystemIncludes})
 #Includes inside the library are local includes, so we give the full path to the include directory
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
-# TODO check targets output for this - relocatable paths?
 target_include_directories(${PROJECT_NAME} PUBLIC 
     "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>")
+    # relative to ${CMAKE_INSTALL_PREFIX} but don't explicitly mention it, to make result relocatable
+    "$<INSTALL_INTERFACE:include>")
 # TODO remove later - this line is needed as long as DeviceAccess is not yet imported target
 target_compile_options(${PROJECT_NAME} PUBLIC ${deviceAccessCxxFlags})
 
