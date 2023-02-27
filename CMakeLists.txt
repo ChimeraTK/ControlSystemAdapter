@@ -48,11 +48,8 @@ formatOptionsAsArray(deviceAccessLinkFlags ${ChimeraTK-DeviceAccess_LINK_FLAGS})
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
-#TODO use imported target
-PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
-PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
-# note, privateSystemIncludes is already defined as array so it can we used with target_link_libs
-set(privateSystemIncludes ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
+PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
+PKG_CHECK_MODULES(glib REQUIRED IMPORTED_TARGET glib-2.0)
 
 # libatomic is required on some patforms (and doesn't hurt on the others)
 find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
@@ -76,7 +73,6 @@ if(BUILD_TESTS)
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
     
-    target_include_directories(${executableName} SYSTEM PRIVATE ${privateSystemIncludes})
     #Includes inside the library are local includes, so we give the full path to the include directory
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
@@ -99,7 +95,6 @@ if(BUILD_TESTS)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${privateSystemIncludes})
 #Includes inside the library are local includes, so we give the full path to the include directory
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 target_include_directories(${PROJECT_NAME} PUBLIC 
@@ -112,7 +107,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${deviceAccessIncDirs})
 target_compile_options(${PROJECT_NAME} PUBLIC ${deviceAccessCxxFlags})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${LibXML++_LDFLAGS} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++ PkgConfig::glib)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${atomic-library} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES})
 
 #Install the library
