@@ -74,8 +74,9 @@ if(BUILD_TESTS)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(${executableName} PRIVATE ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ChimeraTK::ChimeraTK-DeviceAccess pthread)
-    target_link_options(${executableName} PRIVATE ${Boost_LINK_FLAGS} )
+    target_link_libraries(${executableName} PRIVATE ${atomic-library} ${PROJECT_NAME}
+        Boost::chrono Boost::system Boost::thread Boost::filesystem
+        ChimeraTK::ChimeraTK-DeviceAccess pthread)
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 
@@ -96,7 +97,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++ PkgConfig::glib)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${atomic-library} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ChimeraTK::ChimeraTK-DeviceAccess)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${atomic-library} 
+    Boost::chrono Boost::system Boost::thread 
+    ChimeraTK::ChimeraTK-DeviceAccess)
 
 #Install the library
 install(TARGETS ${PROJECT_NAME}
