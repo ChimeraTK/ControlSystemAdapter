@@ -4,7 +4,6 @@
 #include <list>
 #include <utility>
 
-#include <boost/atomic.hpp>
 #include <boost/lockfree/queue.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
