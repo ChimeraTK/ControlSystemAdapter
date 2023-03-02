@@ -33,7 +33,7 @@ IF(BUILD_TESTS)
   ENABLE_TESTING()
 ENDIF()
 
-#turn on the rpath so dependencies are found properly
+# do not remove runtime paths of the library when installing (helps for unsually located implicit dependencies)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
@@ -74,9 +74,12 @@ if(BUILD_TESTS)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
     target_include_directories(${executableName} SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(${executableName} PRIVATE ${atomic-library} ${PROJECT_NAME}
-        Boost::chrono Boost::system Boost::thread Boost::filesystem
-        ChimeraTK::ChimeraTK-DeviceAccess pthread)
+    target_link_libraries(${executableName} 
+        # most of the time we set dependencies for tests to PRIVATE; however since ReferenceTestApplication
+        # gets installed and is header-only, in this case we put PUBLIC
+        PUBLIC ${PROJECT_NAME}
+        # not yet implicit from CSAdapter
+        PUBLIC Boost::filesystem pthread)
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 
@@ -97,7 +100,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++ PkgConfig::glib)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${atomic-library} 
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC ${atomic-library} 
     Boost::chrono Boost::system Boost::thread 
     ChimeraTK::ChimeraTK-DeviceAccess)
 
@@ -119,7 +123,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
         FILES_MATCHING
             PATTERN "ChimeraTK/ControlSystemAdapter/Testing/*.h")
 
-# Note, variables below are provided only for compatibility; we prefer cmake exports.
+# (this section is for compatibility only, no longer required when consuming project uses imported target)
 #Create the config files by filling the correct variables into the template (*.cmake.in).
 #All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
 #Only the reference header is needed. The other variables are for dependencies of this library,
@@ -133,7 +137,11 @@ set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath,${CMAKE_INSTALL_PREFIX}/lib ${Chime
 else()
 set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
 endif()
-list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "Boost COMPONENTS system thread filesystem date_time atomic chrono")
+# (end of compatibility section)
+
+# we need the public dependencies so create_cmake_config_files can find them as implicit dependencies
+list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "Boost COMPONENTS system thread filesystem date_time chrono")
+list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "ChimeraTK-DeviceAccess")
 
 # we support our cmake EXPORTS as imported targets
 set(PROVIDES_EXPORTED_TARGETS 1)
