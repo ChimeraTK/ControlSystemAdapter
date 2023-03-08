@@ -29,7 +29,7 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
 #the unit test component is optional
 option(BUILD_TESTS "Build test programs" ON)
 IF(BUILD_TESTS)
-  FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
+  FIND_PACKAGE(Boost REQUIRED COMPONENTS unit_test_framework)
   ENABLE_TESTING()
 ENDIF()
 
