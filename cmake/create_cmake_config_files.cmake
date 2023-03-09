@@ -73,15 +73,15 @@ function(resolveImportedLib lib linkLibs linkFlags incDirs cxxFlags)
     elseif(lib MATCHES "^[ \t]*-l")   # library name does not contain slashes but already the -l option: directly quote it
         appendToList(linkLibs1 "${lib}")
     elseif(lib MATCHES "::")    # library name is an imported target - we need to resolve it for Makefiles
-        get_target_property(_libraryType ${lib} TYPE)
-        if (${_libraryType} MATCHES "-NOTFOUND")
-            message(FATAL_ERROR "dependency ${lib} was not found!")
+        if (NOT TARGET ${lib})
+            message(FATAL_ERROR "dependency ${lib} not available as target, maybe find_package was forgotten?")
         endif()
+        get_target_property(_libraryType ${lib} TYPE)
         if ((${_libraryType} MATCHES SHARED_LIBRARY) OR (${_libraryType} MATCHES STATIC_LIBRARY))
             if(";${lib};" MATCHES ";.*::${PROJECT_NAME};")
                 # We cannot find target library location of this project via target properties at this point.
                 # Therefore, we simply assume that by convention, all our libs are installed into ${CMAKE_INSTALL_PREFIX}/lib.
-                # Exceptions are allowed of a -L<libdir> is already in linker flags.
+                # Exceptions are allowed if -L<libdir> is already in linker flags
                 appendToList(linkFlags1 "-L${CMAKE_INSTALL_PREFIX}/lib")
                 appendToList(linkLibs1 "-l${PROJECT_NAME}")
             else()
@@ -94,6 +94,9 @@ function(resolveImportedLib lib linkLibs linkFlags incDirs cxxFlags)
         if (NOT "${_linkLibs}" MATCHES "-NOTFOUND")
             message("imported target ${lib} is interface, recursively go over its interface requirements ${_linkLibs}")
             foreach(_lib ${_linkLibs})
+                if (${lib} STREQUAL ${_lib})
+                    message(FATAL_ERROR "self-reference in dependencies of ${_lib}! Aborting recursion.")
+                endif()
                 resolveImportedLib(${_lib} linkLibs2 linkFlags2 incDirs2 cxxFlags2)
                 appendToList(linkLibs1 "${linkLibs2}")
                 appendToList(linkFlags1 "${linkFlags2}")
@@ -101,6 +104,7 @@ function(resolveImportedLib lib linkLibs linkFlags incDirs cxxFlags)
                 appendToList(cxxFlags1 "${cxxFlags2}")
             endforeach()
         endif()
+
         get_target_property(_incDirs ${lib} INTERFACE_INCLUDE_DIRECTORIES)
         if (NOT "${_incDirs}" MATCHES "-NOTFOUND")
             foreach(INCLUDE_DIR ${_incDirs})
@@ -145,7 +149,8 @@ endfunction()
 # sets the vars 
 # ${PROJECT_NAME}_INCLUDE_DIRS, ${PROJECT_NAME}_CXX_FLAGS, ${PROJECT_NAME}_LINKER_FLAGS ${PROJECT_NAME}_LIBRARIES
 # so that compatibility layer is provided automatically.
-# ${PROJECT_NAME}_LIBRARY_DIRS is no longer used, ${PROJECT_NAME}_LIBRARIES is fully resolved.
+# ${PROJECT_NAME}_LIBRARY_DIRS is no longer output, ${PROJECT_NAME}_LIBRARIES is fully resolved.
+# For compatibility, any input library dirs are added to linker flags.
 if(${PROVIDES_EXPORTED_TARGETS})
     #  imported targets should be namespaced, so define namespaced alias
     add_library(ChimeraTK::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -204,6 +209,9 @@ endif()
 
 set(${PROJECT_NAME}_PUBLIC_DEPENDENCIES_L "")
 foreach(DEPENDENCY ${${PROJECT_NAME}_PUBLIC_DEPENDENCIES})
+    # we only care about required dependencies: if some lib has an optional dependency and is built against it 
+    # after it has been found, the dependency became mandatory for downstream libs.
+    # Note, keyword REQUIRED as not according to spec but it works...
     string(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES_L "find_package(${DEPENDENCY} REQUIRED)\n")
 endforeach()
 
@@ -224,7 +232,7 @@ endif()
 # create the cmake find_package configuration file
 set(PACKAGE_INIT "@PACKAGE_INIT@") # replacement handled later, so leave untouched here
 cmake_policy(SET CMP0053 NEW) # less warnings about irrelevant stuff in comments
-configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/Config.cmake.in" @ONLY)
+configure_file(cmake/PROJECT_NAMEConfig.cmake.in.in "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in" @ONLY)
 if(${PROVIDES_EXPORTED_TARGETS})
     # we will configure later
 else()
@@ -252,21 +260,18 @@ if(${PROVIDES_EXPORTED_TARGETS})
     #  imported targets should be namespaced, so define namespaced alias
     add_library(ChimeraTK::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-    # defines CMAKE_INSTALL_LIBDIR etc
-    include(GNUInstallDirs)
-
     # generate and install export file
     install(EXPORT ${PROJECT_NAME}Targets
             FILE ${PROJECT_NAME}Targets.cmake
             NAMESPACE ChimeraTK::
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+            DESTINATION "lib/cmake/${PROJECT_NAME}"
     )
 
     include(CMakePackageConfigHelpers)
     # create config file
-    configure_package_config_file("${PROJECT_BINARY_DIR}/cmake/Config.cmake.in"
+    configure_package_config_file("${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
       "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-      INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+      INSTALL_DESTINATION "lib/cmake/${PROJECT_NAME}"
     )
 
     # remove any previously installed share/cmake-xx/Modules/Find<ProjectName>.cmake from this project since it does not harmonize with new Config
@@ -284,7 +289,7 @@ endif()
 install(FILES
           "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
           "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+        DESTINATION "lib/cmake/${PROJECT_NAME}"
         COMPONENT dev
 )
 
