@@ -5,8 +5,8 @@ project(ChimeraTK-ControlSystemAdapter)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 02)
-set(${PROJECT_NAME}_MINOR_VERSION 05)
-set(${PROJECT_NAME}_PATCH_VERSION 01)
+set(${PROJECT_NAME}_MINOR_VERSION 06)
+set(${PROJECT_NAME}_PATCH_VERSION 00)
 include(cmake/set_version_numbers.cmake)
 
 include(cmake/set_default_build_to_release.cmake)
@@ -38,7 +38,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
 # no longer use add_dependency by directly find_package because we don't want pulled in options become PUBLIC
-FIND_PACKAGE(ChimeraTK-DeviceAccess 03.02 REQUIRED)
+FIND_PACKAGE(ChimeraTK-DeviceAccess 03.08 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
