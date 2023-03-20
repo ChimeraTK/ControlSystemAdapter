@@ -1,53 +1,50 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16)
 
 project(ChimeraTK-ControlSystemAdapter)
 
-include(cmake/add_dependency.cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
 set(${PROJECT_NAME}_MAJOR_VERSION 02)
-set(${PROJECT_NAME}_MINOR_VERSION 05)
-set(${PROJECT_NAME}_PATCH_VERSION 01)
+set(${PROJECT_NAME}_MINOR_VERSION 06)
+set(${PROJECT_NAME}_PATCH_VERSION 00)
 include(cmake/set_version_numbers.cmake)
 
 include(cmake/set_default_build_to_release.cmake)
 include(cmake/set_default_flags.cmake)
 include(cmake/enable_code_coverage_report.cmake)
 
+include(cmake/format_options.cmake)
+
 #boost as such is required for shared pointers e.g.
 FIND_PACKAGE(Boost 1.58 REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-
 #boost chrono is needed for measuring time intervals.
 FIND_PACKAGE(Boost REQUIRED COMPONENTS chrono)
-
 #boost system is needed by boost::lockfree.
 FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
-
 #boost thread is needed for synchronization and multi-threading
 FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
-
 #boost system is needed by some tests
 FIND_PACKAGE(Boost REQUIRED COMPONENTS filesystem)
 
 #the unit test component is optional
 option(BUILD_TESTS "Build test programs" ON)
 IF(BUILD_TESTS)
-  FIND_PACKAGE(Boost COMPONENTS unit_test_framework REQUIRED)
+  FIND_PACKAGE(Boost REQUIRED COMPONENTS unit_test_framework)
   ENABLE_TESTING()
 ENDIF()
 
-#turn on the rpath so dependencies are found properly
+# do not remove runtime paths of the library when installing (helps for unsually located implicit dependencies)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
-add_dependency(ChimeraTK-DeviceAccess 03.02 REQUIRED)
+# no longer use add_dependency by directly find_package because we don't want pulled in options become PUBLIC
+FIND_PACKAGE(ChimeraTK-DeviceAccess 03.08 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
-PKG_CHECK_MODULES(LibXML++ REQUIRED ${LIBXML++_VERSION})
-PKG_CHECK_MODULES(glib REQUIRED glib-2.0)
-include_directories(SYSTEM ${glib_INCLUDE_DIRS} ${LibXML++_INCLUDE_DIRS})
+PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
+PKG_CHECK_MODULES(glib REQUIRED IMPORTED_TARGET glib-2.0)
 
 # libatomic is required on some patforms (and doesn't hurt on the others)
 find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
@@ -58,27 +55,31 @@ if(NOT atomic-library)
   set(atomic-library "")
 endif()
 
-#Includes inside the library are local includes, so we give the full path to the include directory
-include_directories(${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 #Create the executables for automated unit testing.
 #Currently we assume that they are all tests contained in one file, so
 #each file gives a new executable. This section has to be adapted if this should change.
 if(BUILD_TESTS)
-  #include_directories(${CMAKE_SOURCE_DIR}/tests/include)
   aux_source_directory(${CMAKE_SOURCE_DIR}/tests/src testSources)
   aux_source_directory(${CMAKE_SOURCE_DIR}/tests/auxsrc testAuxSources)
   foreach( testSourceFile ${testSources})
     #NAME_WE means the base name without path and (longest) extension
     get_filename_component(executableName ${testSourceFile} NAME_WE)
     add_executable(${executableName} ${testSourceFile} ${testAuxSources})
+    
+    #Includes inside the library are local includes, so we give the full path to the include directory
+    target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
     target_include_directories(${executableName} PRIVATE ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing)
     #The ReferenceTestApplication is written to work with the control system adapter as installed, so
     #we add that path as system just for the tests.
-    target_include_directories(${executableName} SYSTEM BEFORE PUBLIC ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(${executableName} ${atomic-library} ${PROJECT_NAME} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} pthread)
-    set_target_properties(${executableName} PROPERTIES LINK_FLAGS "-Wl,-rpath,${PROJECT_BINARY_DIR} ${Boost_LINK_FLAGS} ${ChimeraTK-DeviceAccess_LINK_FLAGS}")
+    target_include_directories(${executableName} SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(${executableName} 
+        # most of the time we set dependencies for tests to PRIVATE; however since ReferenceTestApplication
+        # gets installed and is header-only, in this case we put PUBLIC
+        PUBLIC ${PROJECT_NAME}
+        # not yet implicit from CSAdapter
+        PUBLIC Boost::filesystem pthread)
     add_test(${executableName} ${executableName})
   endforeach( testSourceFile )
 
@@ -90,11 +91,23 @@ if(BUILD_TESTS)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${library_sources} )
+#Includes inside the library are local includes, so we give the full path to the include directory
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>"
+    # relative to ${CMAKE_INSTALL_PREFIX} but don't explicitly mention it, to make result relocatable
+    "$<INSTALL_INTERFACE:include>")
+
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
-target_link_libraries(${PROJECT_NAME} ${atomic-library} ${LibXML++_LDFLAGS} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES} ${LibXML++_LIBRARIES} ${glib_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++ PkgConfig::glib)
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC ${atomic-library} 
+    Boost::chrono Boost::system Boost::thread 
+    ChimeraTK::ChimeraTK-DeviceAccess)
 
 #Install the library
 install(TARGETS ${PROJECT_NAME}
+            EXPORT ${PROJECT_NAME}Targets
             RUNTIME DESTINATION bin
             LIBRARY DESTINATION lib
 )
@@ -110,20 +123,11 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/include/  DESTINATION include
         FILES_MATCHING
             PATTERN "ChimeraTK/ControlSystemAdapter/Testing/*.h")
 
-#Create the config files by filling the correct variables into the template (*.cmake.in).
-#All variables @VARIABLE@ are replaced with the current values, but they have to be set first....
-#Only the reference header is needed. The other variables are for dependencies of this library,
-#but there are none.
-set(${PROJECT_NAME}_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include ${Boost_INCLUDE_DIRS}")
-set(${PROJECT_NAME}_LIBRARIES "${atomic-library} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${ChimeraTK-DeviceAccess_LIBRARIES}")
-set(${PROJECT_NAME}_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib ${Boost_LIBRARY_DIRS} ${ChimeraTK-DeviceAccess_LIBRARY_DIRS}")
-set(${PROJECT_NAME}_CXX_FLAGS "${ChimeraTK-DeviceAccess_CXX_FLAGS}")
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath,${CMAKE_INSTALL_PREFIX}/lib ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
-else()
-set(${PROJECT_NAME}_LINKER_FLAGS "-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib,--enable-new-dtags ${ChimeraTK-DeviceAccess_LINKER_FLAGS}")
-endif()
-list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "Boost COMPONENTS system thread filesystem date_time atomic chrono")
+# we need the public dependencies so create_cmake_config_files can find them as implicit dependencies
+list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "Boost COMPONENTS system thread filesystem date_time chrono")
+list(APPEND ${PROJECT_NAME}_PUBLIC_DEPENDENCIES "ChimeraTK-DeviceAccess")
+# we support our cmake EXPORTS as imported targets
+set(PROVIDES_EXPORTED_TARGETS 1)
 include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 
 
@@ -132,4 +136,3 @@ include(${CMAKE_SOURCE_DIR}/cmake/create_cmake_config_files.cmake)
 #include(${CMAKE_SOURCE_DIR}/cmake/prepare_debian_package.cmake)
 
 include(${CMAKE_SOURCE_DIR}/cmake/enable_doxygen_documentation.cmake)
-

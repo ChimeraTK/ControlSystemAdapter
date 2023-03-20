@@ -6,7 +6,6 @@
 
 namespace ChimeraTK {
 
-  using boost::atomic;
   using boost::shared_ptr;
   using std::list;
 
