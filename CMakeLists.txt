@@ -44,7 +44,6 @@ FIND_PACKAGE(ChimeraTK-DeviceAccess 03.09 REQUIRED)
 FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
 PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
-PKG_CHECK_MODULES(glib REQUIRED IMPORTED_TARGET glib-2.0)
 
 # libatomic is required on some patforms (and doesn't hurt on the others)
 find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
@@ -99,7 +98,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "$<INSTALL_INTERFACE:include>")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
-target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++ PkgConfig::glib)
+target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++)
 target_link_libraries(${PROJECT_NAME} 
     PUBLIC ${atomic-library} 
     Boost::chrono Boost::system Boost::thread 
