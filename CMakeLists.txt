@@ -106,10 +106,11 @@ target_link_libraries(${PROJECT_NAME}
     ChimeraTK::ChimeraTK-DeviceAccess)
 
 #Install the library
+# this defines architecture-dependent ${CMAKE_INSTALL_LIBDIR}
+include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
             EXPORT ${PROJECT_NAME}Targets
-            RUNTIME DESTINATION bin
-            LIBRARY DESTINATION lib
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 #all include files go into include
