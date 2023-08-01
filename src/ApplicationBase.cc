@@ -7,6 +7,8 @@
 
 #include "ApplicationBase.h"
 
+#include "ApplicationFactory.h"
+
 namespace ChimeraTK {
 
   /*********************************************************************************************************************/
@@ -67,8 +69,7 @@ namespace ChimeraTK {
 
   ApplicationBase& ApplicationBase::getInstance() {
     if(instance == nullptr) {
-      throw ChimeraTK::logic_error("No instance of ChimeraTK::ApplicationBase created, but "
-                                   "ApplicationBase::getInstance() called.");
+      return ApplicationFactoryBase::getApplicationInstance();
     }
     return *instance;
   }
