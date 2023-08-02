@@ -14,8 +14,8 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   std::unique_ptr<ApplicationBase> ApplicationFactoryBase::_applicationInstance;
-  std::mutex ApplicationFactoryBase::_factoryFunctionMutex;
   std::function<void()> ApplicationFactoryBase::_factoryFunction;
+  bool ApplicationFactoryBase::_factoryIsCreating{false};
 
   /*********************************************************************************************************************/
 
@@ -26,7 +26,7 @@ namespace ChimeraTK {
       return *_applicationInstance;
     }
 
-    std::lock_guard<std::mutex> lock(_factoryFunctionMutex);
+    std::lock_guard<std::recursive_mutex> lock(ApplicationBase::instanceMutex);
     // Re-check that the application has not been created in the mean time (race condition)
     if(_applicationInstance) {
       return *_applicationInstance;
@@ -36,7 +36,9 @@ namespace ChimeraTK {
       throw ChimeraTK::logic_error("No instance of ApplicationFactory created, but "
                                    "ApplicationFactoryBase::getApplicationInstance() called.");
     }
+    _factoryIsCreating = true;
     _factoryFunction();
+    _factoryIsCreating = false;
 
     return *_applicationInstance;
   }
@@ -44,7 +46,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   ApplicationFactoryBase::~ApplicationFactoryBase() {
-    std::lock_guard<std::mutex> lock(_factoryFunctionMutex);
+    std::lock_guard<std::recursive_mutex> lock(ApplicationBase::instanceMutex);
     _factoryFunction = nullptr;
     _applicationInstance.reset();
   }

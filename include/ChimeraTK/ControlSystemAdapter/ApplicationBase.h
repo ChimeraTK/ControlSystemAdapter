@@ -102,7 +102,12 @@ namespace ChimeraTK {
     static ApplicationBase* instance;
 
     /** Mutex for thread-safety when setting the instance pointer */
-    static std::mutex instance_mutex;
+    static std::recursive_mutex instanceMutex;
+
+    template<typename APPLICATION_TYPE>
+    friend class ApplicationFactory;
+
+    friend class ApplicationFactoryBase;
   };
 
 } /* namespace ChimeraTK */

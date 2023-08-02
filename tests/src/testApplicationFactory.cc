@@ -55,12 +55,48 @@ BOOST_AUTO_TEST_CASE(testWithParams) {
   BOOST_TEST(withParams->b = 5.8);
 }
 
-BOOST_AUTO_TEST_CASE(doubleInstance) {
+BOOST_AUTO_TEST_CASE(doubleFactoryInstance) {
   ApplicationFactory<ReferenceTestApplication> appFactory;
 
   try {
     ApplicationFactory<AppWithParams> appFactory2(3, 5.8);
     BOOST_ERROR("ApplicationFactory constructor did not throw as expected.");
+  }
+  catch(ChimeraTK::logic_error& e) {
+    std::cout << "Exception message debug printout: " << e.what() << std::endl;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(doubleAppInstance) {
+  ReferenceTestApplication app1;
+
+  try {
+    AppWithParams app2(3, 5.8);
+    BOOST_ERROR("ApplicationFactory constructor did not throw as expected.");
+  }
+  catch(ChimeraTK::logic_error& e) {
+    std::cout << "Exception message debug printout: " << e.what() << std::endl;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(appPlusFactory) {
+  ReferenceTestApplication app;
+
+  try {
+    ApplicationFactory<ReferenceTestApplication> appFactory;
+    BOOST_ERROR("ApplicationFactory constructor did not throw as expected.");
+  }
+  catch(ChimeraTK::logic_error& e) {
+    std::cout << "Exception message debug printout: " << e.what() << std::endl;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(factoryPlusApp) {
+  ApplicationFactory<ReferenceTestApplication> appFactory;
+
+  try {
+    ReferenceTestApplication app;
+    BOOST_ERROR("ReferenceTestApplication constructor did not throw as expected.");
   }
   catch(ChimeraTK::logic_error& e) {
     std::cout << "Exception message debug printout: " << e.what() << std::endl;

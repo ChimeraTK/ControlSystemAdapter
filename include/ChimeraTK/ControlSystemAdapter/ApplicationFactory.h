@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 #pragma once
 
+#include "ApplicationBase.h"
+
 #include <ChimeraTK/Exception.h>
 
 #include <functional>
@@ -10,7 +12,6 @@
 
 namespace ChimeraTK {
 
-  class ApplicationBase;
 
   /*********************************************************************************************************************/
 
@@ -30,12 +31,16 @@ namespace ChimeraTK {
     /** Pointer to the only instance of the application.*/
     static std::unique_ptr<ApplicationBase> _applicationInstance;
 
-    /** Mutex for thread-safety when setting the function pointer. */
-    static std::mutex _factoryFunctionMutex;
-
     /** Create the actual application and set the instance pointer.
      */
     static std::function<void()> _factoryFunction;
+
+    /** Flag to signal to the ApplicationBase constructor that it is being created by a factory.
+     *  Protected by the ApplicationBase::instanceMutex.
+     */
+    static bool _factoryIsCreating;
+
+    friend class ApplicationBase;
   };
 
   /*********************************************************************************************************************/
@@ -57,7 +62,29 @@ namespace ChimeraTK {
       if(_factoryFunction) {
         throw ChimeraTK::logic_error("Multiple instances of ChimeraTK::ApplicationFactory cannot be created.");
       }
-      std::lock_guard<std::mutex> lock(_factoryFunctionMutex);
+      // Use the ApplicatioBase instance mutex to prevent concurrent creation of Applications outside a factory and of other factories
+      std::lock_guard<std::recursive_mutex> lock(ApplicationBase::instanceMutex);
+      if(ApplicationBase::instance) {
+        std::cerr << "*************************************************************"
+                     "***************************************"
+                  << std::endl;
+        std::cerr << "Logic error when creating an ChimeraTK::ApplicationFactory: An instance of "
+                     "ChimeraTK::ApplicationBase already exists."
+                  << std::endl;
+        std::cerr << "You cannot use directly created Applications and an ApplicationFactory at the same time."
+                  << std::endl
+                  << std::endl;
+        std::cerr << "*** Remove all directly created (probably static) instances of the Application and only use the "
+                     "ApplicationFactory! ***"
+                  << std::endl
+                  << std::endl;
+        std::cerr << "*************************************************************"
+                     "***************************************"
+                  << std::endl;
+        throw ChimeraTK::logic_error(
+            "Creating a ChimeraTK::ApplicationFactory when a ChimeraTK::Application already exists is not "
+            "allowed.");
+      }
       _factoryFunction =
           std::bind(&ApplicationFactory<APPLICATION_TYPE>::factoryFunctionImpl<APPLICATION_ARGS...>, this, args...);
     }

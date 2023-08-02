@@ -14,14 +14,35 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   ApplicationBase* ApplicationBase::instance = nullptr;
-  std::mutex ApplicationBase::instance_mutex;
+  std::recursive_mutex ApplicationBase::instanceMutex;
 
   /*********************************************************************************************************************/
 
   ApplicationBase::ApplicationBase(const std::string& name) : applicationName(name) {
-    std::lock_guard<std::mutex> lock(instance_mutex);
+    std::lock_guard<std::recursive_mutex> lock(instanceMutex);
+    // Protection against creating multiple instances manually
     if(instance != nullptr) {
       throw ChimeraTK::logic_error("Multiple instances of ChimeraTK::ApplicationBase cannot be created.");
+    }
+    // Protection against manual creation when a factory exists.
+    if(ApplicationFactoryBase::_factoryFunction && !ApplicationFactoryBase::_factoryIsCreating) {
+      std::cerr << "***************************************************************"
+                   "*************************************"
+                << std::endl;
+
+      std::cerr << "Logic error when creating an ApplicationBase: An ApplicationFactory already exists." << std::endl;
+      std::cerr << "You cannot use directly created Applications and an ApplicationFactory at the same time."
+                << std::endl
+                << std::endl;
+      std::cerr << "*** Remove all directly created (probably static) instances of the Application and only use the "
+                   "ApplicationFactory! ***"
+                << std::endl
+                << std::endl;
+      std::cerr << "***************************************************************"
+                   "*************************************"
+                << std::endl;
+      throw ChimeraTK::logic_error(
+          "Directly creating a ChimeraTK::Application when a ChimeraTK::ApplicationFactory exists is not allowed.");
     }
     instance = this;
   }
@@ -54,7 +75,7 @@ namespace ChimeraTK {
   void ApplicationBase::shutdown() {
     // finally clear the global instance pointer and mark this instance as shut
     // down
-    std::lock_guard<std::mutex> lock(instance_mutex);
+    std::lock_guard<std::recursive_mutex> lock(instanceMutex);
     instance = nullptr;
     hasBeenShutdown = true;
   }
