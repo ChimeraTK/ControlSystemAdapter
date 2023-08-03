@@ -11,6 +11,8 @@
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
+/*********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(testNoFactoryNoInstance) {
   try {
     (void)ApplicationBase::getInstance();
@@ -29,6 +31,8 @@ BOOST_AUTO_TEST_CASE(testNoFactoryNoInstance) {
   }
 }
 
+/*********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(testFactory) {
   ApplicationFactory<ReferenceTestApplication> appFactory;
 
@@ -42,12 +46,16 @@ BOOST_AUTO_TEST_CASE(testFactory) {
   BOOST_TEST(firstCall == secondCall);
 }
 
+/*********************************************************************************************************************/
+
 class AppWithParams : public ReferenceTestApplication {
  public:
   int a;
   float b;
   AppWithParams(int a_, float b_) : a(a_), b(b_) {}
 };
+
+/*********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testWithParams) {
   ApplicationFactory<AppWithParams> appFactory(3, 5.8);
@@ -57,6 +65,8 @@ BOOST_AUTO_TEST_CASE(testWithParams) {
   BOOST_TEST(withParams->a = 3);
   BOOST_TEST(withParams->b = 5.8);
 }
+
+/*********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(doubleFactoryInstance) {
   ApplicationFactory<ReferenceTestApplication> appFactory;
@@ -70,6 +80,8 @@ BOOST_AUTO_TEST_CASE(doubleFactoryInstance) {
   }
 }
 
+/*********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(doubleAppInstance) {
   ReferenceTestApplication app1;
 
@@ -81,6 +93,8 @@ BOOST_AUTO_TEST_CASE(doubleAppInstance) {
     std::cout << "Exception message debug printout: " << e.what() << std::endl;
   }
 }
+
+/*********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(appPlusFactory) {
   ReferenceTestApplication app;
@@ -94,6 +108,8 @@ BOOST_AUTO_TEST_CASE(appPlusFactory) {
   }
 }
 
+/*********************************************************************************************************************/
+
 BOOST_AUTO_TEST_CASE(factoryPlusApp) {
   ApplicationFactory<ReferenceTestApplication> appFactory;
 
@@ -105,6 +121,8 @@ BOOST_AUTO_TEST_CASE(factoryPlusApp) {
     std::cout << "Exception message debug printout: " << e.what() << std::endl;
   }
 }
+
+/*********************************************************************************************************************/
 
 BOOST_AUTO_TEST_CASE(testNoFactory) {
   // Legacy use case: There is an instance of the application, but no factory.
