@@ -1,9 +1,5 @@
-/*
- * ApplicationBase.h
- *
- *  Created on: Nov 11, 2016
- *      Author: Martin Hierholzer
- */
+// SPDX-FileCopyrightText: Deutsches Elektronen-Synchrotron DESY, MSK, ChimeraTK Project <chimeratk-support@desy.de>
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
