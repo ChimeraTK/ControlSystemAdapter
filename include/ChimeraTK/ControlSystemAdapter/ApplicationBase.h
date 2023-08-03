@@ -1,9 +1,5 @@
-/*
- * ApplicationBase.h
- *
- *  Created on: Nov 11, 2016
- *      Author: Martin Hierholzer
- */
+// SPDX-FileCopyrightText: Deutsches Elektronen-Synchrotron DESY, MSK, ChimeraTK Project <chimeratk-support@desy.de>
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
@@ -102,7 +98,12 @@ namespace ChimeraTK {
     static ApplicationBase* instance;
 
     /** Mutex for thread-safety when setting the instance pointer */
-    static std::mutex instance_mutex;
+    static std::recursive_mutex instanceMutex;
+
+    template<typename APPLICATION_TYPE>
+    friend class ApplicationFactory;
+
+    friend class ApplicationFactoryBase;
   };
 
 } /* namespace ChimeraTK */
