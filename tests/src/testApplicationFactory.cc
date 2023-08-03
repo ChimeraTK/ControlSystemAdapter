@@ -62,8 +62,8 @@ BOOST_AUTO_TEST_CASE(testWithParams) {
 
   auto* withParams = dynamic_cast<AppWithParams*>(&ApplicationBase::getInstance());
   BOOST_TEST(withParams != nullptr);
-  BOOST_TEST(withParams->a = 3);
-  BOOST_TEST(withParams->b = 5.8);
+  BOOST_TEST(withParams->a == 3);
+  BOOST_TEST(withParams->b == 5.8, boost::test_tools::tolerance(0.0001));
 }
 
 /*********************************************************************************************************************/
