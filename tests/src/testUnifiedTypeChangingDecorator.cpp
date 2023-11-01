@@ -5,15 +5,14 @@
 
 using namespace boost::unit_test_framework;
 
-#include <ChimeraTK/Device.h>
-#include <ChimeraTK/TransferGroup.h>
 #include <ChimeraTK/BackendFactory.h>
+#include <ChimeraTK/Device.h>
 #include <ChimeraTK/DummyBackend.h>
 #include <ChimeraTK/DummyRegisterAccessor.h>
 #include <ChimeraTK/ExceptionDummyBackend.h>
+#include <ChimeraTK/TransferGroup.h>
+#include <ChimeraTK/TypeChangingDecorator.h>
 #include <ChimeraTK/UnifiedBackendTest.h>
-
-#include "TypeChangingDecorator.h"
 
 namespace ChimeraTK {
   using namespace ChimeraTK;
@@ -60,7 +59,7 @@ class DecoratorBackend : public ExceptionDummy {
 
     auto [path, type] = getPathAndType(registerPathName);
 
-    return getDecorator<UserType>(
+    return getTypeChangingDecorator<UserType>(
         ExceptionDummy::getRegisterAccessor_impl<float>(path, numberOfWords, wordOffsetInRegister, flags), type);
   }
 

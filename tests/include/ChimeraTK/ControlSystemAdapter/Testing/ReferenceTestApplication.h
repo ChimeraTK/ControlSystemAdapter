@@ -1,23 +1,22 @@
 #ifndef _REFERENCE_TEST_APPLICATION_H_
 #define _REFERENCE_TEST_APPLICATION_H_
 
-#include <boost/scoped_ptr.hpp>
+#include "toType.h"
 
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/ProcessArray.h>
 #include <ChimeraTK/ControlSystemAdapter/SynchronizationDirection.h>
 
-#include <atomic>
-#include <limits>
-#include <mutex>
-
 #include <boost/fusion/include/at_key.hpp>
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/map.hpp>
 #include <boost/optional.hpp>
+#include <boost/scoped_ptr.hpp>
 
-#include "toType.h"
+#include <atomic>
+#include <limits>
+#include <mutex>
 
 template<class DataType>
 struct TypedPVHolder {
@@ -72,10 +71,10 @@ struct TypedPVHolder {
         typeIdentifyingConstant = 1. / sizeof(DataType);
       }
     }
-    dataTypeConstant->accessData(0) = toType<DataType>(typeIdentifyingConstant);
+    dataTypeConstant->accessData(0) = ChimeraTK::toType<DataType>(typeIdentifyingConstant);
 
     for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
-      constantArray->accessChannel(0)[i] = toType<DataType>(typeIdentifyingConstant * i * i);
+      constantArray->accessChannel(0)[i] = ChimeraTK::toType<DataType>(typeIdentifyingConstant * i * i);
     }
   }
 

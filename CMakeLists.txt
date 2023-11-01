@@ -92,7 +92,6 @@ if(BUILD_TESTS)
     add_test(${executableName} ${executableName})
   endforeach(testSourceFile)
 
-  FILE(COPY tests/decoratorTest.map DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/changedType.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/changedVectorSize.persist DESTINATION ${PROJECT_BINARY_DIR})
   FILE(COPY tests/renamedVariable.persist DESTINATION ${PROJECT_BINARY_DIR})

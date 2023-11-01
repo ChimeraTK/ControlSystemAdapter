@@ -4,16 +4,15 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <algorithm>
-#include <stdexcept>
-#include <thread>
-
-#include "UnidirectionalProcessArray.h"
-
 #include "toType.h"
+#include "UnidirectionalProcessArray.h"
 
 #include <boost/mpl/list.hpp>
 #include <boost/thread.hpp>
+
+#include <algorithm>
+#include <stdexcept>
+#include <thread>
 
 typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double,
     std::string>
