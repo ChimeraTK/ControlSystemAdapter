@@ -1,14 +1,14 @@
 #define BOOST_TEST_MODULE FullStubTest
 // Only after defining the name include the unit test header.
-#include <boost/test/included/unit_test.hpp>
+#include "ControlSystemPVManager.h"
+#include "DevicePVManager.h"
+#include "ReferenceTestApplication.h"
+#include "toDouble.h"
 
 #include <ChimeraTK/ReadAnyGroup.h>
 #include <ChimeraTK/TransferGroup.h>
 
-#include "ReferenceTestApplication.h"
-#include "ControlSystemPVManager.h"
-#include "DevicePVManager.h"
-#include "toDouble.h"
+#include <boost/test/included/unit_test.hpp>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
