@@ -2,8 +2,8 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include "UnidirectionalProcessArray.h"
 #include "BidirectionalProcessArray.h"
+#include "UnidirectionalProcessArray.h"
 
 #include <ChimeraTK/DeviceBackendImpl.h>
 #include <ChimeraTK/UnifiedBackendTest.h>
@@ -43,10 +43,6 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
       const RegisterPath&, size_t, size_t, AccessModeFlags) {
     std::terminate(); // wrong type, see specialisation
   }
-
-  bool isFunctional() const override { return _opened; }
-
-  void setException() override {}
 
   void activateAsyncRead() noexcept override {}
 
