@@ -50,16 +50,6 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
 PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
 
-# libatomic is required on some patforms (and doesn't hurt on the others)
-find_library(atomic-library NAMES atomic libatomic.so libatomic.so.1)
-
-# On some platforms, libatomic does not exist. In order to avoid an error when
-# we refer to the "atomic-library" variable on these platforms, we set it to the
-# empty string if it is not defined.
-if(NOT atomic-library)
-  set(atomic-library "")
-endif()
-
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 # Create the executables for automated unit testing.
@@ -110,7 +100,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_FULL_LIBRARY_VERSION} SOVERSION ${${PROJECT_NAME}_SOVERSION})
 target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::LibXML++)
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC ${atomic-library}
+  PUBLIC
   Boost::chrono Boost::system Boost::thread
   ChimeraTK::ChimeraTK-DeviceAccess)
 
