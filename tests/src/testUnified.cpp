@@ -31,7 +31,6 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
 
   void close() override {
     _opened = false;
-    _pv.clear();
   }
 
   std::string readDeviceInfo() override { return "ProcessArrayFactoryBackend"; }
@@ -49,7 +48,7 @@ struct ProcessArrayFactoryBackend : DeviceBackendImpl {
 
   void activateAsyncRead() noexcept override {}
 
-  std::vector<boost::shared_ptr<ProcessArray<std::string>>> _pv;
+  std::map<std::string, std::vector<boost::shared_ptr<ProcessArray<std::string>>>> _pv;
 
   RegisterCatalogue getRegisterCatalogue() const override { throw; }
 
@@ -86,50 +85,57 @@ boost::shared_ptr<NDRegisterAccessor<std::string>> ProcessArrayFactoryBackend::g
     const RegisterPath& path, size_t numberOfWords, size_t wordOffsetInRegister, AccessModeFlags flags) {
   if(numberOfWords > 1 || wordOffsetInRegister != 0) throw ChimeraTK::logic_error("Bad dimension");
 
+  std::string initialValue;
+  if (_pv[path].empty()) {
+    initialValue = generateValueFromCounter();
+  }else{
+    initialValue = _pv[path].back()->accessData(0);
+  }
+
   if(path == "/unidir/sender") {
     flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
     auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, {AccessMode::wait_for_new_data});
-    _pv.push_back(pv.second);
+    _pv[path].push_back(pv.second);
     return pv.first;
   }
   if(path == "/unidir/polledSender") {
     flags.checkForUnknownFlags({}); // test expects that write-only accessors never accept wait_for_new_data...
     auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, {});
-    _pv.push_back(pv.second);
+    _pv[path].push_back(pv.second);
     return pv.first;
   }
   if(path == "/unidir/receiver" && flags.has(AccessMode::wait_for_new_data)) {
     auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
-    _pv.push_back(pv.first);
+    _pv[path].push_back(pv.first);
     // need to write initial value
-    _pv.back()->accessData(0) = generateValueFromCounter();
-    _pv.back()->write();
+    _pv[path].back()->accessData(0) = initialValue;
+    _pv[path].back()->write();
     return pv.second;
   }
   if(path == "/unidir/receiver" && !flags.has(AccessMode::wait_for_new_data)) {
     auto pv = createSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
-    _pv.push_back(pv.first);
+    _pv[path].push_back(pv.first);
     // need to write initial value, otherwise the first read would block
-    _pv.back()->accessData(0) = generateValueFromCounter();
-    _pv.back()->write();
+    _pv[path].back()->accessData(0) = initialValue;
+    _pv[path].back()->write();
     return pv.second;
   }
   if(path == "/bidir/A") {
     flags.add(AccessMode::wait_for_new_data);
     auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
-    _pv.push_back(pv.first);
+    _pv[path].push_back(pv.first);
     // need to write initial value
-    _pv.back()->accessData(0) = generateValueFromCounter();
-    _pv.back()->write();
+    _pv[path].back()->accessData(0) = initialValue;
+    _pv[path].back()->write();
     return pv.second;
   }
   if(path == "/bidir/B") {
     flags.add(AccessMode::wait_for_new_data);
     auto pv = createBidirectionalSynchronizedProcessArray<std::string>(1, path, "", "", "", 3, flags);
-    _pv.push_back(pv.second);
+    _pv[path].push_back(pv.second);
     // need to write initial value
-    _pv.back()->accessData(0) = generateValueFromCounter();
-    _pv.back()->write();
+    _pv[path].back()->accessData(0) = initialValue;
+    _pv[path].back()->write();
     return pv.first;
   }
 
@@ -179,8 +185,8 @@ struct UnidirSender : RegisterDescriptorBase<UnidirSender> {
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
-    backend->_pv.back()->readLatest();
-    return backend->_pv.back()->accessChannels();
+    backend->_pv[path()].back()->readLatest();
+    return backend->_pv[path()].back()->accessChannels();
   }
 
   [[noreturn]] void setRemoteValue() { std::terminate(); }
@@ -201,8 +207,8 @@ struct UnidirPolledSender : RegisterDescriptorBase<UnidirPolledSender> {
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
-    backend->_pv.back()->readLatest();
-    return backend->_pv.back()->accessChannels();
+    backend->_pv[path()].back()->readLatest();
+    return backend->_pv[path()].back()->accessChannels();
   }
 
   [[noreturn]] void setRemoteValue() { std::terminate(); }
@@ -218,15 +224,15 @@ struct UnidirReceiver : RegisterDescriptorBase<UnidirReceiver> {
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
-    return backend->_pv.back()->accessChannels();
+    return backend->_pv[path()].back()->accessChannels();
   }
 
   void setRemoteValue() {
     auto v = this->generateValue<std::string>()[0][0];
-    std::for_each(backend->_pv.begin(), backend->_pv.end(), [&](auto pv) {
+    for (auto& pv: backend->_pv[path()]) {
       pv->accessData(0) = v;
       pv->write();
-    });
+    }
   }
 };
 
@@ -241,16 +247,16 @@ struct Bidir : RegisterDescriptorBase<Derived> {
 
   template<typename UserType>
   std::vector<std::vector<UserType>> getRemoteValue() {
-    backend->_pv.back()->readLatest();
-    return backend->_pv.back()->accessChannels();
+    backend->_pv[RegisterDescriptorBase<Derived>::derived->path()].back()->readLatest();
+    return backend->_pv[RegisterDescriptorBase<Derived>::derived->path()].back()->accessChannels();
   }
 
   void setRemoteValue() {
     auto v = this->template generateValue<std::string>()[0][0];
-    std::for_each(backend->_pv.begin(), backend->_pv.end(), [&](auto pv) {
+    for (auto& pv: backend->_pv[RegisterDescriptorBase<Derived>::derived->path()]) {
       pv->accessData(0) = v;
       pv->write();
-    });
+    };
   }
 };
 
