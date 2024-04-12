@@ -268,7 +268,7 @@ struct BidirA : Bidir<BidirA> {
 
 /**********************************************************************************************************************/
 
-struct BidirB : Bidir<BidirA> {
+struct BidirB : Bidir<BidirB> {
   std::string path() { return "/bidir/B"; }
   // See ProcessArrayFactoryBackend::getRegisterAccessor_impl() for the difference to BidirA.
 };
