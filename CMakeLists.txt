@@ -50,6 +50,8 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 set(LIBXML++_VERSION "libxml++-2.6")
 PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
 
+file(GLOB_RECURSE library_headers ${CMAKE_SOURCE_DIR}/include/ChimeraTK/*.h
+    ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing/*.h)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 # Create the executables for automated unit testing.
@@ -87,7 +89,7 @@ if(BUILD_TESTS)
   FILE(COPY tests/renamedVariable.persist DESTINATION ${PROJECT_BINARY_DIR})
 endif()
 
-add_library(${PROJECT_NAME} SHARED ${library_sources})
+add_library(${PROJECT_NAME} SHARED ${library_sources} ${library_headers})
 
 # Includes inside the library are local includes, so we give the full path to the include directory
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/ChimeraTK/ControlSystemAdapter)

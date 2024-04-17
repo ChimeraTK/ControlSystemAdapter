@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 #pragma once
 
+#include <ChimeraTK/SupportedUserTypes.h>
+
 #include <string>
 namespace ChimeraTK {
 
@@ -20,4 +22,8 @@ namespace ChimeraTK {
     return std::to_string(input);
   }
 
+  template<>
+  inline ChimeraTK::Void toType<ChimeraTK::Void>([[maybe_unused]]double input) {
+    return {};
+  }
 } // namespace ChimeraTK
