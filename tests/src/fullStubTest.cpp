@@ -46,11 +46,13 @@ struct TestApplicationFixture {
     auto toDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/TO_DEVICE_SCALAR");
     auto fromDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/FROM_DEVICE_SCALAR");
 
-    // check that the test is actually sensitive to writing. We could add 13 to a numeric value, but what is
-    // sting + 13? So we just check that there was something different before.
-    BOOST_CHECK( fromDeviceScalar->accessData(0) != toType<UserType>(13) );
+    if constexpr(!std::is_same_v<UserType, ChimeraTK::Void>) {
+      // check that the test is actually sensitive to writing. We could add 13 to a numeric value, but what is
+      // sting + 13? So we just check that there was something different before.
+      BOOST_CHECK(fromDeviceScalar->accessData(0) != toType<UserType>(13));
 
-    toDeviceScalar->accessData(0) = toType<UserType>(13);
+      toDeviceScalar->accessData(0) = toType<UserType>(13);
+    }
 
     for(auto pv : csManager->getAllProcessVariables()) {
       if(pv->isWriteable()) pv->write();
@@ -58,7 +60,9 @@ struct TestApplicationFixture {
     ReferenceTestApplication::runMainLoopOnce();
     while(readAnyGroup.readAnyNonBlocking().isValid()) continue;
 
-    BOOST_CHECK_EQUAL(fromDeviceScalar->accessData(0), toType<UserType>(13));
+    if constexpr(!std::is_same_v<UserType, ChimeraTK::Void>) {
+      BOOST_CHECK_EQUAL(fromDeviceScalar->accessData(0), toType<UserType>(13));
+    }
   }
 
   template<class UserType>
@@ -121,6 +125,7 @@ BOOST_FIXTURE_TEST_CASE(test_read_scalar, TestApplicationFixture) {
   BOOST_CHECK_EQUAL(csManager->getProcessArray<float>("FLOAT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 4);
   BOOST_CHECK_EQUAL(csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 8);
   BOOST_CHECK_EQUAL(csManager->getProcessArray<std::string>("STRING/DATA_TYPE_CONSTANT")->accessChannel(0)[0], std::to_string(42.));
+  BOOST_CHECK_EQUAL(csManager->getProcessArray<ChimeraTK::Boolean>("BOOLEAN/DATA_TYPE_CONSTANT")->accessChannel(0)[0], true);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_write_scalar, TestApplicationFixture) {
@@ -135,6 +140,8 @@ BOOST_FIXTURE_TEST_CASE(test_write_scalar, TestApplicationFixture) {
   typedWriteScalarTest<float>("FLOAT");
   typedWriteScalarTest<double>("DOUBLE");
   typedWriteScalarTest<std::string>("STRING");
+  typedWriteScalarTest<ChimeraTK::Boolean>("BOOLEAN");
+  typedWriteScalarTest<ChimeraTK::Void>("VOID");
 }
 
 BOOST_FIXTURE_TEST_CASE(test_read_array, TestApplicationFixture) {
@@ -149,6 +156,7 @@ BOOST_FIXTURE_TEST_CASE(test_read_array, TestApplicationFixture) {
   typedReadArrayTest<float>("FLOAT");
   typedReadArrayTest<double>("DOUBLE");
   typedReadArrayTest<std::string>("STRING");
+  typedReadArrayTest<ChimeraTK::Boolean>("BOOLEAN");
 }
 
 BOOST_FIXTURE_TEST_CASE(test_write_array, TestApplicationFixture) {
@@ -163,6 +171,7 @@ BOOST_FIXTURE_TEST_CASE(test_write_array, TestApplicationFixture) {
   typedWriteArrayTest<float>("FLOAT");
   typedWriteArrayTest<double>("DOUBLE");
   typedWriteArrayTest<std::string>("STRING");
+  typedReadArrayTest<ChimeraTK::Boolean>("BOOLEAN");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

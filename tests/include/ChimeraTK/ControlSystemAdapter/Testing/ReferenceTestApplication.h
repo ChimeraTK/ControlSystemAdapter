@@ -38,22 +38,29 @@ struct TypedPVHolder {
 
   std::vector<std::string> failedTransfers{};
 
-  TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix, int arrayLen)
-  : toDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1)),
-    fromDeviceScalar(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1)),
-    toDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", arrayLen)),
-    fromDeviceArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", arrayLen)),
-    dataTypeConstant(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1)),
-    constantArray(processVariableManager->createProcessArray<DataType>(
-        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", arrayLen)) {
+  TypedPVHolder(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager, std::string typeNamePrefix,
+      int arrayLen) {
+    toDeviceScalar = processVariableManager->createProcessArray<DataType>(
+        ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1);
+    fromDeviceScalar = processVariableManager->createProcessArray<DataType>(
+        ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1);
+
+    if constexpr(!std::is_same_v<DataType, ChimeraTK::Void>) {
+      toDeviceArray = processVariableManager->createProcessArray<DataType>(
+          ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_ARRAY", arrayLen);
+      fromDeviceArray = processVariableManager->createProcessArray<DataType>(
+          ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_ARRAY", arrayLen);
+      dataTypeConstant = processVariableManager->createProcessArray<DataType>(
+          ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/DATA_TYPE_CONSTANT", 1);
+      constantArray = processVariableManager->createProcessArray<DataType>(
+          ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", arrayLen);
+    }
     double typeIdentifyingConstant = 0;
     if(typeid(DataType) == typeid(std::string)) {
       typeIdentifyingConstant = 42;
+    }
+    else if(typeid(DataType) == typeid(ChimeraTK::Boolean)) {
+      typeIdentifyingConstant = true;
     }
     else {
       if(std::numeric_limits<DataType>::is_integer) {
@@ -67,14 +74,16 @@ struct TypedPVHolder {
         }
       }
       else {
-        // floating point
         typeIdentifyingConstant = 1. / sizeof(DataType);
       }
     }
-    dataTypeConstant->accessData(0) = ChimeraTK::toType<DataType>(typeIdentifyingConstant);
 
-    for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
-      constantArray->accessChannel(0)[i] = ChimeraTK::toType<DataType>(typeIdentifyingConstant * i * i);
+    if constexpr(!std::is_same_v<DataType, ChimeraTK::Void>) {
+      dataTypeConstant->accessData(0) = ChimeraTK::toType<DataType>(typeIdentifyingConstant);
+
+      for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
+        constantArray->accessChannel(0)[i] = ChimeraTK::toType<DataType>(typeIdentifyingConstant * i * i);
+      }
     }
   }
 
@@ -89,7 +98,7 @@ struct TypedPVHolder {
       }
     }
 
-    if(toDeviceArray->readLatest()) {
+    if(toDeviceArray && toDeviceArray->readLatest()) {
       for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size() && i < toDeviceArray->accessChannel(0).size();
           ++i) {
         fromDeviceArray->accessChannel(0)[i] = toDeviceArray->accessChannel(0)[i];
@@ -115,13 +124,14 @@ struct TypedPVHolder {
 /// IMPORTANT: The order in this map determines the order in which the data is
 /// processed. This is important for some tests, so do not change the order
 /// here!
-typedef boost::fusion::map<boost::fusion::pair<int8_t, TypedPVHolder<int8_t>>,
+using HolderMap = boost::fusion::map<boost::fusion::pair<int8_t, TypedPVHolder<int8_t>>,
     boost::fusion::pair<uint8_t, TypedPVHolder<uint8_t>>, boost::fusion::pair<int16_t, TypedPVHolder<int16_t>>,
     boost::fusion::pair<uint16_t, TypedPVHolder<uint16_t>>, boost::fusion::pair<int32_t, TypedPVHolder<int32_t>>,
     boost::fusion::pair<uint32_t, TypedPVHolder<uint32_t>>, boost::fusion::pair<int64_t, TypedPVHolder<int64_t>>,
     boost::fusion::pair<uint64_t, TypedPVHolder<uint64_t>>, boost::fusion::pair<float, TypedPVHolder<float>>,
-    boost::fusion::pair<double, TypedPVHolder<double>>, boost::fusion::pair<std::string, TypedPVHolder<std::string>>>
-    HolderMap;
+    boost::fusion::pair<double, TypedPVHolder<double>>, boost::fusion::pair<std::string, TypedPVHolder<std::string>>,
+    boost::fusion::pair<ChimeraTK::Boolean, TypedPVHolder<ChimeraTK::Boolean>>,
+    boost::fusion::pair<ChimeraTK::Void, TypedPVHolder<ChimeraTK::Void>>>;
 
 class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
  public:
@@ -152,7 +162,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   std::vector<std::string> getFailedTransfers();
 
   /// Allow access to the list of unmapped variables by tests
-  void optimiseUnmappedVariables(const std::set<std::string> &unmappedVariables) override {
+  void optimiseUnmappedVariables(const std::set<std::string>& unmappedVariables) override {
     _unmappedVariables = unmappedVariables;
   }
   std::set<std::string> _unmappedVariables;
@@ -162,7 +172,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   boost::scoped_ptr<boost::thread> _deviceThread;
   boost::scoped_ptr<HolderMap> _holderMap;
-  int arrayLen;  // length of process variable arrays
+  int arrayLen; // length of process variable arrays
 
   static std::mutex& mainLoopMutex() {
     static std::mutex _mainLoopMutex;
@@ -195,22 +205,26 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
 inline ReferenceTestApplication::ReferenceTestApplication(std::string const& applicationName_, int arrayLength)
 // initialise all process variables, using the factory
-    : ApplicationBase(applicationName_), arrayLen(arrayLength) {}
+: ApplicationBase(applicationName_), arrayLen(arrayLength) {}
 
 inline void ReferenceTestApplication::initialise() {
   // fixme : if ! processVariableManager_ throw
-  _holderMap.reset(
-      new HolderMap(boost::fusion::make_pair<int8_t>(TypedPVHolder<int8_t>(_processVariableManager, "CHAR", arrayLen)),
-          boost::fusion::make_pair<uint8_t>(TypedPVHolder<uint8_t>(_processVariableManager, "UCHAR", arrayLen)),
-          boost::fusion::make_pair<int16_t>(TypedPVHolder<int16_t>(_processVariableManager, "SHORT", arrayLen)),
-          boost::fusion::make_pair<uint16_t>(TypedPVHolder<uint16_t>(_processVariableManager, "USHORT", arrayLen)),
-          boost::fusion::make_pair<int32_t>(TypedPVHolder<int32_t>(_processVariableManager, "INT", arrayLen)),
-          boost::fusion::make_pair<uint32_t>(TypedPVHolder<uint32_t>(_processVariableManager, "UINT", arrayLen)),
-          boost::fusion::make_pair<int64_t>(TypedPVHolder<int64_t>(_processVariableManager, "LONG", arrayLen)),
-          boost::fusion::make_pair<uint64_t>(TypedPVHolder<uint64_t>(_processVariableManager, "ULONG", arrayLen)),
-          boost::fusion::make_pair<float>(TypedPVHolder<float>(_processVariableManager, "FLOAT", arrayLen)),
-          boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE", arrayLen)),
-          boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING", arrayLen))));
+  _holderMap.reset(new HolderMap(
+      boost::fusion::make_pair<int8_t>(TypedPVHolder<int8_t>(_processVariableManager, "CHAR", arrayLen)),
+      boost::fusion::make_pair<uint8_t>(TypedPVHolder<uint8_t>(_processVariableManager, "UCHAR", arrayLen)),
+      boost::fusion::make_pair<int16_t>(TypedPVHolder<int16_t>(_processVariableManager, "SHORT", arrayLen)),
+      boost::fusion::make_pair<uint16_t>(TypedPVHolder<uint16_t>(_processVariableManager, "USHORT", arrayLen)),
+      boost::fusion::make_pair<int32_t>(TypedPVHolder<int32_t>(_processVariableManager, "INT", arrayLen)),
+      boost::fusion::make_pair<uint32_t>(TypedPVHolder<uint32_t>(_processVariableManager, "UINT", arrayLen)),
+      boost::fusion::make_pair<int64_t>(TypedPVHolder<int64_t>(_processVariableManager, "LONG", arrayLen)),
+      boost::fusion::make_pair<uint64_t>(TypedPVHolder<uint64_t>(_processVariableManager, "ULONG", arrayLen)),
+      boost::fusion::make_pair<float>(TypedPVHolder<float>(_processVariableManager, "FLOAT", arrayLen)),
+      boost::fusion::make_pair<double>(TypedPVHolder<double>(_processVariableManager, "DOUBLE", arrayLen)),
+      boost::fusion::make_pair<std::string>(TypedPVHolder<std::string>(_processVariableManager, "STRING", arrayLen)),
+      boost::fusion::make_pair<ChimeraTK::Boolean>(
+          TypedPVHolder<ChimeraTK::Boolean>(_processVariableManager, "BOOLEAN", arrayLen)),
+      boost::fusion::make_pair<ChimeraTK::Void>(
+          TypedPVHolder<ChimeraTK::Void>(_processVariableManager, "VOID", arrayLen))));
 
   for(auto const& variable : _processVariableManager->getAllProcessVariables()) {
     if(variable->isWriteable()) {
@@ -271,7 +285,7 @@ struct PerformInputToOutput {
 };
 
 inline void ReferenceTestApplication::mainBody() {
-  for_each(*_holderMap, PerformInputToOutput(versionNumber, dataValidity));
+  boost::fusion::for_each(*_holderMap, PerformInputToOutput(versionNumber, dataValidity));
 }
 
 inline bool ReferenceTestApplication::runMainLoopOnce() {
