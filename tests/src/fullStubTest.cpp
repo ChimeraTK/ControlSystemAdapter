@@ -171,7 +171,7 @@ BOOST_FIXTURE_TEST_CASE(test_write_array, TestApplicationFixture) {
   typedWriteArrayTest<float>("FLOAT");
   typedWriteArrayTest<double>("DOUBLE");
   typedWriteArrayTest<std::string>("STRING");
-  typedReadArrayTest<ChimeraTK::Boolean>("BOOLEAN");
+  typedWriteArrayTest<ChimeraTK::Boolean>("BOOLEAN");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
