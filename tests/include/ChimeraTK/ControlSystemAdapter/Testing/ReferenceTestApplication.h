@@ -55,6 +55,9 @@ struct TypedPVHolder {
       constantArray = processVariableManager->createProcessArray<DataType>(
           ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/CONSTANT_ARRAY", arrayLen);
     }
+    else {
+      (void)arrayLen; // suppress warning
+    }
     double typeIdentifyingConstant = 0;
     if(typeid(DataType) == typeid(std::string)) {
       typeIdentifyingConstant = 42;
