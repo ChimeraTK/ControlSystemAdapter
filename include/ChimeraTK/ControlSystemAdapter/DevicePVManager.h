@@ -3,7 +3,7 @@
 
 namespace ChimeraTK {
   class DevicePVManager;
-}
+} // namespace ChimeraTK
 
 #include <map>
 #include <string>
@@ -38,23 +38,23 @@ namespace ChimeraTK {
      * Private constructor. Construction should be done through the
      * {@link createPVManager()} function.
      */
-    DevicePVManager(boost::shared_ptr<PVManager> pvManager);
+    explicit DevicePVManager(boost::shared_ptr<PVManager> pvManager);
 
     /**
      * Disable copy-construction.
      */
-    DevicePVManager(const DevicePVManager&);
+    DevicePVManager(const DevicePVManager&) = delete;
 
     /**
      * Disable copy-assignment.
      */
-    DevicePVManager& operator=(const DevicePVManager&);
+    DevicePVManager& operator=(const DevicePVManager&) = delete;
 
    public:
     /**
      * Shared pointer to this type.
      */
-    typedef boost::shared_ptr<DevicePVManager> SharedPtr;
+    using SharedPtr = boost::shared_ptr<DevicePVManager>;
 
     /**
      * Creates a new process array and registers it with the PV manager.
@@ -144,12 +144,13 @@ namespace ChimeraTK {
      * \c getProcessArray(const ChimeraTK::RegisterPath&) methods should be
      * preferred if the type of the process variable is known at compile time.
      */
-    ProcessVariable::SharedPtr getProcessVariable(const ChimeraTK::RegisterPath& processVariableName) const;
+    [[nodiscard]] ProcessVariable::SharedPtr getProcessVariable(
+        const ChimeraTK::RegisterPath& processVariableName) const;
 
     /**
      * Checks whether a process scalar or array with the specified name exists.
      */
-    bool hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
+    [[nodiscard]] bool hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
       return _pvManager->hasProcessVariable(processVariableName);
     }
 
@@ -157,7 +158,7 @@ namespace ChimeraTK {
      * Returns a vector containing all process variables that are registered
      * with this PV manager.
      */
-    std::vector<ProcessVariable::SharedPtr> getAllProcessVariables() const;
+    [[nodiscard]] std::vector<ProcessVariable::SharedPtr> getAllProcessVariables() const;
 
    private:
     /**

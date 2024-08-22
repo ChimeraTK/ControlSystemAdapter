@@ -5,6 +5,8 @@
 
 #include "ApplicationFactory.h"
 
+#include <utility>
+
 namespace ChimeraTK {
 
   /*********************************************************************************************************************/
@@ -14,7 +16,7 @@ namespace ChimeraTK {
 
   /*********************************************************************************************************************/
 
-  ApplicationBase::ApplicationBase(const std::string& name) : applicationName(name) {
+  ApplicationBase::ApplicationBase(std::string name) : _applicationName(std::move(name)) {
     std::lock_guard<std::recursive_mutex> lock(instanceMutex);
     // Protection against creating multiple instances manually
     if(instance != nullptr) {
@@ -46,11 +48,11 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   ApplicationBase::~ApplicationBase() {
-    if(!hasBeenShutdown) {
+    if(!_hasBeenShutdown) {
       std::cerr << "*************************************************************"
                    "****************"
                 << std::endl;
-      std::cerr << " BUG found in application " << applicationName << "!" << std::endl;
+      std::cerr << " BUG found in application " << _applicationName << "!" << std::endl;
       std::cerr << " Its implementation of the class Application must have a "
                    "destructor which"
                 << std::endl;
@@ -73,7 +75,7 @@ namespace ChimeraTK {
     // down
     std::lock_guard<std::recursive_mutex> lock(instanceMutex);
     instance = nullptr;
-    hasBeenShutdown = true;
+    _hasBeenShutdown = true;
   }
 
   /*********************************************************************************************************************/

@@ -2,6 +2,8 @@
 #include <atomic>
 #include <thread>
 
+#define BOOST_TEST_MODULE TestAsyncRead
+
 #include <boost/test/included/unit_test.hpp>
 #include <boost/thread.hpp>
 
@@ -15,39 +17,8 @@ using namespace ChimeraTK;
 using namespace ChimeraTK;
 
 /**********************************************************************************************************************/
-class AsyncReadTest {
- public:
-  /// test normal asychronous read
-  void testAsyncRead();
 
-  /// test the readAny() function on ProcessArrays
-  void testReadAny();
-};
-
-/**********************************************************************************************************************/
-
-class AsyncReadTestSuite : public test_suite {
- public:
-  AsyncReadTestSuite() : test_suite("Async read test suite") {
-    boost::shared_ptr<AsyncReadTest> asyncReadTest(new AsyncReadTest);
-
-    add(BOOST_CLASS_TEST_CASE(&AsyncReadTest::testAsyncRead, asyncReadTest));
-    add(BOOST_CLASS_TEST_CASE(&AsyncReadTest::testReadAny, asyncReadTest));
-  }
-};
-
-/**********************************************************************************************************************/
-
-test_suite* init_unit_test_suite(int /*argc*/, char* /*argv*/ []) {
-  framework::master_test_suite().p_name.value = "Async read test suite";
-  framework::master_test_suite().add(new AsyncReadTestSuite);
-
-  return NULL;
-}
-
-/**********************************************************************************************************************/
-
-void AsyncReadTest::testAsyncRead() {
+BOOST_AUTO_TEST_CASE(testAsyncRead) {
 #if 0
   std::cout << "testAsyncRead" << std::endl;
 
@@ -120,7 +91,7 @@ void AsyncReadTest::testAsyncRead() {
 
 /**********************************************************************************************************************/
 
-void AsyncReadTest::testReadAny() {
+BOOST_AUTO_TEST_CASE(testReadAny) {
   std::cout << "testReadAny" << std::endl;
 
   // obtain accessors for process variables

@@ -12,6 +12,7 @@ include(cmake/set_version_numbers.cmake)
 include(cmake/set_default_build_to_release.cmake)
 include(cmake/set_default_flags.cmake)
 include(cmake/enable_code_coverage_report.cmake)
+include(cmake/add_linter_target.cmake)
 
 include(cmake/format_options.cmake)
 
@@ -51,7 +52,7 @@ set(LIBXML++_VERSION "libxml++-2.6")
 PKG_CHECK_MODULES(LibXML++ REQUIRED IMPORTED_TARGET ${LIBXML++_VERSION})
 
 file(GLOB_RECURSE library_headers ${CMAKE_SOURCE_DIR}/include/ChimeraTK/*.h
-    ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing/*.h)
+  ${CMAKE_SOURCE_DIR}/tests/include/ChimeraTK/ControlSystemAdapter/Testing/*.h)
 aux_source_directory(${CMAKE_SOURCE_DIR}/src library_sources)
 
 # Create the executables for automated unit testing.

@@ -24,7 +24,7 @@ namespace ChimeraTK {
      * class. The actual instance is created as a static variable. The application
      * developer should derive his application from this class and implement the
      * initialise() function only. */
-    ApplicationBase(const std::string& name);
+    explicit ApplicationBase(std::string name);
 
     /** The implementation of Application must call Application::shutdown() in its
      * destructor. This destructor just checks if Application::shutdown() was
@@ -72,17 +72,19 @@ namespace ChimeraTK {
     static ApplicationBase& getInstance();
 
     /** Return the name of the application */
-    const std::string& getName() const { return applicationName; }
+    [[nodiscard]] const std::string& getName() const { return _applicationName; }
 
     /** Obtain the PersistentDataStorage object. You can specify the write interval in seconds. */
     boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage(unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
-      if(!_persistentDataStorage) _persistentDataStorage.reset(new PersistentDataStorage(applicationName, writeInterval));
+      if(!_persistentDataStorage) {
+        _persistentDataStorage.reset(new PersistentDataStorage(_applicationName, writeInterval));
+      }
       return _persistentDataStorage;
     }
 
    protected:
     /** The name of the application */
-    std::string applicationName;
+    std::string _applicationName;
 
     /** Pointer to the process variable manager used to create variables exported
      * to the control system */
@@ -92,7 +94,7 @@ namespace ChimeraTK {
     boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
 
     /** Flag if shutdown() has been called. */
-    bool hasBeenShutdown{false};
+    bool _hasBeenShutdown{false};
 
     /** Pointer to the only instance of the Application */
     static ApplicationBase* instance;

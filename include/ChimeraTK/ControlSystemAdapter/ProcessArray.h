@@ -30,7 +30,7 @@ namespace ChimeraTK {
     /**
      * Type alias for a shared pointer to this type.
      */
-    typedef boost::shared_ptr<ProcessArray> SharedPtr;
+    using SharedPtr = boost::shared_ptr<ProcessArray>;
 
     /**
      * Type of the instance. This defines the behavior (send or receive
@@ -65,23 +65,27 @@ namespace ChimeraTK {
     ProcessArray(InstanceType instanceType, const ChimeraTK::RegisterPath& name, const std::string& unit,
         const std::string& description, const AccessModeFlags& flags);
 
-    virtual ~ProcessArray();
+    ~ProcessArray() override;
 
-    bool isReadable() const override { return _instanceType == RECEIVER || _instanceType == SENDER_RECEIVER; }
+    [[nodiscard]] bool isReadable() const override {
+      return _instanceType == RECEIVER || _instanceType == SENDER_RECEIVER;
+    }
 
-    bool isWriteable() const override { return _instanceType == SENDER || _instanceType == SENDER_RECEIVER; }
+    [[nodiscard]] bool isWriteable() const override {
+      return _instanceType == SENDER || _instanceType == SENDER_RECEIVER;
+    }
 
-    bool isReadOnly() const override { return !isWriteable(); }
+    [[nodiscard]] bool isReadOnly() const override { return !isWriteable(); }
 
     /** Return a unique ID of this process variable, which will be indentical for
      * the receiver and sender side of the same variable but different for any
      * other process variable within the same process. The unique ID will not be
      *  persistent accross executions of the process. */
-    virtual size_t getUniqueId() const = 0;
+    [[nodiscard]] virtual size_t getUniqueId() const = 0;
 
-    const std::type_info& getValueType() const override { return typeid(T); }
+    [[nodiscard]] const std::type_info& getValueType() const override { return typeid(T); }
 
-    bool mayReplaceOther(const boost::shared_ptr<const ChimeraTK::TransferElement>&) const override {
+    [[nodiscard]] bool mayReplaceOther(const boost::shared_ptr<const ChimeraTK::TransferElement>&) const override {
       return false; // never true as we shall return false if instance is the same
     }
 
@@ -116,7 +120,7 @@ namespace ChimeraTK {
   /********************************************************************************************************************/
 
   template<class T>
-  ProcessArray<T>::~ProcessArray() {}
+  ProcessArray<T>::~ProcessArray() = default;
 
 } // namespace ChimeraTK
 

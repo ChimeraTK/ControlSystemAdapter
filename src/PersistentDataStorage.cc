@@ -5,12 +5,13 @@
  *      Author: Martin Hierholzer
  */
 
-#include <boost/lexical_cast.hpp>
+#include "PersistentDataStorage.h"
+
+#include "ApplicationBase.h"
 #include <libxml++/libxml++.h>
 #include <sys/stat.h>
 
-#include "ApplicationBase.h"
-#include "PersistentDataStorage.h"
+#include <boost/lexical_cast.hpp>
 
 namespace ChimeraTK {
 
@@ -22,15 +23,15 @@ namespace ChimeraTK {
     _applicationName = applicationName;
     readFromFile();
 
-    writerThread = boost::thread([this] { this->writerThreadFunction(); });
+    _writerThread = boost::thread([this] { this->writerThreadFunction(); });
   }
 
   /*********************************************************************************************************************/
 
   PersistentDataStorage::~PersistentDataStorage() {
     try {
-      writerThread.interrupt();
-      writerThread.join();
+      _writerThread.interrupt();
+      _writerThread.join();
     }
     catch(...) {
       std::cerr << "Cannot join writer thread!" << std::endl;
@@ -61,7 +62,9 @@ namespace ChimeraTK {
       rootElement->set_attribute("application", _applicationName);
 
       for(size_t i = 0; i < _variableNames.size(); ++i) {
-        if(!_variableRegisteredFromApp[i]) continue; // exclude variables no longer present in the application
+        if(!_variableRegisteredFromApp[i]) {
+          continue; // exclude variables no longer present in the application
+        }
 
         // create XML element for the variable and set name attribute
         xmlpp::Element* variable = rootElement->add_child("variable");
@@ -99,7 +102,7 @@ namespace ChimeraTK {
     {
       // obtain the data vector from the map
       std::lock_guard<std::mutex> lock(_queueReadMutex);
-      auto& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].read_latest();
+      auto& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].readLatest();
       pValue = &value;
     }
     // add one child element per element of the value
@@ -135,12 +138,18 @@ namespace ChimeraTK {
         // iterate through variables
         for(const auto& elem : rootElement->get_children()) {
           const auto* child = dynamic_cast<const xmlpp::Element*>(elem);
-          if(!child) continue; // comment or white spaces...
+          if(!child) {
+            continue; // comment or white spaces...
+          }
           std::string name = child->get_attribute("name")->get_value();
           std::string type = child->get_attribute("type")->get_value();
           // compatibility with old persistency files - remove after July 2023
-          if(type == "double") type = "float64";
-          if(type == "float") type = "float32";
+          if(type == "double") {
+            type = "float64";
+          }
+          if(type == "float") {
+            type = "float32";
+          }
           DataType dataType(type);
           if(dataType == DataType::none) {
             std::cerr << "Unknown data type '" + type + "' found in persist file: " << name << std::endl;
@@ -166,12 +175,14 @@ namespace ChimeraTK {
   template<typename UserType>
   void PersistentDataStorage::readXmlValueTags(const xmlpp::Element* parent, size_t id) {
     // obtain the data vector from the map
-    std::vector<UserType>& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].read_latest();
+    std::vector<UserType>& value = boost::fusion::at_key<UserType>(_dataMap.table)[id].readLatest();
 
     // collect values
     for(const auto& valElems : parent->get_children()) {
       const auto* valChild = dynamic_cast<const xmlpp::Element*>(valElems);
-      if(!valChild) continue; // comment or white spaces...
+      if(!valChild) {
+        continue; // comment or white spaces...
+      }
 
       // obtain index and value as string
       std::string s_idx = valChild->get_attribute("i")->get_value();
@@ -182,7 +193,9 @@ namespace ChimeraTK {
       auto val = userTypeToUserType<UserType>(s_val);
 
       // resize vector if needed
-      if(value.size() <= idx) value.resize(idx + 1);
+      if(value.size() <= idx) {
+        value.resize(idx + 1);
+      }
 
       // store value
       value[idx] = val;

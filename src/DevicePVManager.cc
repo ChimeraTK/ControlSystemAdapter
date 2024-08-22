@@ -1,10 +1,12 @@
-#include <exception>
-
 #include "DevicePVManager.h"
+
+#include <exception>
+#include <utility>
 
 namespace ChimeraTK {
 
-  DevicePVManager::DevicePVManager(boost::shared_ptr<PVManager> pvManager) : _pvManager(pvManager) {}
+  DevicePVManager::DevicePVManager(boost::shared_ptr<PVManager> pvManager)
+  : _pvManager(std::move(std::move(pvManager))) {}
 
   ProcessVariable::SharedPtr DevicePVManager::getProcessVariable(
       const ChimeraTK::RegisterPath& processVariableName) const {
@@ -17,8 +19,8 @@ namespace ChimeraTK {
     // We reserve the capacity that we need in order to avoid unnecessary copy
     // operations.
     devProcessVariables.reserve(processVariables.size());
-    for(PVManager::ProcessVariableMap::const_iterator i = processVariables.begin(); i != processVariables.end(); i++) {
-      devProcessVariables.push_back(i->second.second);
+    for(const auto& processVariable : processVariables) {
+      devProcessVariables.push_back(processVariable.second.second);
     }
     return devProcessVariables;
   }

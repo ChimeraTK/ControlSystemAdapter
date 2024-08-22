@@ -100,7 +100,7 @@ namespace ChimeraTK {
     /**
      * Type alias for a shared pointer to this type.
      */
-    typedef boost::shared_ptr<BidirectionalProcessArray> SharedPtr;
+    using SharedPtr = boost::shared_ptr<BidirectionalProcessArray>;
 
     /* The two createBidirectionalSynchronizedProcessArray functions have to be
        friends so that they can access the private _partner field. */
@@ -142,14 +142,14 @@ namespace ChimeraTK {
      * for the receiver and sender side of the same variable but different for
      * any other process variable within the same process. The unique ID will
      * not be  persistent across executions of the process. */
-    size_t getUniqueId() const override { return _uniqueId; }
+    [[nodiscard]] size_t getUniqueId() const override { return _uniqueId; }
 
     /**
      * Set a callback function which is called whenever a value is rejected
      * because it is old. This is used by ApplicationCore testable mode to keep
      * track of the number of values.
      */
-    void setValueRejectCallback(std::function<void()> callback) { valueRejectCallback = callback; }
+    void setValueRejectCallback(std::function<void()> callback) { _valueRejectCallback = std::move(callback); }
 
    private:
     /**
@@ -204,7 +204,7 @@ namespace ChimeraTK {
      * ApplicationCore testable mode, since it needs to keep track of the number
      * of values.
      */
-    std::function<void()> valueRejectCallback;
+    std::function<void()> _valueRejectCallback;
   };
 
   /*********************************************************************************************************************/
@@ -223,8 +223,9 @@ namespace ChimeraTK {
     _sender(boost::dynamic_pointer_cast<UnidirectionalProcessArray<T>>(sender)), _uniqueId(uniqueId) {
     TransferElement::_versionNumber = initialVersionNumber;
 
-    if(not flags.has(AccessMode::wait_for_new_data))
+    if(not flags.has(AccessMode::wait_for_new_data)) {
       throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+    }
 
     // If the passed sender was not null but the class variable is, the dynamic
     // cast failed.
@@ -247,8 +248,10 @@ namespace ChimeraTK {
 
     TransferElement::_readQueue = _receiver->getReadQueue().template then<void>(
         [this] {
-          if(_receiver->_localBuffer._versionNumber < TransferElement::getVersionNumber()) {
-            if(valueRejectCallback) valueRejectCallback();
+          if(_receiver->_localBuffer.versionNumber < TransferElement::getVersionNumber()) {
+            if(_valueRejectCallback) {
+              _valueRejectCallback();
+            }
             throw detail::DiscardValueException();
           }
         },
@@ -364,8 +367,9 @@ namespace ChimeraTK {
       createBidirectionalSynchronizedProcessArray(std::size_t size, const ChimeraTK::RegisterPath& name,
           const std::string& unit, const std::string& description, T initialValue, std::size_t numberOfBuffers,
           const AccessModeFlags& flags) {
-    if(not flags.has(AccessMode::wait_for_new_data))
+    if(not flags.has(AccessMode::wait_for_new_data)) {
       throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+    }
 
     auto senderReceiver1 =
         createSynchronizedProcessArray(size, name, unit, description, initialValue, numberOfBuffers, flags);
@@ -394,8 +398,9 @@ namespace ChimeraTK {
       createBidirectionalSynchronizedProcessArray(const std::vector<T>& initialValue,
           const ChimeraTK::RegisterPath& name, const std::string& unit, const std::string& description,
           std::size_t numberOfBuffers, const AccessModeFlags& flags) {
-    if(not flags.has(AccessMode::wait_for_new_data))
+    if(not flags.has(AccessMode::wait_for_new_data)) {
       throw ChimeraTK::logic_error("Cannot create Bidirectional Process Arrays without wait_for_new_data");
+    }
 
     auto senderReceiver1 =
         createSynchronizedProcessArray(initialValue, name, unit, description, numberOfBuffers, flags);

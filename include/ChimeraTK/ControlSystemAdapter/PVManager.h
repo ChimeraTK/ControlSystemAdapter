@@ -41,18 +41,18 @@ namespace ChimeraTK {
     /**
      * Disable copy-construction.
      */
-    PVManager(const PVManager&);
+    PVManager(const PVManager&) = delete;
 
     /**
      * Disable copy-assignment.
      */
-    PVManager& operator=(const PVManager&);
+    PVManager& operator=(const PVManager&) = delete;
 
    public:
     /**
      * Type alias for a pair of shared pointers to {@link ProcessVariable}s.
      */
-    typedef std::pair<ProcessVariable::SharedPtr, ProcessVariable::SharedPtr> ProcessVariableSharedPtrPair;
+    using ProcessVariableSharedPtrPair = std::pair<ProcessVariable::SharedPtr, ProcessVariable::SharedPtr>;
 
     /**
      * Type alias for the process variable map. Useful for getting related types
@@ -62,7 +62,7 @@ namespace ChimeraTK {
      * std::map. Write a std::hash<RegisterPath> if you cant to improve the
      * performance.
      */
-    typedef std::map<ChimeraTK::RegisterPath, ProcessVariableSharedPtrPair> ProcessVariableMap;
+    using ProcessVariableMap = std::map<ChimeraTK::RegisterPath, ProcessVariableSharedPtrPair>;
 
     /**
      * Creates a new process array for transferring data between the device
@@ -277,7 +277,7 @@ namespace ChimeraTK {
   }
 
   inline bool PVManager::hasProcessVariable(ChimeraTK::RegisterPath const& processVariableName) const {
-    ProcessVariableMap::const_iterator i = _processVariables.find(processVariableName);
+    auto i = _processVariables.find(processVariableName);
     return (i != _processVariables.end());
   }
 

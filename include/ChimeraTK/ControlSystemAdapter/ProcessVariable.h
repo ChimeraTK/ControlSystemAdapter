@@ -4,7 +4,7 @@
 #include <ChimeraTK/TransferElement.h>
 
 namespace ChimeraTK {
-  typedef ChimeraTK::TransferElement ProcessVariable;
-}
+  using ProcessVariable = ChimeraTK::TransferElement;
+} // namespace ChimeraTK
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_VARIABLE_H

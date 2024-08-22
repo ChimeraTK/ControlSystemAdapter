@@ -17,7 +17,7 @@
 
 namespace xmlpp {
   class Element;
-}
+} // namespace xmlpp
 
 namespace ChimeraTK {
 
@@ -50,7 +50,8 @@ namespace ChimeraTK {
     static const unsigned int DEFAULT_WRITE_INTERVAL{30}; // 30 seconds
 
     /** Constructor: Open and parse the storage file. */
-    PersistentDataStorage(std::string const& applicationName, unsigned int fileWriteInterval = DEFAULT_WRITE_INTERVAL);
+    explicit PersistentDataStorage(
+        std::string const& applicationName, unsigned int fileWriteInterval = DEFAULT_WRITE_INTERVAL);
 
     /** Destructor: Store variables to the file. */
     ~PersistentDataStorage();
@@ -65,7 +66,7 @@ namespace ChimeraTK {
 
     /** Retrieve the current value for the variable with the given ID */
     template<typename DataType>
-    const std::vector<DataType> retrieveValue(size_t id);
+    std::vector<DataType> retrieveValue(size_t id);
 
     /** Notify the storage system about a new value of the variable with the given
      * ID (as returned by registerVariable) */
@@ -111,15 +112,13 @@ namespace ChimeraTK {
       std::vector<DataType> _latestValue{};
 
     public:
-      Queue(size_t queueSize = 2) : _q(queueSize){}
-      void push_overwrite(const std::vector<DataType> &e) {
-        _q.push_overwrite(e);
-      }
-      std::vector<DataType> &read_latest() {
-        while (_q.pop(_latestValue)) {
-        }
-        return _latestValue;
-      }
+     explicit Queue(size_t queueSize = 2) : _q(queueSize) {}
+     void pushOverwrite(const std::vector<DataType>& e) { _q.push_overwrite(e); }
+     std::vector<DataType>& readLatest() {
+       while(_q.pop(_latestValue)) {
+       }
+       return _latestValue;
+     }
     };
 
     /** Type definition for the map holding the values for one specific data type.
@@ -132,7 +131,7 @@ namespace ChimeraTK {
     ChimeraTK::TemplateUserTypeMap<DataMap> _dataMap;
 
     /** */
-    boost::thread writerThread;
+    boost::thread _writerThread;
 
     void writerThreadFunction();
 
@@ -142,7 +141,7 @@ namespace ChimeraTK {
     unsigned int const _fileWriteInterval{};
 
     /** A functor needed in registerVariable() */
-    struct registerVariable_oldTypeRemover {
+    struct RegisterVariableOldTypeRemover {
       template<typename PAIR>
       void operator()(PAIR& pair) const;
       const std::type_info* type;
@@ -153,13 +152,14 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<typename PAIR>
-  void PersistentDataStorage::registerVariable_oldTypeRemover::operator()(PAIR& pair) const {
+  void PersistentDataStorage::RegisterVariableOldTypeRemover::operator()(PAIR& pair) const {
     // search for the right type
-    if(*type != typeid(typename PAIR::first_type)) return;
+    if(*type != typeid(typename PAIR::first_type)) {
+      return;
+    }
 
     // remove entry from data map
     pair.second.erase(id);
-
   }
 
   /*********************************************************************************************************************/
@@ -175,7 +175,9 @@ namespace ChimeraTK {
     // create new element
     if(position == _variableNames.end()) {
       // output information
-      if(!fromFile) std::cout << "PersistentDataStorage: registering new variable " << name << std::endl;
+      if(!fromFile) {
+        std::cout << "PersistentDataStorage: registering new variable " << name << std::endl;
+      }
 
       // store name and type
       _variableNames.push_back(name);
@@ -186,20 +188,20 @@ namespace ChimeraTK {
 
       // create value vector
       id = _variableNames.size() - 1;
-      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].readLatest();
       value.resize(nElements);
 
       // return id
       return id;
     }
     // replace element (changed data type)
-    else if(boost::fusion::at_key<DataType>(_dataMap.table).count(id) == 0) {
+    if(boost::fusion::at_key<DataType>(_dataMap.table).count(id) == 0) {
       std::cout << "PersistentDataStorage: changing type of variable " << name << std::endl;
       assert(_variableTypes[id] != &typeid(DataType));
       assert(!fromFile);
 
       // remove value vector from old type
-      boost::fusion::for_each(_dataMap.table, registerVariable_oldTypeRemover({_variableTypes[id], id}));
+      boost::fusion::for_each(_dataMap.table, RegisterVariableOldTypeRemover({_variableTypes[id], id}));
 
       // update type
       _variableTypes[id] = &typeid(DataType);
@@ -208,48 +210,44 @@ namespace ChimeraTK {
       _variableRegisteredFromApp[id] = true;
 
       // create value vector
-      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].readLatest();
       value.resize(nElements);
 
       // return id
       return id;
     }
     // return existing id
-    else {
-      assert(!fromFile);
+    assert(!fromFile);
 
-      // update flag that this variable has been registered from the application
-      _variableRegisteredFromApp[id] = true;
+    // update flag that this variable has been registered from the application
+    _variableRegisteredFromApp[id] = true;
 
-      // check if resize required
-      std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
-      if(value.size() != nElements) {
-        std::cout << "PersistentDataStorage: changing size of variable " << name << " from " << value.size() << " to "
-                  << nElements << std::endl;
-        value.resize(nElements);
-      }
-
-      return id;
+    // check if resize required
+    std::vector<DataType>& value = boost::fusion::at_key<DataType>(_dataMap.table)[id].readLatest();
+    if(value.size() != nElements) {
+      std::cout << "PersistentDataStorage: changing size of variable " << name << " from " << value.size() << " to "
+                << nElements << std::endl;
+      value.resize(nElements);
     }
+
+    return id;
   }
 
   /*********************************************************************************************************************/
 
   template<typename DataType>
-  const std::vector<DataType> PersistentDataStorage::retrieveValue(size_t id) {
+  std::vector<DataType> PersistentDataStorage::retrieveValue(size_t id) {
     std::lock_guard<std::mutex> lock(_queueReadMutex);
-    return boost::fusion::at_key<DataType>(_dataMap.table)[id].read_latest();
+    return boost::fusion::at_key<DataType>(_dataMap.table)[id].readLatest();
   }
 
   /*********************************************************************************************************************/
 
   template<typename DataType>
   void PersistentDataStorage::updateValue(int id, std::vector<DataType> const &value) {
-    boost::fusion::at_key<DataType>(_dataMap.table)[id].push_overwrite(value);
+    boost::fusion::at_key<DataType>(_dataMap.table)[id].pushOverwrite(value);
   }
 
 } // namespace ChimeraTK
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PERSISTENT_DATA_STORAGE_H
-
-

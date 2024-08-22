@@ -10,10 +10,6 @@
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
-using boost::make_shared;
-using std::pair;
-using std::tie;
-
 // We only test an array of doubles because the logic is actually the same for
 // all data types and the low-level stuff is already tested for all data types
 // when testing the UnidirectionalProcessArray.

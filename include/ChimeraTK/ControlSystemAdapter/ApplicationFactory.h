@@ -12,7 +12,6 @@
 
 namespace ChimeraTK {
 
-
   /*********************************************************************************************************************/
 
   /** Type-less base class. Defines one static instance of the application and a
@@ -58,7 +57,7 @@ namespace ChimeraTK {
     /** The constructor arguments of the application are simply passed to the ApplicationFactory.
      */
     template<typename... APPLICATION_ARGS>
-    ApplicationFactory(APPLICATION_ARGS... args) {
+    explicit ApplicationFactory(APPLICATION_ARGS... args) {
       if(_factoryFunction) {
         throw ChimeraTK::logic_error("Multiple instances of ChimeraTK::ApplicationFactory cannot be created.");
       }
@@ -85,8 +84,7 @@ namespace ChimeraTK {
             "Creating a ChimeraTK::ApplicationFactory when a ChimeraTK::Application already exists is not "
             "allowed.");
       }
-      _factoryFunction =
-          std::bind(&ApplicationFactory<APPLICATION_TYPE>::factoryFunctionImpl<APPLICATION_ARGS...>, this, args...);
+      _factoryFunction = [=] { factoryFunctionImpl(args...); };
     }
 
    protected:
