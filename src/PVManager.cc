@@ -7,7 +7,6 @@
 namespace ChimeraTK {
 
   using boost::shared_ptr;
-  using std::list;
 
   PVManager::PVManager() {
     /// @todo FIXME I keep this part of the code commented out, although it is not
@@ -27,15 +26,13 @@ namespace ChimeraTK {
 
   std::pair<ProcessVariable::SharedPtr, ProcessVariable::SharedPtr> PVManager::getProcessVariable(
       ChimeraTK::RegisterPath const& processVariableName) const {
-    ProcessVariableMap::const_iterator i = _processVariables.find(processVariableName);
+    auto i = _processVariables.find(processVariableName);
     if(i != _processVariables.end()) {
       return i->second;
     }
-    else {
-      throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Error in "
-                                   "PVManager. Unknown process variable '" +
-          (processVariableName) + "'");
-    }
+    throw ChimeraTK::logic_error("ChimeraTK::ControlSystemAdapter: Error in "
+                                 "PVManager. Unknown process variable '" +
+        (processVariableName) + "'");
   }
 
   const PVManager::ProcessVariableMap& PVManager::getAllProcessVariables() const { return _processVariables; }

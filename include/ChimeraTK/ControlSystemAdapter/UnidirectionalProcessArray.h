@@ -50,7 +50,7 @@ namespace ChimeraTK {
     /**
      * Type alias for a shared pointer to this type.
      */
-    typedef boost::shared_ptr<UnidirectionalProcessArray> SharedPtr;
+    using SharedPtr = boost::shared_ptr<UnidirectionalProcessArray>;
 
     /**
      * Creates a process array that acts as a receiver. A receiver is
@@ -114,17 +114,15 @@ namespace ChimeraTK {
      * the receiver and sender side of the same variable but different for any
      * other process variable within the same process. The unique ID will not be
      *  persistent accross executions of the process. */
-    size_t getUniqueId() const override {
+    [[nodiscard]] size_t getUniqueId() const override {
       // use pointer address of receiver end of the variable
       if(_receiver) {
         return reinterpret_cast<size_t>(_receiver.get());
       }
-      else {
-        return reinterpret_cast<size_t>(this);
-      }
+      return reinterpret_cast<size_t>(this);
     }
 
-    void interrupt() override { TransferElement::interrupt_impl(_sharedState._queue); }
+    void interrupt() override { TransferElement::interrupt_impl(_sharedState.queue); }
 
    private:
     /**
@@ -135,30 +133,30 @@ namespace ChimeraTK {
      * allocations when transported in a cppext::future_queue.
      */
     struct Buffer {
-      Buffer(const std::vector<T>& initialValue) : _value(initialValue) {}
+      explicit Buffer(std::vector<T> initialValue) : value(std::move(initialValue)) {}
 
-      Buffer(size_t size) : _value(size) {}
+      explicit Buffer(size_t size) : value(size) {}
 
-      Buffer() {}
+      Buffer() = default;
 
-      Buffer(Buffer&& other)
-      : _value(std::move(other._value)), _versionNumber(other._versionNumber), _dataValidity(other._dataValidity) {}
+      Buffer(Buffer&& other) noexcept
+      : value(std::move(other.value)), versionNumber(other.versionNumber), dataValidity(other.dataValidity) {}
 
-      Buffer& operator=(Buffer&& other) {
-        _value = std::move(other._value);
-        _versionNumber = other._versionNumber;
-        _dataValidity = other._dataValidity;
+      Buffer& operator=(Buffer&& other) noexcept {
+        value = std::move(other.value);
+        versionNumber = other.versionNumber;
+        dataValidity = other.dataValidity;
         return *this;
       }
 
       /** The actual data contained in this buffer. */
-      std::vector<T> _value;
+      std::vector<T> value;
 
       /** Version number of this data */
-      ChimeraTK::VersionNumber _versionNumber{nullptr};
+      ChimeraTK::VersionNumber versionNumber{nullptr};
 
       /** Whether or not the data in the bufer is considered valid */
-      ChimeraTK::DataValidity _dataValidity{ChimeraTK::DataValidity::ok};
+      ChimeraTK::DataValidity dataValidity{ChimeraTK::DataValidity::ok};
     };
 
     /**
@@ -170,13 +168,13 @@ namespace ChimeraTK {
      * The state shared between the sender and the receiver
      */
     struct SharedState {
-      SharedState(size_t numberOfBuffers, size_t bufferLength) : _queue(numberOfBuffers) {
+      SharedState(size_t numberOfBuffers, size_t bufferLength) : queue(numberOfBuffers) {
         // fill the internal buffers of the queue
         for(size_t i = 0; i < numberOfBuffers + 1; ++i) {
           Buffer b0(bufferLength);
           Buffer b1(bufferLength);
-          _queue.push(std::move(b0));
-          _queue.pop(b1); // here the buffer b1 gets swapped into the queue
+          queue.push(std::move(b0));
+          queue.pop(b1); // here the buffer b1 gets swapped into the queue
         }
       }
 
@@ -184,12 +182,12 @@ namespace ChimeraTK {
       // supports sharing and we have nothing else in our shared state, we do not
       // need to store our share state as a pointer but we can "copy" it and the
       // copies will stay linked.
-      SharedState(const SharedState& other) : _queue(other._queue) {}
+      SharedState(const SharedState& other) : queue(other.queue) {}
 
       /**
        * Queue of buffers transporting the actual values
        */
-      cppext::future_queue<Buffer, cppext::SWAP_DATA> _queue;
+      cppext::future_queue<Buffer, cppext::SWAP_DATA> queue;
     };
     SharedState _sharedState;
 
@@ -238,25 +236,25 @@ namespace ChimeraTK {
      * assert(). */
     bool checkThreadSafety() {
       // Only perform check if enableThreadSafetyCheck is enabled
-      if(!detail::processArrayEnableThreadSafetyCheck) return true;
-
-      // If threadSafetyCheckLastId has already been filled, perform the check
-      if(threadSafetyCheckInitialised) {
-        return (threadSafetyCheckLastId == std::hash<std::thread::id>()(std::this_thread::get_id()));
-      }
-      else {
-        // ThreadSafetyCheckLastId not yet filled: fill it and set the flag.
-        threadSafetyCheckLastId = std::hash<std::thread::id>()(std::this_thread::get_id());
-        threadSafetyCheckInitialised = true;
+      if(!detail::processArrayEnableThreadSafetyCheck) {
         return true;
       }
+
+      // If threadSafetyCheckLastId has already been filled, perform the check
+      if(_threadSafetyCheckInitialised) {
+        return (_threadSafetyCheckLastId == std::hash<std::thread::id>()(std::this_thread::get_id()));
+      }
+      // ThreadSafetyCheckLastId not yet filled: fill it and set the flag.
+      _threadSafetyCheckLastId = std::hash<std::thread::id>()(std::this_thread::get_id());
+      _threadSafetyCheckInitialised = true;
+      return true;
     }
 
     /** Hash of the last known thread id for the thread safety check */
-    std::atomic<size_t> threadSafetyCheckLastId;
+    std::atomic<size_t> _threadSafetyCheckLastId{};
 
     /** Flag whether threadSafetyCheckLastId has been filled already */
-    std::atomic<bool> threadSafetyCheckInitialised; // std::atomic<bool> defaults to false
+    std::atomic<bool> _threadSafetyCheckInitialised{}; // std::atomic<bool> defaults to false
 
     template<typename U>
     friend std::pair<typename ProcessArray<U>::SharedPtr, typename ProcessArray<U>::SharedPtr>
@@ -359,7 +357,7 @@ namespace ChimeraTK {
       const std::vector<T>& initialValue, std::size_t numberOfBuffers, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, name, unit, description, flags), _vectorSize(initialValue.size()),
     _sharedState(numberOfBuffers, initialValue.size()), _localBuffer(initialValue) {
-    TransferElement::_readQueue = _sharedState._queue.template then<void>(
+    TransferElement::_readQueue = _sharedState.queue.template then<void>(
         [this](Buffer& buf) { std::swap(_localBuffer, buf); }, std::launch::deferred);
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
@@ -392,7 +390,7 @@ namespace ChimeraTK {
       UnidirectionalProcessArray::SharedPtr receiver, const AccessModeFlags& flags)
   : ProcessArray<T>(instanceType, receiver->getName(), receiver->getUnit(), receiver->getDescription(), flags),
     _vectorSize(receiver->_vectorSize), _sharedState(receiver->_sharedState),
-    _localBuffer(receiver->_localBuffer._value), _receiver(receiver) {
+    _localBuffer(receiver->_localBuffer.value), _receiver(receiver) {
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if(!this->isWriteable()) {
@@ -461,11 +459,11 @@ namespace ChimeraTK {
     // If without wait_for_new_data, make sure that there is an initial value
     // TODO: Link spec element
     if(TransferElement::getVersionNumber() == VersionNumber{nullptr}) {
-      _sharedState._queue.pop_wait(_localBuffer);
+      _sharedState.queue.pop_wait(_localBuffer);
     }
 
     // Empty queue, equivalent of readLatest()
-    while(_sharedState._queue.pop(_localBuffer)) {
+    while(_sharedState.queue.pop(_localBuffer)) {
     }
   }
 
@@ -478,19 +476,19 @@ namespace ChimeraTK {
       // We have to check that the vector that we currently own still has the
       // right size. Otherwise, the code using the sender might get into
       // trouble when it suddenly experiences a vector of the wrong size.
-      assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer._value.size());
+      assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _localBuffer.value.size());
 
       if(this->_accessModeFlags.has(AccessMode::wait_for_new_data)) {
         // swap data out of the local buffer into the user buffer
-        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer._value);
+        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_localBuffer.value);
       }
       else {
         // We have to mimic synchronous mode. Here we have to copy here because there might be multiple reads, and
         // the reading code is allowed to swap out the user buffer, and has to get the correct value on the second read.
-        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = _localBuffer._value;
+        ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = _localBuffer.value;
       }
-      TransferElement::_versionNumber = _localBuffer._versionNumber;
-      TransferElement::_dataValidity = _localBuffer._dataValidity;
+      TransferElement::_versionNumber = _localBuffer.versionNumber;
+      TransferElement::_dataValidity = _localBuffer.dataValidity;
     }
   }
 
@@ -512,9 +510,13 @@ namespace ChimeraTK {
 
   template<class T>
   void UnidirectionalProcessArray<T>::setPersistentDataStorage(boost::shared_ptr<PersistentDataStorage> storage) {
-    if(!this->isWriteable()) return;
+    if(!this->isWriteable()) {
+      return;
+    }
     bool sendInitialValue = false;
-    if(!_persistentDataStorage) sendInitialValue = true;
+    if(!_persistentDataStorage) {
+      sendInitialValue = true;
+    }
     _persistentDataStorage = storage;
     _persistentDataStorageID = _persistentDataStorage->registerVariable<T>(
         ChimeraTK::TransferElement::getName(), ChimeraTK::NDRegisterAccessor<T>::getNumberOfSamples());
@@ -545,20 +547,20 @@ namespace ChimeraTK {
     }
 
     // Set time stamp and version number
-    _localBuffer._versionNumber = newVersionNumber;
-    _localBuffer._dataValidity = TransferElement::dataValidity();
+    _localBuffer.versionNumber = newVersionNumber;
+    _localBuffer.dataValidity = TransferElement::dataValidity();
 
     // set the data by copying or swapping
-    assert(_localBuffer._value.size() == _intermedateBuffer.size());
+    assert(_localBuffer.value.size() == _intermedateBuffer.size());
     if(shouldCopy) {
-      _localBuffer._value = _intermedateBuffer;
+      _localBuffer.value = _intermedateBuffer;
     }
     else {
-      _localBuffer._value.swap(_intermedateBuffer);
+      _localBuffer.value.swap(_intermedateBuffer);
     }
 
     // send the data to the queue
-    bool dataNotLost = _sharedState._queue.push_overwrite(std::move(_localBuffer));
+    bool dataNotLost = _sharedState.queue.push_overwrite(std::move(_localBuffer));
 
     // if receiver does not have wait_for_new_data, do not return whether data has been lost (because conceptionally it
     // hasn't)

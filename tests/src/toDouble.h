@@ -13,7 +13,7 @@ namespace ChimeraTK {
   }
 
   template<>
-  double toDouble<std::string>(std::string input) {
+  inline double toDouble<std::string>(std::string input) {
     return std::stod(input);
   }
 

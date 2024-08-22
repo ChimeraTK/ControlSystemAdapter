@@ -1,8 +1,10 @@
 #include "UnidirectionalProcessArray.h"
+
 #include <boost/thread/thread.hpp>
+
+#include <csignal>
 #include <cstdint>
 #include <random>
-#include <signal.h>
 
 using namespace ChimeraTK;
 
@@ -25,14 +27,16 @@ int main() {
   boost::thread sender([pvars, &sum_sender, &dataWasLost] {
     for(size_t i = 0; i < nSendsPerVar; ++i) {
       size_t k = 0;
-      for(auto& pv : pvars) {
+      for(const auto& pv : pvars) {
         for(size_t j = 0; j < dataSize; ++j) {
           pv.first->accessData(j) = k * nSendsPerVar + i + j;
           sum_sender += k * nSendsPerVar + i + j;
         }
         while(true) {
           bool dataLost = pv.first->write();
-          if(!dataLost) break;
+          if(!dataLost) {
+            break;
+          }
           dataWasLost = true;
         }
       }
@@ -45,7 +49,9 @@ int main() {
   for(size_t i = 0; i < nSendsPerVar; ++i) {
     for(auto& pv : pvars) {
       pv.second->read();
-      for(size_t j = 0; j < dataSize; ++j) sum += pv.second->accessData(j);
+      for(size_t j = 0; j < dataSize; ++j) {
+        sum += pv.second->accessData(j);
+      }
     }
   }
   std::cout << "SUM = " << sum << std::endl;

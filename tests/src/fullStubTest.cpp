@@ -26,14 +26,15 @@ struct TestApplicationFixture {
     std::cout << "this is TestApplicationFixture():" << std::endl;
     testApplication.setPVManager(devManager);
     testApplication.initialise();
-    for(auto pv : csManager->getAllProcessVariables()) {
-      if(pv->isReadable()) readAnyGroup.add(pv);
+    for(const auto& pv : csManager->getAllProcessVariables()) {
+      if(pv->isReadable()) {
+        readAnyGroup.add(pv);
+      }
     }
     readAnyGroup.finalise();
     testApplication.run();
     ReferenceTestApplication::initialiseManualLoopControl();
     while(readAnyGroup.readAnyNonBlocking().isValid()) {
-      continue;
     }
   }
   ~TestApplicationFixture() {
@@ -42,7 +43,7 @@ struct TestApplicationFixture {
   }
 
   template<class UserType>
-  void typedWriteScalarTest(std::string typeNamePrefix) {
+  void typedWriteScalarTest(const std::string& typeNamePrefix) {
     auto toDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/TO_DEVICE_SCALAR");
     auto fromDeviceScalar = csManager->getProcessArray<UserType>(typeNamePrefix + "/FROM_DEVICE_SCALAR");
 
@@ -54,11 +55,14 @@ struct TestApplicationFixture {
       toDeviceScalar->accessData(0) = toType<UserType>(13);
     }
 
-    for(auto pv : csManager->getAllProcessVariables()) {
-      if(pv->isWriteable()) pv->write();
+    for(const auto& pv : csManager->getAllProcessVariables()) {
+      if(pv->isWriteable()) {
+        pv->write();
+      }
     }
     ReferenceTestApplication::runMainLoopOnce();
-    while(readAnyGroup.readAnyNonBlocking().isValid()) continue;
+    while(readAnyGroup.readAnyNonBlocking().isValid()) {
+    }
 
     if constexpr(!std::is_same_v<UserType, ChimeraTK::Void>) {
       BOOST_CHECK_EQUAL(fromDeviceScalar->accessData(0), toType<UserType>(13));
@@ -66,7 +70,7 @@ struct TestApplicationFixture {
   }
 
   template<class UserType>
-  void typedReadArrayTest(std::string typeNamePrefix) {
+  void typedReadArrayTest(const std::string& typeNamePrefix) {
     UserType typeConstant = csManager->getProcessArray<UserType>(typeNamePrefix + "/DATA_TYPE_CONSTANT")->accessData(0);
     double typeIdentiyingDouble = toDouble(typeConstant);
     
@@ -82,7 +86,7 @@ struct TestApplicationFixture {
   }
 
   template<class UserType>
-  void typedWriteArrayTest(std::string typeNamePrefix) {
+  void typedWriteArrayTest(const std::string& typeNamePrefix) {
     auto toDeviceArray = csManager->getProcessArray<UserType>(typeNamePrefix + "/TO_DEVICE_ARRAY");
     auto fromDeviceArray = csManager->getProcessArray<UserType>(typeNamePrefix + "/FROM_DEVICE_ARRAY");
     BOOST_REQUIRE(toDeviceArray);
@@ -97,11 +101,14 @@ struct TestApplicationFixture {
       toDeviceArray->accessChannel(0)[i] = toType<UserType>(13 + i);
     }
 
-    for(auto pv : csManager->getAllProcessVariables()) {
-      if(pv->isWriteable()) pv->write();
+    for(const auto& pv : csManager->getAllProcessVariables()) {
+      if(pv->isWriteable()) {
+        pv->write();
+      }
     }
     ReferenceTestApplication::runMainLoopOnce();
-    while(readAnyGroup.readAnyNonBlocking().isValid()) continue;
+    while(readAnyGroup.readAnyNonBlocking().isValid()) {
+    }
 
     for(size_t i = 0; i < fromDeviceArray->accessChannel(0).size(); ++i) {
       BOOST_CHECK(fromDeviceArray->accessChannel(0)[i] == toType<UserType>(13 + i));

@@ -33,23 +33,23 @@ namespace ChimeraTK {
      * Private constructor. Construction should be done through the
      * createPVManager() function.
      */
-    ControlSystemPVManager(boost::shared_ptr<PVManager> pvManager);
+    explicit ControlSystemPVManager(boost::shared_ptr<PVManager> pvManager);
 
     /**
      * Disable copy-construction.
      */
-    ControlSystemPVManager(const ControlSystemPVManager&);
+    ControlSystemPVManager(const ControlSystemPVManager&) = delete;
 
     /**
      * Disable copy-assignment.
      */
-    ControlSystemPVManager& operator=(const ControlSystemPVManager&);
+    ControlSystemPVManager& operator=(const ControlSystemPVManager&) = delete;
 
    public:
     /**
      * Shared pointer to this type.
      */
-    typedef boost::shared_ptr<ControlSystemPVManager> SharedPtr;
+    using SharedPtr = boost::shared_ptr<ControlSystemPVManager>;
 
     /**
      * Returns a reference to a process array that has been created earlier
@@ -134,7 +134,9 @@ namespace ChimeraTK {
   typename ProcessArray<T>::SharedPtr ControlSystemPVManager::getProcessArray(
       const ChimeraTK::RegisterPath& processVariableName) const {
     auto pv = _pvManager->getProcessArray<T>(processVariableName).first;
-    if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
+    if(_persistentDataStorage && pv->isWriteable()) {
+      pv->setPersistentDataStorage(_persistentDataStorage);
+    }
     return pv;
   }
 

@@ -16,9 +16,9 @@ using namespace ChimeraTK;
 class MyTestApplication : public ApplicationBase {
  public:
   using ApplicationBase::ApplicationBase;
-  ~MyTestApplication() { shutdown(); }
-  void initialise() {}
-  void run() {}
+  ~MyTestApplication() override { shutdown(); }
+  void initialise() override {}
+  void run() override {}
 };
 
 BOOST_AUTO_TEST_SUITE(PersistentDataStorageTestSuite)
@@ -38,13 +38,17 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     // register integer variable MyVar1 with 10 array elements and fill it
     std::vector<int32_t> myVar1(10);
     int id1 = storage.registerVariable<int32_t>("MyVar1", 10);
-    for(int i = 0; i < 10; ++i) myVar1[i] = 3 * i;
+    for(int i = 0; i < 10; ++i) {
+      myVar1[i] = 3 * i;
+    }
     storage.updateValue(id1, myVar1);
 
     // register floating-point variable /some/path.with.dots/to/MyVar2 with 100 array elements and fill it
     std::vector<double> myVar2(100);
     int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
-    for(int i = 0; i < 100; ++i) myVar2[i] = -120 + 7 * i;
+    for(int i = 0; i < 100; ++i) {
+      myVar2[i] = -120 + 7 * i;
+    }
     storage.updateValue(id2, myVar2);
 
     // register Boolean variable /bool/MyVar3 with 4 elements and fill it
@@ -54,9 +58,13 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
 
     // check if both variables are properly stored
     auto myVar1stored = storage.retrieveValue<int32_t>(id1);
-    for(int i = 0; i < 10; ++i) BOOST_CHECK(myVar1stored[i] == 3 * i);
+    for(int i = 0; i < 10; ++i) {
+      BOOST_CHECK(myVar1stored[i] == 3 * i);
+    }
     auto myVar2stored = storage.retrieveValue<double>(id2);
-    for(int i = 0; i < 100; ++i) BOOST_CHECK_CLOSE(myVar2stored[i], -120 + 7 * i, 0.0001);
+    for(int i = 0; i < 100; ++i) {
+      BOOST_CHECK_CLOSE(myVar2stored[i], -120 + 7 * i, 0.0001);
+    }
     auto myVar3stored = storage.retrieveValue<Boolean>(id3);
     BOOST_CHECK_EQUAL_COLLECTIONS(myVar3.begin(), myVar3.end(), myVar3stored.begin(), myVar3stored.end());
 
@@ -71,13 +79,17 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     std::vector<int32_t> myVar1(10);
     int id1 = storage.registerVariable<int32_t>("MyVar1", 10);
     myVar1 = storage.retrieveValue<int32_t>(id1);
-    for(int i = 0; i < 10; ++i) BOOST_CHECK(myVar1[i] == 3 * i);
+    for(int i = 0; i < 10; ++i) {
+      BOOST_CHECK(myVar1[i] == 3 * i);
+    }
 
     // check /some/path.with.dots/to/MyVar2
     std::vector<double> myVar2(100);
     int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
     myVar2 = storage.retrieveValue<double>(id2);
-    for(int i = 0; i < 100; ++i) BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
+    for(int i = 0; i < 100; ++i) {
+      BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
+    }
 
     //check /bool/MyVar3
     std::vector<Boolean> myVar3(4);
@@ -116,7 +128,9 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     std::vector<double> myVar2(100);
     int id2 = storage.registerVariable<double>("/some/path.with.dots/to/MyVar2", 100);
     myVar2 = storage.retrieveValue<double>(id2);
-    for(int i = 0; i < 100; ++i) BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
+    for(int i = 0; i < 100; ++i) {
+      BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
+    }
 
     // modify some elements of myVar1
     myVar1[7] = 42;
@@ -151,19 +165,27 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
 
     // obtain the process variables, send some values to the variables
     auto v1 = csManager->getProcessArray<uint16_t>("SomeCsToDevVar");
-    for(int i = 0; i < 7; ++i) v1->accessChannel(0)[i] = i * 17;
+    for(int i = 0; i < 7; ++i) {
+      v1->accessChannel(0)[i] = i * 17;
+    }
     v1->write();
 
     auto v2 = csManager->getProcessArray<float>("AnotherCsToDevVar");
-    for(int i = 0; i < 42; ++i) v2->accessChannel(0)[i] = i * 3.1415 * 1e12;
+    for(int i = 0; i < 42; ++i) {
+      v2->accessChannel(0)[i] = i * 3.1415 * 1e12;
+    }
     v2->write();
 
     auto v3 = devManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
-    for(int i = 0; i < 7; ++i) v3->accessChannel(0)[i] = 9 * i + 666;
+    for(int i = 0; i < 7; ++i) {
+      v3->accessChannel(0)[i] = 9 * i + 666;
+    }
     v3->write();
 
     auto v4 = csManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
-    for(uint32_t i = 0; i < 7; ++i) v4->accessChannel(0)[i] = i + 123;
+    for(uint32_t i = 0; i < 7; ++i) {
+      v4->accessChannel(0)[i] = i + 123;
+    }
     v4->write();
   }
 
@@ -192,22 +214,32 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     // obtain the process variables, send some values to the variables
     auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
     v1->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK(v1->accessChannel(0)[i] == i * 17);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK(v1->accessChannel(0)[i] == i * 17);
+    }
 
     auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
     v2->readNonBlocking();
-    for(int i = 0; i < 42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i * 3.1415 * 1e30, 2e23);
+    for(int i = 0; i < 42; ++i) {
+      BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i * 3.1415 * 1e30, 2e23);
+    }
 
     auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     v3->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    }
 
     auto v4dev = devManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
     v4dev->readLatest();
-    for(uint32_t i = 0; i < 7; ++i) BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i + 123);
+    for(uint32_t i = 0; i < 7; ++i) {
+      BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i + 123);
+    }
 
     // now test that also writing from the device goes to the persistency
-    for(uint32_t i = 0; i < 7; ++i) v4dev->accessChannel(0)[i] = i * 12;
+    for(uint32_t i = 0; i < 7; ++i) {
+      v4dev->accessChannel(0)[i] = i * 12;
+    }
     v4dev->write();
 
     // data is only persisted once it arrived in the control system. So we have to read it from the control system side.
@@ -281,15 +313,21 @@ BOOST_AUTO_TEST_CASE(testChangedVariableHousehold) {
     // obtain the process variables, send some values to the variables
     auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
     v1->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], 0);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], 0);
+    }
 
     auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
     v2->readNonBlocking();
-    for(int i = 0; i < 42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001);
+    for(int i = 0; i < 42; ++i) {
+      BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001);
+    }
 
     auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     v3->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    }
   }
 
   // check that the number of lines in the file didn't change
@@ -324,16 +362,24 @@ BOOST_AUTO_TEST_CASE(testChangedVariableHousehold) {
     // obtain the process variables, send some values to the variables
     auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
     v1->readNonBlocking();
-    for(int i = 0; i < 4; ++i) BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], i * 17);
-    for(int i = 4; i < 7; ++i) BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], 0);
+    for(int i = 0; i < 4; ++i) {
+      BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], i * 17);
+    }
+    for(int i = 4; i < 7; ++i) {
+      BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], 0);
+    }
 
     auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
     v2->readNonBlocking();
-    for(int i = 0; i < 42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i * 3.1415 * 1e30, 2e23);
+    for(int i = 0; i < 42; ++i) {
+      BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], i * 3.1415 * 1e30, 2e23);
+    }
 
     auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     v3->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    }
   }
 
   // check that the number of lines in the file changed in the right way
@@ -369,15 +415,21 @@ BOOST_AUTO_TEST_CASE(testChangedVariableHousehold) {
     // obtain the process variables, send some values to the variables
     auto v1 = devManager->getProcessArray<uint16_t>("SomeCsToDevVar");
     v1->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], i * 17);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK_EQUAL(v1->accessChannel(0)[i], i * 17);
+    }
 
     auto v2 = devManager->getProcessArray<float>("AnotherCsToDevVar");
     v2->readNonBlocking();
-    for(int i = 0; i < 42; ++i) BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001);
+    for(int i = 0; i < 42; ++i) {
+      BOOST_CHECK_CLOSE(v2->accessChannel(0)[i], 0, 0.00001);
+    }
 
     auto v3 = csManager->getProcessArray<int32_t>("SomeDevToCsVar"); // this one won't get stored
     v3->readNonBlocking();
-    for(int i = 0; i < 7; ++i) BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    for(int i = 0; i < 7; ++i) {
+      BOOST_CHECK(v3->accessChannel(0)[i] == 0);
+    }
   }
 
   // check that the number of lines in the file didn't change

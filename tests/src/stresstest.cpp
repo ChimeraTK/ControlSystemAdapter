@@ -1,7 +1,9 @@
 #include "UnidirectionalProcessArray.h"
+
 #include <boost/thread/thread.hpp>
+
+#include <csignal>
 #include <random>
-#include <signal.h>
 
 using namespace ChimeraTK;
 
@@ -62,7 +64,7 @@ int main() {
 
       // loop until termination request
       while(!terminate) {
-        for(auto& pv : pvars) {
+        for(const auto& pv : pvars) {
           pv.first->accessData(0) = static_cast<int>(disValue(gen));
           pv.first->write();
           ++nSendOps;
@@ -83,7 +85,7 @@ int main() {
       // fill list of app receivers for readAny()
       std::list<std::reference_wrapper<ChimeraTK::TransferElement>> varList;
       std::map<ChimeraTK::TransferElementID, boost::shared_ptr<ProcessArray<int>>> varMap;
-      for(auto& pvar : pvars) {
+      for(const auto& pvar : pvars) {
         varList.emplace_back(*(pvar.second));
         varMap[pvar.second->getId()] = pvar.second;
       }
@@ -115,7 +117,9 @@ int main() {
 
         // iterate to next variable
         ++pviter;
-        if(pviter == pvars.end()) pviter = pvars.begin();
+        if(pviter == pvars.end()) {
+          pviter = pvars.begin();
+        }
 
         usleep(static_cast<unsigned int>(sleepTime));
       }

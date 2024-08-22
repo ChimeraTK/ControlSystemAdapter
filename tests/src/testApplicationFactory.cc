@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(testFactory) {
 
   auto* firstCall = &ApplicationBase::getInstance();
 
-  auto referenceAppPointer = dynamic_cast<ReferenceTestApplication*>(firstCall);
+  auto* referenceAppPointer = dynamic_cast<ReferenceTestApplication*>(firstCall);
   BOOST_TEST(referenceAppPointer != nullptr);
 
   auto* secondCall = &ApplicationBase::getInstance();

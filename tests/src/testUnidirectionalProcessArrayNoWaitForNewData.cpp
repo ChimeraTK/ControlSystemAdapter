@@ -14,9 +14,8 @@ using namespace boost::unit_test_framework;
 #include <stdexcept>
 #include <thread>
 
-typedef boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double,
-    std::string>
-    test_types;
+using test_types = boost::mpl::list<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float,
+    double, std::string>;
 
 using namespace ChimeraTK;
 
@@ -42,16 +41,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/");
-  //sender has default-constructed elements
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
-      ++i) {
-    BOOST_CHECK_EQUAL(*i, T());
+  // sender has default-constructed elements
+  for(const auto& v = sender->accessChannel(0)) {
+    BOOST_CHECK_EQUAL(v, T());
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/");
-  //sender has default-constructed elements
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  // sender has default-constructed elements
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, T());
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
@@ -63,14 +60,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/test");
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
-      ++i) {
+  for(auto i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/test");
-  for(typename std::vector<T>::const_iterator i = receiver->accessChannel(0).begin();
-      i != receiver->accessChannel(0).end(); ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
@@ -113,10 +108,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
   receiver->accessChannel(0);
   typename std::vector<T>& v = sender->accessChannel(0);
   typename std::vector<T> const& cv = sender->accessChannel(0);
-  for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
+  for(auto i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
-  for(typename std::vector<T>::const_iterator i = cv.begin(); i != cv.end(); ++i) {
+  for(auto i = cv.begin(); i != cv.end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
 }
@@ -131,12 +126,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSet, T, test_types) {
   std::vector<T> v(N_ELEMENTS, toType<T>(SOME_NUMBER + 1));
   sender->accessChannel(0) = v;
   receiver->accessChannel(0) = v;
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
-      ++i) {
+  for(auto i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 1));
   }
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 1));
   }
 }
@@ -150,20 +143,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSwap, T, test_types) {
   // Test swapping with a vector (contains default constructed elements)
   typename std::vector<T> v(N_ELEMENTS, toType<T>(SOME_NUMBER));
   sender->accessChannel(0).swap(v);
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
-      ++i) {
+  for(auto i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
-  for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
+  for(auto i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK_EQUAL(*i, T());
   }
   sender->accessChannel(0).swap(v);
   receiver->accessChannel(0).swap(v);
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER));
   }
-  for(typename std::vector<T>::iterator i = v.begin(); i != v.end(); ++i) {
+  for(auto i = v.begin(); i != v.end(); ++i) {
     BOOST_CHECK_EQUAL(*i, T());
   }
 }
@@ -186,8 +177,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   // Without wait_for_new_data, we immediately get the last vaule
   BOOST_CHECK(receiver->readNonBlocking());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0).size(), N_ELEMENTS);
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 2));
   }
 
@@ -200,8 +190,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
     sender->writeDestructively();
   }
   BOOST_CHECK(receiver->readNonBlocking());
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 9));
   }
   // No matter what, we should always get true where
@@ -212,12 +201,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSynchronization, T, test_types) {
   sender->accessChannel(0).assign(N_ELEMENTS, toType<T>(SOME_NUMBER + 5));
   sender->write();
   BOOST_CHECK(receiver->readNonBlocking());
-  for(typename std::vector<T>::iterator i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end();
-      ++i) {
+  for(auto i = receiver->accessChannel(0).begin(); i != receiver->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 5));
   }
-  for(typename std::vector<T>::iterator i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end();
-      ++i) {
+  for(auto i = sender->accessChannel(0).begin(); i != sender->accessChannel(0).end(); ++i) {
     BOOST_CHECK_EQUAL(*i, toType<T>(SOME_NUMBER + 5));
   }
 }
@@ -273,7 +260,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testVersionNumbers, T, test_types) {
   BOOST_CHECK(receiver->getVersionNumber() == sender->getVersionNumber());
   BOOST_CHECK_EQUAL(receiver->accessChannel(0)[0], toType<T>(5));
 }
-
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testReadLatest, T, test_types) {
   auto senderReceiver = createSynchronizedProcessArray<T>(1, "", "", "", T(), 3, {});

@@ -1,13 +1,18 @@
 #include "ControlSystemPVManager.h"
 
+#include <utility>
+
 namespace ChimeraTK {
 
-  ControlSystemPVManager::ControlSystemPVManager(boost::shared_ptr<PVManager> pvManager) : _pvManager(pvManager) {}
+  ControlSystemPVManager::ControlSystemPVManager(boost::shared_ptr<PVManager> pvManager)
+  : _pvManager(std::move(std::move(pvManager))) {}
 
   ProcessVariable::SharedPtr ControlSystemPVManager::getProcessVariable(
       const ChimeraTK::RegisterPath& processVariableName) const {
     auto pv = _pvManager->getProcessVariable(processVariableName).first;
-    if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
+    if(_persistentDataStorage && pv->isWriteable()) {
+      pv->setPersistentDataStorage(_persistentDataStorage);
+    }
     return pv;
   }
 
@@ -17,9 +22,11 @@ namespace ChimeraTK {
     // We reserve the capacity that we need in order to avoid unnecessary copy
     // operations.
     csProcessVariables.reserve(processVariables.size());
-    for(PVManager::ProcessVariableMap::const_iterator i = processVariables.begin(); i != processVariables.end(); i++) {
-      auto pv = i->second.first;
-      if(_persistentDataStorage && pv->isWriteable()) pv->setPersistentDataStorage(_persistentDataStorage);
+    for(const auto& processVariable : processVariables) {
+      auto pv = processVariable.second.first;
+      if(_persistentDataStorage && pv->isWriteable()) {
+        pv->setPersistentDataStorage(_persistentDataStorage);
+      }
       csProcessVariables.push_back(pv);
     }
     return csProcessVariables;

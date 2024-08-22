@@ -3,6 +3,6 @@
 
 namespace ChimeraTK {
   class PVManager;
-}
+} // namespace ChimeraTK
 
 #endif // CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_DECL_H

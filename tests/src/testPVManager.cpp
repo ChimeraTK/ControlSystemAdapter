@@ -1,23 +1,22 @@
 // Define a name for the test module.
 #define BOOST_TEST_MODULE PVManagerTest
 // Only after defining the name include the unit test header.
-#include <boost/test/included/unit_test.hpp>
-
-#include <vector>
-
-#include <boost/chrono.hpp>
-#include <boost/make_shared.hpp>
-
 #include "ControlSystemPVManager.h"
 #include "DevicePVManager.h"
 #include "SynchronizationDirection.h"
+
+#include <boost/chrono.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/test/included/unit_test.hpp>
+
+#include <utility>
+#include <vector>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;
 
 using boost::shared_ptr;
 using std::list;
-using std::map;
 using std::pair;
 using std::string;
 using std::vector;
@@ -29,24 +28,24 @@ struct ThreadedPvManagerHolder {
   CALLABLE callable;
   boost::thread deviceThread;
   shared_ptr<ControlSystemPVManager> csManager;
-  ThreadedPvManagerHolder(shared_ptr<DevicePVManager> devPvManager, shared_ptr<ControlSystemPVManager> csPvManager)
-  : csManager(csPvManager) {
+  ThreadedPvManagerHolder(
+      const shared_ptr<DevicePVManager>& devPvManager, shared_ptr<ControlSystemPVManager> csPvManager)
+  : csManager(std::move(csPvManager)) {
     callable.pvManager = devPvManager;
     deviceThread = boost::thread(callable);
   }
   ~ThreadedPvManagerHolder() { deviceThread.join(); }
-  ThreadedPvManagerHolder(ThreadedPvManagerHolder&&) = default;
+  ThreadedPvManagerHolder(ThreadedPvManagerHolder&&) noexcept = default;
 };
 
 /**
  * Utility method for receiving a list of process variables.
  */
 static void receiveAll(list<ProcessVariable::SharedPtr> const& processVariables) {
-  for(list<ProcessVariable::SharedPtr>::const_iterator i = processVariables.begin(); i != processVariables.end(); ++i) {
+  for(const auto& processVariable : processVariables) {
     // Receive all pending values so that we can be sure that we have the most
     // up-to-date value.
-    while((*i)->readNonBlocking()) {
-      continue;
+    while(processVariable->readNonBlocking()) {
     }
   }
 }
@@ -55,14 +54,14 @@ static void receiveAll(list<ProcessVariable::SharedPtr> const& processVariables)
  * Utility method for sending a list of process variables.
  */
 static void sendAll(list<ProcessVariable::SharedPtr> const& processVariables) {
-  for(list<ProcessVariable::SharedPtr>::const_iterator i = processVariables.begin(); i != processVariables.end(); ++i) {
-    (*i)->write();
+  for(const auto& processVariable : processVariables) {
+    processVariable->write();
   }
 }
 
 template<class T>
-static void testCreateProcessVariables(
-    const string& name, shared_ptr<DevicePVManager> devManager, shared_ptr<ControlSystemPVManager> csManager) {
+static void testCreateProcessVariables(const string& name, const shared_ptr<DevicePVManager>& devManager,
+    const shared_ptr<ControlSystemPVManager>& csManager) {
   shared_ptr<ProcessArray<T>> createdPV = devManager->createProcessArray<T>(
       SynchronizationDirection::deviceToControlSystem, name + "In", 1, "kindOfAUnit", "any description");
   // Although process variables are/ can be created without a leading '/', the
@@ -188,8 +187,7 @@ BOOST_AUTO_TEST_CASE(testInvalidCast) {
 template<class T>
 static void checkControlSystemPVMap(vector<T> processVariables) {
   bool foundDouble = false, foundInt32 = false, foundFloatArray = false;
-  for(typename vector<T>::const_iterator i = processVariables.begin(); i != processVariables.end(); i++) {
-    T pv = *i;
+  for(const auto& pv : processVariables) {
     const std::string& name = pv->getName();
     if(name == "/double") {
       BOOST_CHECK(pv->getValueType() == typeid(double));
@@ -222,8 +220,7 @@ static void checkControlSystemPVMap(vector<T> processVariables) {
 template<class T>
 static void checkDevicePVMap(vector<T> processVariables) {
   bool foundDouble = false, foundInt32 = false, foundFloatArray = false;
-  for(typename vector<T>::const_iterator i = processVariables.begin(); i != processVariables.end(); i++) {
-    T pv = *i;
+  for(const auto& pv : processVariables) {
     const std::string& name = pv->getName();
     if(name == "/double") {
       BOOST_CHECK(pv->getValueType() == typeid(double));
@@ -272,7 +269,7 @@ BOOST_AUTO_TEST_CASE(testAllPVIterator) {
 struct TestDeviceCallable {
   shared_ptr<DevicePVManager> pvManager;
 
-  void operator()() {
+  void operator()() const {
     ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<int32_t>("int32In");
     ProcessArray<int32_t>::SharedPtr int32Out = pvManager->getProcessArray<int32_t>("int32Out");
     ProcessArray<float>::SharedPtr floatArrayIn = pvManager->getProcessArray<float>("floatArrayIn");
@@ -310,7 +307,7 @@ ThreadedPvManagerHolder<TestDeviceCallable> initTestDeviceLib() {
   devManager->createProcessArray<float>(SynchronizationDirection::controlSystemToDevice, "floatArrayOut", 10);
   devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
-  return ThreadedPvManagerHolder<TestDeviceCallable>(devManager, csManager);
+  return {devManager, csManager};
 }
 
 BOOST_AUTO_TEST_CASE(testSynchronization) {
@@ -324,18 +321,18 @@ BOOST_AUTO_TEST_CASE(testSynchronization) {
   ProcessArray<int8_t>::SharedPtr stopDeviceThread = pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
   list<ProcessVariable::SharedPtr> inboundProcessVariables;
-  inboundProcessVariables.push_back(int32In);
-  inboundProcessVariables.push_back(floatArrayIn);
+  inboundProcessVariables.emplace_back(int32In);
+  inboundProcessVariables.emplace_back(floatArrayIn);
 
   list<ProcessVariable::SharedPtr> outboundProcessVariables;
-  outboundProcessVariables.push_back(int32Out);
-  outboundProcessVariables.push_back(floatArrayOut);
-  outboundProcessVariables.push_back(stopDeviceThread);
+  outboundProcessVariables.emplace_back(int32Out);
+  outboundProcessVariables.emplace_back(floatArrayOut);
+  outboundProcessVariables.emplace_back(stopDeviceThread);
 
   int32Out->accessData(0) = 55;
-  floatArrayOut->accessChannel(0).at(0) = 1.0f;
-  floatArrayOut->accessChannel(0).at(1) = 2.0f;
-  floatArrayOut->accessChannel(0).at(2) = -1.3f;
+  floatArrayOut->accessChannel(0).at(0) = 1.0F;
+  floatArrayOut->accessChannel(0).at(1) = 2.0F;
+  floatArrayOut->accessChannel(0).at(2) = -1.3F;
 
   // Send the values, wait a moment for the other thread to send the updates
   // and then receive the new values.
@@ -344,14 +341,14 @@ BOOST_AUTO_TEST_CASE(testSynchronization) {
   receiveAll(inboundProcessVariables);
 
   BOOST_CHECK(int32In->accessData(0) == 55);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 1.0f);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == 2.0f);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(2) == -1.3f);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 1.0F);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == 2.0F);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(2) == -1.3F);
 
   int32Out->accessData(0) = -300;
-  floatArrayOut->accessChannel(0).at(0) = 15.0f;
-  floatArrayOut->accessChannel(0).at(1) = -7.2f;
-  floatArrayOut->accessChannel(0).at(9) = 120.0f;
+  floatArrayOut->accessChannel(0).at(0) = 15.0F;
+  floatArrayOut->accessChannel(0).at(1) = -7.2F;
+  floatArrayOut->accessChannel(0).at(9) = 120.0F;
 
   // Send the values, wait a moment for the other thread to send the updates
   // and then receive the new values.
@@ -360,9 +357,9 @@ BOOST_AUTO_TEST_CASE(testSynchronization) {
   receiveAll(inboundProcessVariables);
 
   BOOST_CHECK(int32In->accessData(0) == -300);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 15.0f);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == -7.2f);
-  BOOST_CHECK(floatArrayIn->accessChannel(0).at(9) == 120.0f);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(0) == 15.0F);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(1) == -7.2F);
+  BOOST_CHECK(floatArrayIn->accessChannel(0).at(9) == 120.0F);
 
   stopDeviceThread->accessData(0) = 1;
   stopDeviceThread->write();
@@ -371,7 +368,7 @@ BOOST_AUTO_TEST_CASE(testSynchronization) {
 struct TestDeviceCallable2 {
   shared_ptr<DevicePVManager> pvManager;
 
-  void operator()() {
+  void operator()() const {
     ProcessArray<int32_t>::SharedPtr int32In = pvManager->getProcessArray<int32_t>("int32In");
     ProcessArray<double>::SharedPtr doubleIn = pvManager->getProcessArray<double>("doubleIn");
     ProcessArray<int8_t>::SharedPtr stopDeviceThread = pvManager->getProcessArray<int8_t>("stopDeviceThread");
@@ -414,13 +411,13 @@ ThreadedPvManagerHolder<TestDeviceCallable2> initTestDeviceLib2() {
   devManager->createProcessArray<double>(SynchronizationDirection::deviceToControlSystem, "doubleIn", 1);
   devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
-  return ThreadedPvManagerHolder<TestDeviceCallable2>(devManager, csManager);
+  return {devManager, csManager};
 }
 
 struct TestDeviceCallable4 {
   shared_ptr<DevicePVManager> pvManager;
 
-  void operator()() {
+  void operator()() const {
     ProcessArray<uint32_t>::SharedPtr intA = pvManager->getProcessArray<uint32_t>("intA");
     ProcessArray<uint32_t>::SharedPtr intB = pvManager->getProcessArray<uint32_t>("intB");
     ProcessArray<uint32_t>::SharedPtr index0 = pvManager->getProcessArray<uint32_t>("index0");
@@ -453,7 +450,7 @@ struct TestDeviceCallable4 {
 struct TestDeviceCallable5 {
   shared_ptr<DevicePVManager> pvManager;
 
-  void operator()() {
+  void operator()() const {
     auto biDouble = pvManager->getProcessArray<double>("biDouble");
     auto stopDeviceThread = pvManager->getProcessArray<int8_t>("stopDeviceThread");
 
@@ -485,7 +482,7 @@ ThreadedPvManagerHolder<TestDeviceCallable5> initTestDeviceLib5() {
   devManager->createProcessArray<double>(SynchronizationDirection::bidirectional, "biDouble", 1);
   devManager->createProcessArray<int8_t>(SynchronizationDirection::controlSystemToDevice, "stopDeviceThread", 1);
 
-  return ThreadedPvManagerHolder<TestDeviceCallable5>(devManager, csManager);
+  return {devManager, csManager};
 }
 
 BOOST_AUTO_TEST_CASE(bidirectionalProcessVariable) {
