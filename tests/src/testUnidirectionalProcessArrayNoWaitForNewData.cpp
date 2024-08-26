@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/");
   // sender has default-constructed elements
-  for(const auto& v = sender->accessChannel(0)) {
+  for(const auto& v : sender->accessChannel(0)) {
     BOOST_CHECK_EQUAL(v, T());
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);

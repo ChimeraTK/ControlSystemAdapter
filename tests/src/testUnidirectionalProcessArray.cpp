@@ -41,14 +41,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   typename ProcessArray<T>::SharedPtr sender = senderReceiver.first;
   typename ProcessArray<T>::SharedPtr receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/");
-  //sender has default-constructed elements
-  for(const auto& val : accessChannel(0)) {
+  // sender has default-constructed elements
+  for(const auto& val : sender->accessChannel(0)) {
     BOOST_CHECK_EQUAL(val, T());
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/");
-  //sender has default-constructed elements
-  for(const auto& val : accessChannel(0)) {
+  // sender has default-constructed elements
+  for(const auto& val : sender->accessChannel(0)) {
     BOOST_CHECK_EQUAL(val, T());
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
@@ -60,12 +60,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testConstructors, T, test_types) {
   sender = senderReceiver.first;
   receiver = senderReceiver.second;
   BOOST_CHECK(sender->getName() == "/test");
-  for(const auto& val : accessChannel(0)) {
+  for(const auto& val : sender->accessChannel(0)) {
     BOOST_CHECK_EQUAL(val, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(sender->accessChannel(0).size() == N_ELEMENTS);
   BOOST_CHECK(receiver->getName() == "/test");
-  for(const auto& val : accessChannel(0)) {
+  for(const auto& val : sender->accessChannel(0)) {
     BOOST_CHECK_EQUAL(val, toType<T>(SOME_NUMBER));
   }
   BOOST_CHECK(receiver->accessChannel(0).size() == N_ELEMENTS);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {
   for(const auto& val : v) {
     BOOST_CHECK_EQUAL(val, toType<T>(SOME_NUMBER));
   }
-  for(const auto& val cv) {
+  for(const auto& val : cv) {
     BOOST_CHECK_EQUAL(val, toType<T>(SOME_NUMBER));
   }
 }
