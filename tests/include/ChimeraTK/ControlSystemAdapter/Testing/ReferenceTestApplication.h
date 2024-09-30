@@ -204,7 +204,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
 
   /// The 'body' of the main loop, i.e. the functionality once, without the loop
   /// around it.
-  void mainBody();
+  virtual void mainBody();
 };
 
 inline ReferenceTestApplication::ReferenceTestApplication(std::string const& applicationName_, int arrayLength)
