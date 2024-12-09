@@ -108,11 +108,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testInterrupt, T, test_types) {
   receiver->interrupt();
   t.join();
 
-  // Calling interrupt without wait_for_new_data throws logic_error
+  // Calling interrupt without wait_for_new_data has no effect (but also no logic_error)
   senderReceiver = createSynchronizedProcessArray<T>(1, "", "", "", toType<T>(SOME_NUMBER), 3, {});
   receiver = senderReceiver.second;
-
-  BOOST_CHECK_THROW(receiver->interrupt(), ChimeraTK::logic_error);
+  receiver->interrupt();
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(testGet, T, test_types) {

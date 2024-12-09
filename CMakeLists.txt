@@ -44,7 +44,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # DeviceAccess is needed due to the common interface classes
 # no longer use add_dependency by directly find_package because we don't want pulled in options become PUBLIC
-FIND_PACKAGE(ChimeraTK-DeviceAccess 03.14 REQUIRED)
+FIND_PACKAGE(ChimeraTK-DeviceAccess 03.18 REQUIRED)
 
 # libXML++ is used for parsing/writing XML files
 FIND_PACKAGE(PkgConfig REQUIRED)
