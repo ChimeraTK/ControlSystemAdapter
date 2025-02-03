@@ -163,6 +163,8 @@ struct RegisterDescriptorBase {
 
   ChimeraTK::AccessModeFlags supportedFlags() { return {ChimeraTK::AccessMode::wait_for_new_data}; }
 
+  size_t nElementsPerChannel() { return 1; }
+
   template<typename UserType>
   std::vector<std::vector<UserType>> generateValue() {
     ++counter;
