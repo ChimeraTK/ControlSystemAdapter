@@ -84,7 +84,7 @@ namespace ChimeraTK {
             "Creating a ChimeraTK::ApplicationFactory when a ChimeraTK::Application already exists is not "
             "allowed.");
       }
-      _factoryFunction = [=] { factoryFunctionImpl(args...); };
+      _factoryFunction = [this, args...] { factoryFunctionImpl(args...); };
     }
 
    protected:
