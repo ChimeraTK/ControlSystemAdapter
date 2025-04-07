@@ -1,16 +1,16 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_BIDIRECTIONAL_PROCESS_ARRAY_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_BIDIRECTIONAL_PROCESS_ARRAY_H
 
+#include "PersistentDataStorage.h"
+#include "UnidirectionalProcessArray.h"
+
+#include <boost/shared_ptr.hpp>
+
 #include <limits>
 #include <stdexcept>
 #include <typeinfo>
 #include <utility>
 #include <vector>
-
-#include <boost/shared_ptr.hpp>
-
-#include "PersistentDataStorage.h"
-#include "UnidirectionalProcessArray.h"
 
 namespace ChimeraTK {
 
@@ -85,8 +85,7 @@ namespace ChimeraTK {
   std::pair<typename ProcessArray<T>::SharedPtr, typename ProcessArray<T>::SharedPtr>
       createBidirectionalSynchronizedProcessArray(const std::vector<T>& initialValue,
           const ChimeraTK::RegisterPath& name = "", const std::string& unit = "", const std::string& description = "",
-          std::size_t numberOfBuffers = 3,
-          const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
+          std::size_t numberOfBuffers = 3, const AccessModeFlags& flags = {AccessMode::wait_for_new_data});
 
   /**
    * Implementation of the process array that transports data in both

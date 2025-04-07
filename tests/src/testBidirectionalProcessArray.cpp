@@ -1,11 +1,11 @@
 // Define a name for the test module.
 #define BOOST_TEST_MODULE BidirectionalProcessArrayTest
 // Only after defining the name include the unit test header.
+#include "BidirectionalProcessArray.h"
+
 #include <boost/test/included/unit_test.hpp>
 
 #include <tuple>
-
-#include "BidirectionalProcessArray.h"
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

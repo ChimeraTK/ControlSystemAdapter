@@ -73,13 +73,14 @@ struct TestApplicationFixture {
   void typedReadArrayTest(const std::string& typeNamePrefix) {
     UserType typeConstant = csManager->getProcessArray<UserType>(typeNamePrefix + "/DATA_TYPE_CONSTANT")->accessData(0);
     double typeIdentiyingDouble = toDouble(typeConstant);
-    
+
     auto inputArray = csManager->getProcessArray<UserType>(typeNamePrefix + "/CONSTANT_ARRAY");
     BOOST_REQUIRE(inputArray);
     for(size_t i = 0; i < inputArray->accessChannel(0).size(); ++i) {
       std::stringstream errorMessage;
       errorMessage << "check failed: " << typeNamePrefix + "/CONSTANT_ARRAY[" << i
-                   << "] = " << inputArray->accessChannel(0)[i] << ", expected " << toType<UserType>(typeIdentiyingDouble * i * i) << std::endl;
+                   << "] = " << inputArray->accessChannel(0)[i] << ", expected "
+                   << toType<UserType>(typeIdentiyingDouble * i * i) << std::endl;
       BOOST_CHECK_MESSAGE(
           toType<UserType>(typeIdentiyingDouble * i * i) == inputArray->accessChannel(0)[i], errorMessage.str());
     }
@@ -131,8 +132,10 @@ BOOST_FIXTURE_TEST_CASE(test_read_scalar, TestApplicationFixture) {
   BOOST_CHECK_EQUAL(csManager->getProcessArray<uint64_t>("ULONG/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 8);
   BOOST_CHECK_EQUAL(csManager->getProcessArray<float>("FLOAT/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 4);
   BOOST_CHECK_EQUAL(csManager->getProcessArray<double>("DOUBLE/DATA_TYPE_CONSTANT")->accessChannel(0)[0], 1. / 8);
-  BOOST_CHECK_EQUAL(csManager->getProcessArray<std::string>("STRING/DATA_TYPE_CONSTANT")->accessChannel(0)[0], std::to_string(42.));
-  BOOST_CHECK_EQUAL(csManager->getProcessArray<ChimeraTK::Boolean>("BOOLEAN/DATA_TYPE_CONSTANT")->accessChannel(0)[0], true);
+  BOOST_CHECK_EQUAL(
+      csManager->getProcessArray<std::string>("STRING/DATA_TYPE_CONSTANT")->accessChannel(0)[0], std::to_string(42.));
+  BOOST_CHECK_EQUAL(
+      csManager->getProcessArray<ChimeraTK::Boolean>("BOOLEAN/DATA_TYPE_CONSTANT")->accessChannel(0)[0], true);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_write_scalar, TestApplicationFixture) {

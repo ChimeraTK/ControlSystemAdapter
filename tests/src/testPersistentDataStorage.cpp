@@ -2,13 +2,13 @@
 #include <boost/test/included/unit_test.hpp>
 using namespace boost::unit_test_framework;
 
-#include <boost/filesystem.hpp>
-#include <boost/thread.hpp>
-
 #include <ChimeraTK/ControlSystemAdapter/ApplicationBase.h>
 #include <ChimeraTK/ControlSystemAdapter/ControlSystemPVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/PersistentDataStorage.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 
 using namespace ChimeraTK;
 
@@ -67,7 +67,6 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
     }
     auto myVar3stored = storage.retrieveValue<Boolean>(id3);
     BOOST_CHECK_EQUAL_COLLECTIONS(myVar3.begin(), myVar3.end(), myVar3stored.begin(), myVar3stored.end());
-
   }
   // the first PersistentDataStorage is destroyed at this point, in its destructor the file is written
 
@@ -91,7 +90,7 @@ BOOST_AUTO_TEST_CASE(testStoreAndRetrieve) {
       BOOST_CHECK_CLOSE(myVar2[i], -120 + 7 * i, 0.0001);
     }
 
-    //check /bool/MyVar3
+    // check /bool/MyVar3
     std::vector<Boolean> myVar3(4);
     int id3 = storage.registerVariable<Boolean>("/bool/MyVar3", 4);
     myVar3 = storage.retrieveValue<Boolean>(id3);
@@ -270,9 +269,9 @@ BOOST_AUTO_TEST_CASE(testUsageInPVManager) {
     auto v4dev = devManager->getProcessArray<uint32_t>("SomeBidirectionalVar");
     v4cs->readNonBlocking();
     v4dev->readNonBlocking();
-    for(uint32_t i = 0; i < 7; ++i){
-        BOOST_CHECK_EQUAL(v4cs->accessChannel(0)[i], i *12);
-        BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i *12);
+    for(uint32_t i = 0; i < 7; ++i) {
+      BOOST_CHECK_EQUAL(v4cs->accessChannel(0)[i], i * 12);
+      BOOST_CHECK_EQUAL(v4dev->accessChannel(0)[i], i * 12);
     }
   }
 }

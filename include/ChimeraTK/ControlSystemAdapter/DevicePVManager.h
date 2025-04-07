@@ -5,13 +5,13 @@ namespace ChimeraTK {
   class DevicePVManager;
 } // namespace ChimeraTK
 
-#include <map>
-#include <string>
+#include "PVManager.h"
+#include "SynchronizationDirection.h"
 
 #include <boost/shared_ptr.hpp>
 
-#include "PVManager.h"
-#include "SynchronizationDirection.h"
+#include <map>
+#include <string>
 
 namespace ChimeraTK {
 
@@ -111,7 +111,7 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&) or
      * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. 
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method.
      * Throws a logic_error if there is no process scalar or array with
      * the specified name. Also throws logic_error if there is a process
      * scalar or array with the specified name but its type does not match.
@@ -127,7 +127,7 @@ namespace ChimeraTK {
      * std::string&, T, bool, std::size_t, const AccessModeFlags&), or
      * createProcessArray(SynchronizationDirection, const
      * ChimeraTK::RegisterPath&, const std::vector<T>&, const std::string&, const
-     * std::string&, bool, std::size_t, const AccessModeFlags&) method. 
+     * std::string&, bool, std::size_t, const AccessModeFlags&) method.
      * Throws a logic_error if there is no process scalar or array with
      * the specified name. Also throws logic_error if there is a process
      * scalar or array with the specified name but its type does not match.

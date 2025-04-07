@@ -1,20 +1,20 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PV_MANAGER_H
 
-#include <list>
-#include <utility>
+#include "BidirectionalProcessArray.h"
+#include "ProcessVariable.h"
+#include "PVManagerDecl.h"
+#include "UnidirectionalProcessArray.h"
+
+#include <ChimeraTK/RegisterPath.h>
 
 #include <boost/lockfree/queue.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+
+#include <list>
 #include <map>
-
-#include <ChimeraTK/RegisterPath.h>
-
-#include "BidirectionalProcessArray.h"
-#include "PVManagerDecl.h"
-#include "UnidirectionalProcessArray.h"
-#include "ProcessVariable.h"
+#include <utility>
 
 namespace ChimeraTK {
 
@@ -149,7 +149,7 @@ namespace ChimeraTK {
 
     /**
      * Returns a reference to a process array that has been created earlier
-     * using one of the <code>createProcessArray...</code> methods. 
+     * using one of the <code>createProcessArray...</code> methods.
      * Throws a logic_error if there is a process scalar or array with the specified name but its type does not match.
      * A pair of two process arrays is returned: The first member of the pair is
      * a reference to the instance intended for the control system and the
