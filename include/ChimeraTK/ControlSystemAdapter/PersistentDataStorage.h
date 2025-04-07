@@ -1,19 +1,19 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PERSISTENT_DATA_STORAGE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PERSISTENT_DATA_STORAGE_H
 
+#include <ChimeraTK/cppext/future_queue.hpp>
+#include <ChimeraTK/RegisterPath.h>
+#include <ChimeraTK/SupportedUserTypes.h>
+
+#include <boost/fusion/include/for_each.hpp>
+#include <boost/thread.hpp>
+
 #include <algorithm>
 #include <iostream>
 #include <map>
 #include <string>
 #include <typeinfo>
 #include <vector>
-
-#include <boost/fusion/include/for_each.hpp>
-#include <boost/thread.hpp>
-
-#include <ChimeraTK/RegisterPath.h>
-#include <ChimeraTK/SupportedUserTypes.h>
-#include <ChimeraTK/cppext/future_queue.hpp>
 
 namespace xmlpp {
   class Element;
@@ -45,7 +45,6 @@ namespace ChimeraTK {
    */
   class PersistentDataStorage {
    public:
-
     /** unit in seconds */
     static const unsigned int DEFAULT_WRITE_INTERVAL{30}; // 30 seconds
 
@@ -107,18 +106,19 @@ namespace ChimeraTK {
     std::vector<std::type_info const*> _variableTypes;
 
     /** Thread safe queue for write to file thread. */
-    template <typename DataType> class Queue {
+    template<typename DataType>
+    class Queue {
       cppext::future_queue<std::vector<DataType>> _q;
       std::vector<DataType> _latestValue{};
 
-    public:
-     explicit Queue(size_t queueSize = 2) : _q(queueSize) {}
-     void pushOverwrite(const std::vector<DataType>& e) { _q.push_overwrite(e); }
-     std::vector<DataType>& readLatest() {
-       while(_q.pop(_latestValue)) {
-       }
-       return _latestValue;
-     }
+     public:
+      explicit Queue(size_t queueSize = 2) : _q(queueSize) {}
+      void pushOverwrite(const std::vector<DataType>& e) { _q.push_overwrite(e); }
+      std::vector<DataType>& readLatest() {
+        while(_q.pop(_latestValue)) {
+        }
+        return _latestValue;
+      }
     };
 
     /** Type definition for the map holding the values for one specific data type.
@@ -244,7 +244,7 @@ namespace ChimeraTK {
   /*********************************************************************************************************************/
 
   template<typename DataType>
-  void PersistentDataStorage::updateValue(int id, std::vector<DataType> const &value) {
+  void PersistentDataStorage::updateValue(int id, std::vector<DataType> const& value) {
     boost::fusion::at_key<DataType>(_dataMap.table)[id].pushOverwrite(value);
   }
 

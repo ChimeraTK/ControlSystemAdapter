@@ -1,18 +1,18 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_PROCESS_ARRAY_H
 
+#include "PersistentDataStorage.h"
+
+#include <ChimeraTK/NDRegisterAccessor.h>
+#include <ChimeraTK/VersionNumber.h>
+
+#include <boost/shared_ptr.hpp>
+
 #include <limits>
 #include <stdexcept>
 #include <typeinfo>
 #include <utility>
 #include <vector>
-
-#include <boost/shared_ptr.hpp>
-
-#include <ChimeraTK/NDRegisterAccessor.h>
-#include <ChimeraTK/VersionNumber.h>
-
-#include "PersistentDataStorage.h"
 
 namespace ChimeraTK {
 

@@ -23,7 +23,7 @@ namespace ChimeraTK {
   }
 
   template<>
-  inline ChimeraTK::Void toType<ChimeraTK::Void>([[maybe_unused]]double input) {
+  inline ChimeraTK::Void toType<ChimeraTK::Void>([[maybe_unused]] double input) {
     return {};
   }
 } // namespace ChimeraTK

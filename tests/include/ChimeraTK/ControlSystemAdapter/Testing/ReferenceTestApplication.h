@@ -166,9 +166,7 @@ class ReferenceTestApplication : public ChimeraTK::ApplicationBase {
   static std::vector<std::string> getFailedTransfers();
 
   /// Allow access to the list of unmapped variables by tests
-  void optimiseUnmappedVariables(const std::set<std::string>& vars) override {
-    unmappedVariables = vars;
-  }
+  void optimiseUnmappedVariables(const std::set<std::string>& vars) override { unmappedVariables = vars; }
   std::set<std::string> unmappedVariables;
 
  protected:

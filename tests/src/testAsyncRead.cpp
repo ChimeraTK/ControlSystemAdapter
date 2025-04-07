@@ -4,13 +4,13 @@
 
 #define BOOST_TEST_MODULE TestAsyncRead
 
-#include <boost/test/included/unit_test.hpp>
-#include <boost/thread.hpp>
+#include "UnidirectionalProcessArray.h"
 
 #include <ChimeraTK/Device.h>
 #include <ChimeraTK/ReadAnyGroup.h>
 
-#include "UnidirectionalProcessArray.h"
+#include <boost/test/included/unit_test.hpp>
+#include <boost/thread.hpp>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

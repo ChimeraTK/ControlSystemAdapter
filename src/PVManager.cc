@@ -1,8 +1,9 @@
-#include <list>
+#include "PVManager.h"
 
 #include "ControlSystemPVManager.h"
 #include "DevicePVManager.h"
-#include "PVManager.h"
+
+#include <list>
 
 namespace ChimeraTK {
 
@@ -35,7 +36,9 @@ namespace ChimeraTK {
         (processVariableName) + "'");
   }
 
-  const PVManager::ProcessVariableMap& PVManager::getAllProcessVariables() const { return _processVariables; }
+  const PVManager::ProcessVariableMap& PVManager::getAllProcessVariables() const {
+    return _processVariables;
+  }
 
   std::pair<shared_ptr<ControlSystemPVManager>, shared_ptr<DevicePVManager>> createPVManager() {
     // We cannot use boost::make_shared here, because we are using private

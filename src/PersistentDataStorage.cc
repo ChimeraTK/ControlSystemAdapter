@@ -8,6 +8,7 @@
 #include "PersistentDataStorage.h"
 
 #include "ApplicationBase.h"
+
 #include <libxml++/libxml++.h>
 #include <sys/stat.h>
 
@@ -117,7 +118,7 @@ namespace ChimeraTK {
 
   void PersistentDataStorage::readFromFile() {
     // check if file exists
-    struct stat buffer {};
+    struct stat buffer{};
     if(stat(_filename.c_str(), &buffer) != 0) {
       // file does not exist: print message and do nothing
       std::cerr << "ChimeraTK::PersistentDataStorage: Persistency file '" << _filename

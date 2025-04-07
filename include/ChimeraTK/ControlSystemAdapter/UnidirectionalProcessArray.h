@@ -1,19 +1,19 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_UNIDIRECTIONAL_PROCESS_ARRAY_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_UNIDIRECTIONAL_PROCESS_ARRAY_H
 
+#include "PersistentDataStorage.h"
+#include "ProcessArray.h"
+
+#include <ChimeraTK/VersionNumber.h>
+
+#include <boost/shared_ptr.hpp>
+
 #include <limits>
 #include <stdexcept>
 #include <thread>
 #include <typeinfo>
 #include <utility>
 #include <vector>
-
-#include <boost/shared_ptr.hpp>
-
-#include <ChimeraTK/VersionNumber.h>
-
-#include "PersistentDataStorage.h"
-#include "ProcessArray.h"
 
 namespace ChimeraTK {
 
@@ -363,7 +363,7 @@ namespace ChimeraTK {
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
     // Workaround
-    _intermedateBuffer.resize( ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() );
+    _intermedateBuffer.resize(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
     if(!this->isReadable()) {
@@ -407,7 +407,7 @@ namespace ChimeraTK {
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
     // Workaround
-    _intermedateBuffer.resize( ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() );
+    _intermedateBuffer.resize(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
   }
 
   /********************************************************************************************************************/
@@ -444,7 +444,7 @@ namespace ChimeraTK {
   // Workaround
   template<class T>
   void UnidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType type, VersionNumber) {
-    if (type == ChimeraTK::TransferType::write) {
+    if(type == ChimeraTK::TransferType::write) {
       assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _intermedateBuffer.size());
       ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_intermedateBuffer);
     }

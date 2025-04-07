@@ -2,11 +2,11 @@
 
 #define BOOST_TEST_MODULE IndependentControlCoreTest
 // Only after defining the name include the unit test header.
-#include <boost/test/included/unit_test.hpp>
+#include "IndependentControlCore.h"
 
 #include <ChimeraTK/ControlSystemAdapter/ControlSystemSynchronizationUtility.h>
 
-#include "IndependentControlCore.h"
+#include <boost/test/included/unit_test.hpp>
 
 using namespace boost::unit_test_framework;
 using namespace ChimeraTK;

@@ -5,10 +5,10 @@
 
 // FIXME: in a real example an installed version of the adapter has to be used,
 // which has the headers installed under the namespace folder
-//#include <ControlSystemAdapter/DevicePVManager.h>
-//#include <ControlSystemAdapter/ProcessScalar.h>
-//#include <ControlSystemAdapter/DeviceSynchronizationUtility.h>
-//#include <ControlSystemAdapter/SynchronizationDirection.h>
+// #include <ControlSystemAdapter/DevicePVManager.h>
+// #include <ControlSystemAdapter/ProcessScalar.h>
+// #include <ControlSystemAdapter/DeviceSynchronizationUtility.h>
+// #include <ControlSystemAdapter/SynchronizationDirection.h>
 #include <ChimeraTK/ControlSystemAdapter/DevicePVManager.h>
 #include <ChimeraTK/ControlSystemAdapter/DeviceSynchronizationUtility.h>
 #include <ChimeraTK/ControlSystemAdapter/ProcessScalar.h>
@@ -53,9 +53,8 @@ class IndependentControlCore {
    */
   IndependentControlCore(boost::shared_ptr<ChimeraTK::DevicePVManager> const& processVariableManager)
   // initialise all process variables, using the factory
-  : _processVariableManager(processVariableManager),
-    _targetVoltage(
-        processVariableManager->createProcessScalar<int>(ChimeraTK::controlSystemToDevice, "TARGET_VOLTAGE")),
+  : _processVariableManager(processVariableManager), _targetVoltage(processVariableManager->createProcessScalar<int>(
+                                                         ChimeraTK::controlSystemToDevice, "TARGET_VOLTAGE")),
     _monitorVoltage(
         processVariableManager->createProcessScalar<int>(ChimeraTK::deviceToControlSystem, "MONITOR_VOLTAGE")) {
     // initialise the hardware here

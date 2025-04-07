@@ -1,11 +1,11 @@
 #pragma once
 
+#include "StatusAccessorBase.h"
+
+#include <ChimeraTK/DataConsistencyGroup.h>
 #include <ChimeraTK/ForwardDeclarations.h>
 #include <ChimeraTK/RegisterPath.h>
 #include <ChimeraTK/ScalarRegisterAccessor.h>
-#include <ChimeraTK/DataConsistencyGroup.h>
-
-#include "StatusAccessorBase.h"
 
 namespace ChimeraTK {
 
@@ -66,7 +66,7 @@ namespace ChimeraTK {
 
   /**
    * This is for consistent readout of StatusWithMessage - DeviceAccess version.
-   *  It can be instantiated wih or without message string. 
+   *  It can be instantiated wih or without message string.
    *  If instantiated without message, the message is generated automatically from the status.
    */
   struct StatusWithMessageReader : StatusWithMessageReaderBase<StatusWithMessageReader> {

@@ -4,9 +4,9 @@
 #ifndef CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
 #define CHIMERA_TK_CONTROL_SYSTEM_ADAPTER_APPLICATION_BASE_H
 
-#include <mutex>
-
 #include "DevicePVManager.h"
+
+#include <mutex>
 
 namespace ChimeraTK {
 
@@ -39,10 +39,10 @@ namespace ChimeraTK {
 
     /** Optimise unmapped variables to avoid unnecessary copies. The application must implement this function. The
      *  ControlSystemAdapter implementation should call it with a list of PV names which are not mapped, i.e. the
-     *  Application does not need to update the values of these PVs. If this function is not called, no such optimisation
-     *  can be done and the application may have an increased CPU usage. If the function is called, it must be called
-     *  after initialise() and before run(). */
-    virtual void optimiseUnmappedVariables(const std::set<std::string> &unmappedVariables) { (void)unmappedVariables; }
+     *  Application does not need to update the values of these PVs. If this function is not called, no such
+     * optimisation can be done and the application may have an increased CPU usage. If the function is called, it must
+     * be called after initialise() and before run(). */
+    virtual void optimiseUnmappedVariables(const std::set<std::string>& unmappedVariables) { (void)unmappedVariables; }
 
     /** Run the application. This function must be implemented by the application
      * programmer. It will be called after initialise() and after all process
@@ -75,7 +75,8 @@ namespace ChimeraTK {
     [[nodiscard]] const std::string& getName() const { return _applicationName; }
 
     /** Obtain the PersistentDataStorage object. You can specify the write interval in seconds. */
-    boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage(unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
+    boost::shared_ptr<PersistentDataStorage> getPersistentDataStorage(
+        unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
       if(!_persistentDataStorage) {
         _persistentDataStorage.reset(new PersistentDataStorage(_applicationName, writeInterval));
       }
