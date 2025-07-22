@@ -23,6 +23,7 @@ template<class DataType>
 struct TypedPVHolder {
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceScalar;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceScalar;
+  typename ChimeraTK::ProcessArray<DataType>::SharedPtr bidirectionalScalar;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr toDeviceArray;
   typename ChimeraTK::ProcessArray<DataType>::SharedPtr fromDeviceArray;
   /** The "data type constant" is a value that depends on the data type. It is
@@ -45,6 +46,8 @@ struct TypedPVHolder {
         ChimeraTK::SynchronizationDirection::controlSystemToDevice, typeNamePrefix + "/TO_DEVICE_SCALAR", 1);
     fromDeviceScalar = processVariableManager->createProcessArray<DataType>(
         ChimeraTK::SynchronizationDirection::deviceToControlSystem, typeNamePrefix + "/FROM_DEVICE_SCALAR", 1);
+    bidirectionalScalar = processVariableManager->createProcessArray<DataType>(
+        ChimeraTK::SynchronizationDirection::bidirectional, typeNamePrefix + "/BIDIRECTIONAL", 1);
 
     if constexpr(!std::is_same_v<DataType, ChimeraTK::Void>) {
       toDeviceArray = processVariableManager->createProcessArray<DataType>(
@@ -99,6 +102,18 @@ struct TypedPVHolder {
       auto isDataLost = fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
       if(isDataLost) {
         failedTransfers.emplace_back(toDeviceScalar->getName());
+      }
+      bidirectionalScalar->accessChannel(0) = toDeviceScalar->accessChannel(0);
+      bidirectionalScalar->setDataValidity(validity);
+      bidirectionalScalar->write(version.value_or(ChimeraTK::VersionNumber()));
+    }
+
+    if(bidirectionalScalar->readLatest()) {
+      fromDeviceScalar->accessChannel(0) = bidirectionalScalar->accessChannel(0);
+      fromDeviceScalar->setDataValidity(validity);
+      auto isDataLost = fromDeviceScalar->write(version.value_or(ChimeraTK::VersionNumber()));
+      if(isDataLost) {
+        failedTransfers.emplace_back(bidirectionalScalar->getName());
       }
     }
 
