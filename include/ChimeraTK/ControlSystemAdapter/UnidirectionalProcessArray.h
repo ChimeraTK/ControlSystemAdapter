@@ -81,7 +81,7 @@ namespace ChimeraTK {
 
     void doPreWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
-    void doPostWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override; // Workaround
+    void doPostWrite(ChimeraTK::TransferType type, VersionNumber versionNumber) override;
 
     bool doWriteTransfer(ChimeraTK::VersionNumber versionNumber) override;
 
@@ -197,10 +197,9 @@ namespace ChimeraTK {
     Buffer _localBuffer;
 
     /**
-     * Workaround: Introduce this intermedate buffer due to failing testUnified, using content of buffer if
-     * writeDestructively. This conflicts with spec: "Applications still are not allowed
-     * to use the content of the application buffer after writeDestructively()."
-     * In writeInternal ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] was exchanged with _intermedateBuffer.
+     * This intermedate buffer is needed because the application buffer must not change during the write transfer even
+     * when writeDestructively is used. preWrite will swap into this buffer to avoid touching the application buffer
+     * during the transfer stage.
      */
     std::vector<T> _intermedateBuffer;
 
@@ -362,7 +361,6 @@ namespace ChimeraTK {
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = initialValue;
-    // Workaround
     _intermedateBuffer.resize(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
     // It would be better to do the validation before initializing, but this
     // would mean that we would have to initialize twice.
@@ -406,7 +404,6 @@ namespace ChimeraTK {
     // allocate and initialise buffer of the base class
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D.resize(1);
     ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0] = receiver->buffer_2D[0];
-    // Workaround
     _intermedateBuffer.resize(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
   }
 
@@ -435,19 +432,20 @@ namespace ChimeraTK {
                                    "to the current buffer has been modified. Variable name: " +
           this->getName());
     }
-    // Workaround
     assert(_intermedateBuffer.size() == ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size());
+
+    //
     _intermedateBuffer.swap(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0]);
   }
 
   /********************************************************************************************************************/
-  // Workaround
+
   template<class T>
-  void UnidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType type, VersionNumber) {
-    if(type == ChimeraTK::TransferType::write) {
-      assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _intermedateBuffer.size());
-      ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_intermedateBuffer);
-    }
+  void UnidirectionalProcessArray<T>::doPostWrite(ChimeraTK::TransferType, VersionNumber) {
+    assert(ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].size() == _intermedateBuffer.size());
+    // Swap back from intermediate buffer even for destructive writes, since the write transfer might have been skipped
+    // (cf. B.4.2.5)
+    ChimeraTK::NDRegisterAccessor<T>::buffer_2D[0].swap(_intermedateBuffer);
   }
 
   /********************************************************************************************************************/
