@@ -89,7 +89,7 @@ struct TypedPVHolder {
       dataTypeConstant->accessData(0) = ChimeraTK::toType<DataType>(typeIdentifyingConstant);
 
       for(size_t i = 0; i < constantArray->accessChannel(0).size(); ++i) {
-        constantArray->accessChannel(0)[i] = ChimeraTK::toType<DataType>(typeIdentifyingConstant * i * i);
+        constantArray->accessChannel(0)[i] = ChimeraTK::toType<DataType>(typeIdentifyingConstant * double(i * i));
       }
     }
   }
