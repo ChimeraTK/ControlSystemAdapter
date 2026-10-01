@@ -113,6 +113,12 @@ namespace ChimeraTK {
       _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeInterval);
     }
 
+    /**
+     * Set the persistent data storage for all process variables except those
+     * specified in the exclude list.
+     */
+    void setPersistentDataStorage(const std::vector<ProcessVariable::SharedPtr>& exclude) const;
+
    private:
     /**
      * Reference to the PVManager backing this facade for the control
