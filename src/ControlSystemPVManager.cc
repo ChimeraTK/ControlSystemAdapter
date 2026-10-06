@@ -9,11 +9,7 @@ namespace ChimeraTK {
 
   ProcessVariable::SharedPtr ControlSystemPVManager::getProcessVariable(
       const ChimeraTK::RegisterPath& processVariableName) const {
-    auto pv = _pvManager->getProcessVariable(processVariableName).first;
-    if(_persistentDataStorage && pv->isWriteable()) {
-      pv->setPersistentDataStorage(_persistentDataStorage);
-    }
-    return pv;
+    return _pvManager->getProcessVariable(processVariableName).first;
   }
 
   std::vector<ProcessVariable::SharedPtr> ControlSystemPVManager::getAllProcessVariables() const {
@@ -23,13 +19,21 @@ namespace ChimeraTK {
     // operations.
     csProcessVariables.reserve(processVariables.size());
     for(const auto& processVariable : processVariables) {
-      auto pv = processVariable.second.first;
-      if(_persistentDataStorage && pv->isWriteable()) {
-        pv->setPersistentDataStorage(_persistentDataStorage);
-      }
-      csProcessVariables.push_back(pv);
+      csProcessVariables.push_back(processVariable.second.first);
     }
     return csProcessVariables;
+  }
+
+  void ControlSystemPVManager::setPersistentDataStorage(const std::vector<ProcessVariable::SharedPtr>& exclude) const {
+    PVManager::ProcessVariableMap const& processVariables = _pvManager->getAllProcessVariables();
+    for(const auto& processVariable : processVariables) {
+      auto pv = processVariable.second.first;
+      if(_persistentDataStorage && pv->isWriteable()) {
+        if(std::find(exclude.begin(), exclude.end(), pv) == exclude.end()) {
+          pv->setPersistentDataStorage(_persistentDataStorage);
+        }
+      }
+    }
   }
 
 } // namespace ChimeraTK
