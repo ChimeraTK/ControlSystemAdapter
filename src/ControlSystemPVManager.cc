@@ -9,11 +9,7 @@ namespace ChimeraTK {
 
   ProcessVariable::SharedPtr ControlSystemPVManager::getProcessVariable(
       const ChimeraTK::RegisterPath& processVariableName) const {
-    auto pv = _pvManager->getProcessVariable(processVariableName).first;
-    if(_persistentDataStorage && pv->isWriteable()) {
-      pv->setPersistentDataStorage(_persistentDataStorage);
-    }
-    return pv;
+    return _pvManager->getProcessVariable(processVariableName).first;
   }
 
   std::vector<ProcessVariable::SharedPtr> ControlSystemPVManager::getAllProcessVariables() const {
@@ -23,9 +19,7 @@ namespace ChimeraTK {
     // operations.
     csProcessVariables.reserve(processVariables.size());
     for(const auto& processVariable : processVariables) {
-      auto pv = processVariable.second.first;
-
-      csProcessVariables.push_back(pv);
+      csProcessVariables.push_back(processVariable.second.first);
     }
     return csProcessVariables;
   }
