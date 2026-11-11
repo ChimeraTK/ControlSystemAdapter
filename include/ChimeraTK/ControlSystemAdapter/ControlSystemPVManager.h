@@ -8,7 +8,7 @@
 
 #include <list>
 #include <map>
-
+#include <set>
 namespace ChimeraTK {
 
   /**
@@ -108,16 +108,16 @@ namespace ChimeraTK {
      * Enable the persistent data storage system provided by the
      * ControlSystemAdapter. This function requires an existing instance of an
      * ApplicationBase class. You can specify the write interval in seconds.
-     */
-    void enablePersistentDataStorage(unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL) {
-      _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeInterval);
-    }
+     * This function reads persistent data from the application's persistent data storage file if available.
+     * This function must be called before running the application. Can be called before or after initialise().
+     * \param unmappedVariables A set of process variable names that should not be stored in the persistent. This is
+     useful if you have process variables that are not relevant for the application and also disabled by calling e.g.
+     optimiseUnmappedVariables(unmappedVariables).
 
-    /**
-     * Set the persistent data storage for all process variables except those
-     * specified in the exclude list.
+     * \param writeInterval The interval in seconds at which the persistent data storage should be written.
      */
-    void setPersistentDataStorage(const std::vector<ProcessVariable::SharedPtr>& exclude) const;
+    void enablePersistentDataStorage(const std::set<std::string>& unmappedVariables = {},
+        unsigned int writeInterval = PersistentDataStorage::DEFAULT_WRITE_INTERVAL);
 
    private:
     /**
@@ -128,12 +128,8 @@ namespace ChimeraTK {
 
     /**
      * All process variables should be registered in this persistent data storage.
-     * This member is mutable, since it is required in a non-const form inside
-     * const functions like getProcessArray(). The change of the persistent data
-     * storage object does not represent a state change which is visible to the
-     * outside, thus this is a legit use of the mutable qualifier.
      */
-    mutable boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
+    boost::shared_ptr<PersistentDataStorage> _persistentDataStorage;
   };
 
   template<class T>

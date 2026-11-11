@@ -24,12 +24,14 @@ namespace ChimeraTK {
     return csProcessVariables;
   }
 
-  void ControlSystemPVManager::setPersistentDataStorage(const std::vector<ProcessVariable::SharedPtr>& exclude) const {
+  void ControlSystemPVManager::enablePersistentDataStorage(
+      const std::set<std::string>& exclude, unsigned int writeInterval) {
+    _persistentDataStorage = ApplicationBase::getInstance().getPersistentDataStorage(writeInterval);
     PVManager::ProcessVariableMap const& processVariables = _pvManager->getAllProcessVariables();
     for(const auto& processVariable : processVariables) {
       auto pv = processVariable.second.first;
       if(_persistentDataStorage && pv->isWriteable()) {
-        if(std::find(exclude.begin(), exclude.end(), pv) == exclude.end()) {
+        if(std::find(exclude.begin(), exclude.end(), pv->getName()) == exclude.end()) {
           pv->setPersistentDataStorage(_persistentDataStorage);
         }
       }
