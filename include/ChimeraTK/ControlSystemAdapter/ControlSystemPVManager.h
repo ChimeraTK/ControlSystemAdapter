@@ -113,7 +113,6 @@ namespace ChimeraTK {
      * \param unmappedVariables A set of process variable names that should not be stored in the persistent. This is
      useful if you have process variables that are not relevant for the application and also disabled by calling e.g.
      optimiseUnmappedVariables(unmappedVariables).
-
      * \param writeInterval The interval in seconds at which the persistent data storage should be written.
      */
     void enablePersistentDataStorage(const std::set<std::string>& unmappedVariables = {},
