@@ -109,7 +109,7 @@ namespace ChimeraTK {
      * ControlSystemAdapter. This function requires an existing instance of an
      * ApplicationBase class. You can specify the write interval in seconds.
      * This function reads persistent data from the application's persistent data storage file if available.
-     * This function must be called before running the application. Can be called before or after initialise().
+     * This function must be called after initialise() and before running the application.
      * \param unmappedVariables A set of process variable names corresponding to PVs that are not used in this
      * application instance and are optimised out by calling `optimiseUnmappedVariables(unmappedVariables)`.
      * \param writeInterval The interval in seconds at which the persistent data storage should be written.
